@@ -16,11 +16,11 @@ export function VenuesSection() {
             <Link
               key={venue.id}
               href={`/matches?venue=${encodeURIComponent(venue.name)}`}
-              className="landing-match-card overflow-hidden p-0"
+              className="landing-match-card landing-venue-card overflow-hidden p-0"
             >
               <div style={{ position: "relative", height: "180px" }}>
                 <Image
-                  src={venue.image}
+                  src={venue.clubImage}
                   alt={venue.name}
                   fill
                   sizes="(max-width: 768px) 100vw, 33vw"
@@ -31,23 +31,12 @@ export function VenuesSection() {
                     position: "absolute",
                     inset: 0,
                     background:
-                      "linear-gradient(to top, rgba(15,22,41,0.7) 0%, transparent 50%)",
+                      "linear-gradient(to top, rgba(15,22,41,0.85) 0%, rgba(15,22,41,0.3) 55%, transparent 100%)",
                   }}
                 />
-                <h3
-                  style={{
-                    position: "absolute",
-                    bottom: "1rem",
-                    left: "1rem",
-                    right: "1rem",
-                    fontFamily: "var(--font-syne)",
-                    fontWeight: 700,
-                    fontSize: "1.1rem",
-                    color: "#ffffff",
-                  }}
-                >
+                <span className="venue-photo-overlay-title">
                   {venue.name}
-                </h3>
+                </span>
               </div>
               <div className="p-4">
                 <p className="landing-match-meta" style={{ marginBottom: "0.75rem" }}>

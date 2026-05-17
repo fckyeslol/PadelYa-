@@ -14,7 +14,7 @@ export function HeroSection() {
         minHeight: "min(85vh, 800px)",
       }}
     >
-      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-6 py-14 lg:grid-cols-2 lg:gap-12 lg:py-16">
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-6 pb-14 pt-10 lg:grid-cols-2 lg:gap-12 lg:pb-16 lg:pt-12">
         <div>
           <p className="landing-hero-badge mb-6">
             <span

@@ -21,10 +21,7 @@ export function SiteHeader({ profile }: Props) {
     <header
       style={
         isHome
-          ? {
-              background: "linear-gradient(180deg, #0d3a9e 0%, #1a4fd6 100%)",
-              borderBottom: "1px solid rgba(255,255,255,0.1)",
-            }
+          ? undefined
           : {
               background: "rgba(247,248,252,0.92)",
               backdropFilter: "blur(20px)",
@@ -33,9 +30,9 @@ export function SiteHeader({ profile }: Props) {
               boxShadow: "0 1px 16px rgba(30,58,110,0.06)",
             }
       }
-      className="sticky top-0 z-50"
+      className={`sticky top-0 z-50 ${isHome ? "site-header--home" : ""}`}
     >
-      <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5">
+      <nav className="mx-auto flex h-[3.75rem] max-w-6xl items-center justify-between px-5">
         <Link href="/" className="flex items-center gap-2.5">
           <Image
             src="/logo.png"

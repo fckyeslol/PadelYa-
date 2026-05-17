@@ -3,7 +3,10 @@
 export type VenueInfo = {
   id: string;
   name: string;
-  image: string;
+  /** Foto en la sección de clubes (landing arriba) */
+  clubImage: string;
+  /** Foto en tarjetas de partidos (landing abajo y listados) */
+  matchCardImage: string;
   bookingHint?: string;
 };
 
@@ -11,19 +14,22 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
   {
     id: "padel-zenter-del-rio",
     name: "Padel Zenter del Rio",
-    image: "/venues/padel-zenter-del-rio.jpg",
+    clubImage: "/venues/club-padel-zenter-del-rio.jpg",
+    matchCardImage: "/venues/padel-zenter-del-rio.jpg",
     bookingHint: "EasyCancha",
   },
   {
     id: "casa-padel",
     name: "Casa Padel",
-    image: "/venues/casa-padel.jpg",
+    clubImage: "/venues/club-casa-padel.jpg",
+    matchCardImage: "/venues/casa-padel.jpg",
     bookingHint: "ReservaDeportes",
   },
   {
     id: "padel-zenter",
     name: "Padel Zenter",
-    image: "/venues/padel-zenter.jpg",
+    clubImage: "/venues/club-padel-zenter.jpg",
+    matchCardImage: "/venues/padel-zenter.jpg",
     bookingHint: "EasyCancha",
   },
 ];
@@ -90,6 +96,13 @@ export function getVenueInfo(venueName: string): VenueInfo | null {
   return null;
 }
 
-export function getVenueImage(venueName: string): string | null {
-  return getVenueInfo(venueName)?.image ?? null;
+export type VenueImageVariant = "club" | "match";
+
+export function getVenueImage(
+  venueName: string,
+  variant: VenueImageVariant = "match",
+): string | null {
+  const info = getVenueInfo(venueName);
+  if (!info) return null;
+  return variant === "club" ? info.clubImage : info.matchCardImage;
 }

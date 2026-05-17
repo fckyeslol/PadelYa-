@@ -46,7 +46,7 @@ async function requestMagicLink(input: {
     return { ok: true };
   }
 
-  if (response.status === 503 && payload.fallback) {
+  if (payload.fallback) {
     return { ok: false, error: "", fallback: true };
   }
 

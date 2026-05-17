@@ -73,11 +73,16 @@ export async function POST(request: Request) {
       );
     }
 
-    await sendMagicLinkEmail({
-      to: normalizedEmail,
-      firstName: firstName.trim(),
-      actionLink,
-    });
+    try {
+      await sendMagicLinkEmail({
+        to: normalizedEmail,
+        firstName: firstName.trim(),
+        actionLink,
+      });
+    } catch (emailErr) {
+      console.error("[auth/magic-link] Resend failed, falling back to Supabase", emailErr);
+      return NextResponse.json({ fallback: true }, { status: 502 });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -91,16 +96,6 @@ export async function POST(request: Request) {
             "Falta SUPABASE_SERVICE_ROLE_KEY en el servidor. Configúrala en Vercel y vuelve a desplegar.",
         },
         { status: 500 },
-      );
-    }
-
-    if (message.includes("validation") || message.includes("domain")) {
-      return NextResponse.json(
-        {
-          error:
-            "Resend no pudo enviar el correo. Verifica tu dominio en Resend o usa RESEND_FROM_EMAIL con un remitente autorizado.",
-        },
-        { status: 502 },
       );
     }
 

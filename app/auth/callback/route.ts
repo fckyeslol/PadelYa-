@@ -8,6 +8,13 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/matches";
 
+  const authError = searchParams.get("error_description") ?? searchParams.get("error");
+  if (authError) {
+    return NextResponse.redirect(
+      `${origin}/login?error=auth_failed&detail=${encodeURIComponent(authError)}`,
+    );
+  }
+
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`);
   }
@@ -45,8 +52,9 @@ export async function GET(request: NextRequest) {
 
   try {
     await upsertProfile(user.id, { fullName });
-  } catch {
-    // Non-fatal: profile may already exist and be up to date
+  } catch (profileError) {
+    console.error("[auth/callback] profile upsert failed", profileError);
+    // Trigger on auth.users should have created the row; continue with session.
   }
 
   return response;

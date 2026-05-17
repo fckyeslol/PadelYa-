@@ -5,6 +5,18 @@ function required(name: string, value: string | undefined): string {
   return value;
 }
 
+function isConfigured(value: string | undefined): value is string {
+  return Boolean(value && value !== "placeholder");
+}
+
+/** True when Supabase public env vars are set (e.g. on Vercel). */
+export function isSupabaseConfigured(): boolean {
+  return (
+    isConfigured(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    isConfigured(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  );
+}
+
 export function getPublicSupabaseEnv() {
   return {
     url: required("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL),

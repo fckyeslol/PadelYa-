@@ -1,9 +1,26 @@
 import { AuthForm } from "@/components/AuthForm";
 
-type Props = { searchParams: Promise<{ next?: string }> };
+const LOGIN_ERRORS: Record<string, string> = {
+  missing_code: "El enlace de acceso no es válido o ya expiró. Solicita uno nuevo.",
+  auth_failed: "No pudimos completar el inicio de sesión. Intenta de nuevo.",
+};
+
+type Props = {
+  searchParams: Promise<{ next?: string; error?: string; detail?: string }>;
+};
 
 export default async function LoginPage({ searchParams }: Props) {
-  const { next } = await searchParams;
+  const { next, error, detail } = await searchParams;
+  let detailMessage: string | null = null;
+  if (detail) {
+    try {
+      detailMessage = decodeURIComponent(detail);
+    } catch {
+      detailMessage = detail;
+    }
+  }
+
+  const initialError = (error && LOGIN_ERRORS[error]) || detailMessage;
 
   return (
     <div
@@ -26,7 +43,7 @@ export default async function LoginPage({ searchParams }: Props) {
         }}
       />
       <div style={{ position: "relative", zIndex: 1 }}>
-        <AuthForm next={next} />
+        <AuthForm next={next} initialError={initialError} />
       </div>
     </div>
   );

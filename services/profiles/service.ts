@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/domain";
+import { isSupabaseConfigured } from "@/utils/env";
 import { sanitizeDisplayName } from "@/utils/name";
 
 type ProfileRow = {
@@ -29,6 +30,10 @@ function mapProfile(row: ProfileRow): Profile {
 }
 
 export async function getCurrentProfile() {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
   const supabase = await getSupabaseServerClient();
   const {
     data: { user },
@@ -41,7 +46,7 @@ export async function getCurrentProfile() {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, phone, whatsapp_phone, skill_level, role, strike_count, avatar_url, created_at",
+      "id, full_name, phone, whatsapp_phone, skill_level, role, strike_count, created_at, avatar_url",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -49,7 +54,33 @@ export async function getCurrentProfile() {
   if (error) {
     throw error;
   }
-  if (!data) return null;
+
+  if (!data) {
+    const meta = user.user_metadata ?? {};
+    const first = (meta.first_name as string | undefined)?.trim() ?? "";
+    const last = (meta.last_name as string | undefined)?.trim() ?? "";
+    const fromMeta = [first, last].filter(Boolean).join(" ");
+    const fallbackName =
+      fromMeta ||
+      sanitizeDisplayName(user.email?.split("@")[0] ?? "", "Jugador");
+
+    try {
+      await upsertProfile(user.id, { fullName: fallbackName });
+    } catch {
+      return null;
+    }
+
+    const { data: retry } = await supabase
+      .from("profiles")
+      .select(
+        "id, full_name, phone, whatsapp_phone, skill_level, role, strike_count, avatar_url, created_at",
+      )
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!retry) return null;
+    return mapProfile(retry as ProfileRow);
+  }
 
   const row = data as ProfileRow;
   const safeName = sanitizeDisplayName(row.full_name, "Jugador");

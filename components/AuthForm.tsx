@@ -5,12 +5,35 @@ import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 
-export function AuthForm({ next }: { next?: string }) {
+function mapAuthError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("rate limit") || lower.includes("too many")) {
+    return "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.";
+  }
+  if (lower.includes("signup") && lower.includes("disabled")) {
+    return "El registro está deshabilitado en el servidor. Contacta al administrador.";
+  }
+  if (lower.includes("redirect") || lower.includes("url")) {
+    return "La URL de retorno no está autorizada. Revisa la configuración de Supabase.";
+  }
+  if (lower.includes("invalid") && lower.includes("email")) {
+    return "Correo no válido. Revisa que esté bien escrito.";
+  }
+  return message;
+}
+
+export function AuthForm({
+  next,
+  initialError,
+}: {
+  next?: string;
+  initialError?: string | null;
+}) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [pending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(initialError ?? null);
   const [sent, setSent] = useState(false);
 
   const canSubmit = email && firstName && lastName && !pending;
@@ -22,9 +45,12 @@ export function AuthForm({ next }: { next?: string }) {
         ? `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`
         : undefined;
 
+      const normalizedEmail = email.trim().toLowerCase();
+
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: normalizedEmail,
         options: {
+          shouldCreateUser: true,
           emailRedirectTo: callbackUrl,
           data: {
             first_name: firstName.trim(),
@@ -34,9 +60,11 @@ export function AuthForm({ next }: { next?: string }) {
       });
 
       if (error) {
-        setMessage(error.message);
+        setMessage(mapAuthError(error.message));
         return;
       }
+
+      setEmail(normalizedEmail);
 
       setSent(true);
       setMessage(null);

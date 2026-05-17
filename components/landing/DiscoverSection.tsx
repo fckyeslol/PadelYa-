@@ -8,8 +8,8 @@ const CARDS = [
     title: "Partidos abiertos",
     description:
       "Encuentra cupos libres, filtra por nivel y únete en minutos.",
-    image: "/venues/club-padel-zenter-del-rio.jpg",
-    imageAlt: "Jugadores en cancha de pádel en Barranquilla",
+    image: "/landing/photo-02.jpg",
+    imageAlt: "Canchas de pádel cubiertas en Barranquilla",
   },
   {
     href: "/players",
@@ -17,8 +17,8 @@ const CARDS = [
     title: "Comunidad",
     description:
       "Perfiles, nivel y historial para armar el partido ideal.",
-    image: "/hero-player.jpg",
-    imageAlt: "Jugador de pádel en Barranquilla",
+    image: "/landing/photo-03.jpg",
+    imageAlt: "Jugadores en partido de pádel al aire libre",
   },
   {
     href: "/matches/new",
@@ -26,8 +26,8 @@ const CARDS = [
     title: "Abre tu partido",
     description:
       "Tienes cancha reservada. Publica, cobra cupos y llena la lista.",
-    image: "/venues/club-padel-zenter.jpg",
-    imageAlt: "Instalación de pádel cubierta",
+    image: "/landing/photo-04.jpg",
+    imageAlt: "Club de pádel con varias canchas",
   },
 ];
 

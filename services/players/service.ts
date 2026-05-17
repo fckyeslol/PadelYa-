@@ -1,0 +1,161 @@
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import type {
+  CommunityPlayerCard,
+  PlayerMatchHistoryItem,
+  PublicPlayerProfile,
+} from "@/types/domain";
+import { sanitizeDisplayName } from "@/utils/name";
+
+type ProfileRow = {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+  skill_level: "beginner" | "intermediate" | "advanced";
+  whatsapp_phone: string | null;
+  created_at: string;
+};
+
+type MatchHistoryRow = {
+  joined_at: string;
+  status: "pending_payment" | "paid" | "cancelled" | "cancelled_late" | "no_show";
+  match_id: string;
+  matches:
+    | {
+        id: string;
+        venue_name: string;
+        scheduled_at: string;
+        skill_level: "beginner" | "intermediate" | "advanced";
+        status:
+          | "pending_court"
+          | "open"
+          | "full"
+          | "confirmed"
+          | "completed"
+          | "cancelled_unfilled"
+          | "cancelled_by_organizer";
+        org_fee_cop: number;
+      }
+    | null;
+};
+
+export async function getPublicPlayerProfile(
+  playerId: string,
+): Promise<PublicPlayerProfile | null> {
+  const supabase = getSupabaseAdminClient();
+
+  const [{ data: profile, error: profileError }, { count: matchesPlayed }, { data: upcomingRows }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, skill_level, whatsapp_phone, created_at")
+        .eq("id", playerId)
+        .maybeSingle(),
+      supabase
+        .from("match_players")
+        .select("id", { head: true, count: "exact" })
+        .eq("player_id", playerId)
+        .eq("status", "paid"),
+      supabase
+        .from("match_players")
+        .select("matches(scheduled_at, status)")
+        .eq("player_id", playerId)
+        .in("status", ["paid", "pending_payment"]),
+    ]);
+
+  if (profileError) throw profileError;
+  if (!profile) return null;
+
+  const now = Date.now();
+  const upcomingMatches = (upcomingRows ?? []).filter((row) => {
+    const relation = (row as { matches?: unknown }).matches;
+    const match = Array.isArray(relation)
+      ? ((relation[0] ?? null) as { scheduled_at?: string; status?: string } | null)
+      : (relation as { scheduled_at?: string; status?: string } | null);
+    if (!match) return false;
+    if (!match.scheduled_at || !match.status) return false;
+    if (match.status !== "open" && match.status !== "full" && match.status !== "confirmed")
+      return false;
+    return new Date(match.scheduled_at).getTime() > now;
+  }).length;
+
+  const row = profile as ProfileRow;
+  return {
+    id: row.id,
+    fullName: sanitizeDisplayName(row.full_name, "Jugador"),
+    avatarUrl: row.avatar_url,
+    skillLevel: row.skill_level,
+    whatsappPhone: row.whatsapp_phone,
+    memberSince: row.created_at,
+    matchesPlayed: matchesPlayed ?? 0,
+    upcomingMatches,
+  };
+}
+
+export async function getPlayerMatchHistory(
+  playerId: string,
+  limit = 20,
+): Promise<PlayerMatchHistoryItem[]> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("match_players")
+    .select(
+      "match_id, joined_at, status, matches(id, venue_name, scheduled_at, skill_level, status, org_fee_cop)",
+    )
+    .eq("player_id", playerId)
+    .order("joined_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+
+  return ((data ?? []) as unknown as MatchHistoryRow[])
+    .filter((row) => row.matches)
+    .map((row) => ({
+      matchId: row.match_id,
+      venueName: row.matches!.venue_name,
+      scheduledAt: row.matches!.scheduled_at,
+      skillLevel: row.matches!.skill_level,
+      status: row.matches!.status,
+      playerStatus: row.status,
+      joinedAt: row.joined_at,
+      orgFeeCop: row.matches!.org_fee_cop,
+    }));
+}
+
+export async function listCommunityPlayers(limit = 30): Promise<CommunityPlayerCard[]> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("match_players")
+    .select("player_id, joined_at, profiles(full_name, avatar_url, skill_level)")
+    .in("status", ["paid", "pending_payment"])
+    .order("joined_at", { ascending: false })
+    .limit(limit * 3);
+
+  if (error) throw error;
+
+  const seen = new Set<string>();
+  const players: CommunityPlayerCard[] = [];
+
+  for (const row of (data ?? []) as Array<{
+    player_id: string;
+    joined_at: string;
+    profiles:
+      | { full_name: string; avatar_url: string | null; skill_level: "beginner" | "intermediate" | "advanced" }
+      | Array<{ full_name: string; avatar_url: string | null; skill_level: "beginner" | "intermediate" | "advanced" }>
+      | null;
+  }>) {
+    if (seen.has(row.player_id)) continue;
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    if (!profile) continue;
+    seen.add(row.player_id);
+    players.push({
+      id: row.player_id,
+      fullName: sanitizeDisplayName(profile.full_name, "Jugador"),
+      avatarUrl: profile.avatar_url,
+      skillLevel: profile.skill_level,
+      lastSeenAt: row.joined_at,
+    });
+    if (players.length >= limit) break;
+  }
+
+  return players;
+}

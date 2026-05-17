@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { UserButton } from "@/components/UserButton";
 
 type Props = {
@@ -16,6 +17,26 @@ type Props = {
 export function SiteHeader({ profile }: Props) {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const [homeScrolled, setHomeScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!isHome) {
+      setHomeScrolled(false);
+      return;
+    }
+
+    const onScroll = () => {
+      setHomeScrolled(window.scrollY > 48);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
+
+  const homeHeaderClass = isHome
+    ? `site-header--home${homeScrolled ? " site-header--home-scrolled" : ""}`
+    : "";
 
   return (
     <header
@@ -30,7 +51,7 @@ export function SiteHeader({ profile }: Props) {
               boxShadow: "0 1px 16px rgba(30,58,110,0.06)",
             }
       }
-      className={`sticky top-0 z-50 ${isHome ? "site-header--home" : ""}`}
+      className={`sticky top-0 z-50 ${homeHeaderClass}`}
     >
       <nav className="mx-auto flex h-[3.75rem] max-w-6xl items-center justify-between px-5">
         <Link href="/" className="flex items-center gap-2.5">

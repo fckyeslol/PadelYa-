@@ -229,52 +229,37 @@ input[type="time"].input-base {
   background: #ffffff;
 }
 
-/* Navbar sobre el hero (home) — separado del fondo azul del hero */
-.site-header--home {
-  background: rgba(6, 16, 42, 0.72) !important;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 12px 40px rgba(0, 0, 0, 0.28);
+/* Misma franja azul que el hero (estilo Playtomic) */
+:root {
+  --landing-hero-gradient: linear-gradient(
+    155deg,
+    #0a2f7a 0%,
+    #0d3a9e 35%,
+    #1a4fd6 100%
+  );
+  --site-header-height: 3.75rem;
 }
 
-.site-header--home::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(200, 241, 53, 0.45) 50%,
-    transparent 100%
-  );
-  pointer-events: none;
+.site-header--home {
+  background: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+.site-header--home.site-header--home-scrolled {
+  background: var(--landing-hero-gradient) !important;
+}
+
+.landing-page .landing-hero {
+  margin-top: calc(-1 * var(--site-header-height));
+  padding-top: var(--site-header-height);
 }
 
 .landing-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(155deg, #0a2f7a 0%, #0d3a9e 35%, #1a4fd6 100%) !important;
+  background: var(--landing-hero-gradient) !important;
   color: #ffffff !important;
-}
-
-.landing-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 140px;
-  background: linear-gradient(
-    180deg,
-    rgba(4, 12, 32, 0.45) 0%,
-    transparent 100%
-  );
-  pointer-events: none;
-  z-index: 0;
 }
 
 .landing-hero h1,

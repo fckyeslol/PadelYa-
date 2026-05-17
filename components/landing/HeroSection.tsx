@@ -6,15 +6,8 @@ const HERO_IMAGE = "/hero-player.jpg";
 
 export function HeroSection() {
   return (
-    <section
-      className="landing-hero"
-      style={{
-        background:
-          "linear-gradient(155deg, #0a2f7a 0%, #0d3a9e 35%, #1a4fd6 100%)",
-        minHeight: "min(85vh, 800px)",
-      }}
-    >
-      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-6 pb-14 pt-10 lg:grid-cols-2 lg:gap-12 lg:pb-16 lg:pt-12">
+    <section className="landing-hero" style={{ minHeight: "min(85vh, 800px)" }}>
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-6 py-14 lg:grid-cols-2 lg:gap-12 lg:py-16">
         <div>
           <p className="landing-hero-badge mb-6">
             <span

@@ -19,7 +19,41 @@ function mapAuthError(message: string): string {
   if (lower.includes("invalid") && lower.includes("email")) {
     return "Correo no válido. Revisa que esté bien escrito.";
   }
+  if (lower.includes("confirmation email") || lower.includes("sending email")) {
+    return "No pudimos enviar el correo de acceso. Reintenta en unos minutos o contacta soporte si persiste.";
+  }
   return message;
+}
+
+async function requestMagicLink(input: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  next?: string;
+}): Promise<{ ok: true } | { ok: false; error: string; fallback?: boolean }> {
+  const response = await fetch("/api/auth/magic-link", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    fallback?: boolean;
+  };
+
+  if (response.ok) {
+    return { ok: true };
+  }
+
+  if (response.status === 503 && payload.fallback) {
+    return { ok: false, error: "", fallback: true };
+  }
+
+  return {
+    ok: false,
+    error: payload.error ?? "No pudimos enviar el correo. Intenta de nuevo.",
+  };
 }
 
 export function AuthForm({
@@ -46,6 +80,27 @@ export function AuthForm({
         : undefined;
 
       const normalizedEmail = email.trim().toLowerCase();
+      const trimmedFirst = firstName.trim();
+      const trimmedLast = lastName.trim();
+
+      const viaResend = await requestMagicLink({
+        email: normalizedEmail,
+        firstName: trimmedFirst,
+        lastName: trimmedLast,
+        next,
+      });
+
+      if (viaResend.ok) {
+        setEmail(normalizedEmail);
+        setSent(true);
+        setMessage(null);
+        return;
+      }
+
+      if (!viaResend.fallback) {
+        setMessage(mapAuthError(viaResend.error));
+        return;
+      }
 
       const { error } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
@@ -53,8 +108,8 @@ export function AuthForm({
           shouldCreateUser: true,
           emailRedirectTo: callbackUrl,
           data: {
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
+            first_name: trimmedFirst,
+            last_name: trimmedLast,
           },
         },
       });

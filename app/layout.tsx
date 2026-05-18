@@ -29,6 +29,13 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "PadelYa! — El pádel de Barranquilla",
   description: "Encuentra partidos de pádel abiertos en Barranquilla. Únete, paga y juega.",
+  manifest: "/manifest.json",
+  themeColor: "#10B981",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PadelYa!",
+  },
 };
 
 export default async function RootLayout({

@@ -92,6 +92,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
     set3_team1?: number | null; set3_team2?: number | null;
     winner_team: number;
   } | null = null;
+  let myRefund: { status: string; amount_cop: number; reason: string } | null = null;
 
   try {
     const supabase = await getSupabaseServerClient();
@@ -130,6 +131,21 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
       .maybeSingle();
 
     existingResult = res ?? null;
+
+    // Load refund status for this player in this match
+    if (user) {
+      const { data: refundData } = await supabase
+        .from("payments")
+        .select("refunds(status, amount_cop, reason)")
+        .eq("match_id", matchId)
+        .eq("player_id", user.id)
+        .maybeSingle();
+      const refundRow = refundData?.refunds;
+      if (refundRow) {
+        const r = Array.isArray(refundRow) ? refundRow[0] : refundRow;
+        if (r) myRefund = r as { status: string; amount_cop: number; reason: string };
+      }
+    }
   } catch (error) {
     setupError =
       error instanceof Error ? error.message : "Supabase is not configured yet.";
@@ -200,6 +216,9 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
 
         {/* Payment status banner */}
         <PaymentStatusBanner status={query.payment} />
+
+        {/* Refund status banner */}
+        {myRefund && <RefundStatusBanner refund={myRefund} />}
 
         {/* Match hero card */}
         <div
@@ -340,7 +359,11 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
                 <WompiCheckoutButton matchId={match!.id} orgFeeCop={match!.orgFeeCop} />
                 {isParticipant && (
                   <div style={{ marginTop: "0.25rem" }}>
-                    <CancelSpotButton matchId={match!.id} />
+                    <CancelSpotButton
+                      matchId={match!.id}
+                      scheduledAt={match!.scheduledAt}
+                      matchStatus={match!.status}
+                    />
                   </div>
                 )}
               </div>
@@ -400,6 +423,32 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
 
         {/* Cancellation policy */}
         <CancellationPolicyNotice />
+
+        {/* Host edit link */}
+        {user?.id === match!.hostPlayerId && ["pending_court", "open"].includes(match!.status) && (
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Link
+              href={`/matches/${match!.id}/edit`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                fontSize: "0.82rem",
+                color: "var(--text-2)",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                padding: "0.4rem 0.875rem",
+                fontFamily: "var(--font-dm-sans)",
+                fontWeight: 500,
+                textDecoration: "none",
+                background: "var(--card)",
+              }}
+            >
+              <EditIcon />
+              Editar partido
+            </Link>
+          </div>
+        )}
 
         {/* Organizer panel */}
         {profile?.role === "organizer" && (
@@ -541,6 +590,69 @@ function ResultDisplay({ result }: {
       <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--primary)", fontFamily: "var(--font-dm-sans)" }}>
         Ganó Pareja {result.winner_team}
       </p>
+    </div>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+    </svg>
+  );
+}
+
+function RefundStatusBanner({ refund }: { refund: { status: string; amount_cop: number; reason: string } }) {
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
+
+  const configs: Record<string, { bg: string; border: string; icon: string; label: string; detail: string }> = {
+    pending_manual: {
+      bg: "rgba(251,191,36,0.06)",
+      border: "rgba(251,191,36,0.25)",
+      icon: "🕐",
+      label: "Reembolso en proceso",
+      detail: `Estamos procesando tu devolución de ${fmt(refund.amount_cop)}. Puede tardar 24–72 horas hábiles.`,
+    },
+    processed: {
+      bg: "rgba(16,185,129,0.06)",
+      border: "rgba(16,185,129,0.2)",
+      icon: "✅",
+      label: "Reembolso procesado",
+      detail: `Tu devolución de ${fmt(refund.amount_cop)} fue procesada. Revisa tu método de pago original.`,
+    },
+    rejected: {
+      bg: "rgba(239,68,68,0.06)",
+      border: "rgba(239,68,68,0.2)",
+      icon: "❌",
+      label: "Reembolso rechazado",
+      detail: "Tu solicitud de reembolso no pudo ser procesada. Contáctanos si crees que es un error.",
+    },
+  };
+
+  const cfg = configs[refund.status] ?? configs.pending_manual;
+
+  return (
+    <div
+      style={{
+        background: cfg.bg,
+        border: `1px solid ${cfg.border}`,
+        borderRadius: "14px",
+        padding: "1rem 1.25rem",
+        display: "flex",
+        gap: "0.75rem",
+        alignItems: "flex-start",
+      }}
+    >
+      <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>{cfg.icon}</span>
+      <div>
+        <p style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--text)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>
+          {cfg.label}
+        </p>
+        <p style={{ fontSize: "0.8rem", color: "var(--text-2)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+          {cfg.detail}
+        </p>
+      </div>
     </div>
   );
 }

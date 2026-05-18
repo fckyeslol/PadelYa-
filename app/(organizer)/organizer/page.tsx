@@ -1,9 +1,11 @@
 import { AnalyticsKpiCards } from "@/components/organizer/AnalyticsKpiCards";
 import { OrganizerMatchTable } from "@/components/organizer/OrganizerMatchTable";
+import { OrganizerRefundTable } from "@/components/organizer/OrganizerRefundTable";
 import { redirect } from "next/navigation";
 import { requireOrganizerUser } from "@/lib/auth/organizer";
 import { getOrganizerKpis } from "@/services/analytics/service";
 import { listOpenMatches } from "@/services/matches/service";
+import { listAllRefunds } from "@/services/refunds/service";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +44,11 @@ export default async function OrganizerPage() {
     );
   }
 
-  const [matches, analytics] = await Promise.all([listOpenMatches(), getOrganizerKpis()]);
+  const [matches, analytics, refunds] = await Promise.all([
+    listOpenMatches(),
+    getOrganizerKpis(),
+    listAllRefunds().catch(() => []),
+  ]);
   const latestFunnel = analytics.funnel[0];
   const completedMatches = Number(latestFunnel?.matches_completed ?? 0);
   const createdMatches = Number(latestFunnel?.matches_created ?? 0);
@@ -136,6 +142,48 @@ export default async function OrganizerPage() {
             Partidos activos
           </h2>
           <OrganizerMatchTable matches={matches} />
+        </section>
+
+        <section>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+            <h2
+              style={{
+                fontFamily: "var(--font-syne)",
+                fontWeight: 700,
+                fontSize: "1.1rem",
+                color: "var(--text)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Reembolsos
+            </h2>
+            {refunds.filter((r) => r.status === "pending_manual").length > 0 && (
+              <span
+                style={{
+                  background: "rgba(251,191,36,0.15)",
+                  color: "var(--gold)",
+                  border: "1px solid rgba(251,191,36,0.3)",
+                  borderRadius: "999px",
+                  padding: "0.2rem 0.65rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  fontFamily: "var(--font-dm-sans)",
+                }}
+              >
+                {refunds.filter((r) => r.status === "pending_manual").length} pendiente{refunds.filter((r) => r.status === "pending_manual").length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          <div
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: "16px",
+              padding: "1.25rem",
+            }}
+          >
+            <OrganizerRefundTable refunds={refunds} />
+          </div>
         </section>
       </div>
     </div>

@@ -269,12 +269,13 @@ input[type="time"].input-base {
 }
 
 .landing-hero-title {
-  font-family: var(--font-syne);
-  font-weight: 800;
-  font-size: clamp(2.25rem, 5vw, 3.5rem);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
+  font-family: var(--font-montserrat);
+  font-weight: 900;
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
   color: #ffffff !important;
+  text-transform: uppercase;
 }
 
 .landing-hero-title em {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Syne, DM_Sans } from "next/font/google";
+import { Syne, DM_Sans, Montserrat } from "next/font/google";
 import Link from "next/link";
 import { getCurrentProfile } from "@/services/profiles/service";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -19,6 +19,13 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
+  subsets: ["latin"],
+  weight: ["700", "800", "900"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "PadelYa! — El pádel de Barranquilla",
   description: "Encuentra partidos de pádel abiertos en Barranquilla. Únete, paga y juega.",
@@ -32,7 +39,7 @@ export default async function RootLayout({
   const profile = await getCurrentProfile().catch(() => null);
 
   return (
-    <html lang="es" className={`${syne.variable} ${dmSans.variable} h-full`}>
+    <html lang="es" className={`${syne.variable} ${dmSans.variable} ${montserrat.variable} h-full`}>
       <body className="min-h-full flex flex-col">
         <SiteHeader
           profile={

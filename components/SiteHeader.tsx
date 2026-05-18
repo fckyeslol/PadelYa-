@@ -123,7 +123,7 @@ export function SiteHeader({ profile }: Props) {
 
           {/* Hamburger — mobile only */}
           <button
-            className="md:hidden"
+            className="md:hidden flex items-center"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={mobileOpen}
@@ -133,8 +133,6 @@ export function SiteHeader({ profile }: Props) {
               cursor: "pointer",
               padding: "0.4rem",
               color: isHome ? "#ffffff" : "var(--text)",
-              display: "flex",
-              alignItems: "center",
               borderRadius: "8px",
             }}
           >

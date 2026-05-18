@@ -1,11 +1,33 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { getPublicSupabaseEnv } from "@/utils/env";
 import { upsertProfile } from "@/services/profiles/service";
+
+function createCallbackSupabase(
+  request: NextRequest,
+  response: NextResponse,
+) {
+  const { url, anonKey } = getPublicSupabaseEnv();
+  return createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type");
   const next = searchParams.get("next") ?? "/matches";
 
   const authError = searchParams.get("error_description") ?? searchParams.get("error");
@@ -15,47 +37,52 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=missing_code`);
-  }
-
-  // Create the redirect response FIRST so we can attach session cookies to it
   const response = NextResponse.redirect(`${origin}${next}`);
+  const supabase = createCallbackSupabase(request, response);
 
-  const { url, anonKey } = getPublicSupabaseEnv();
-  const supabase = createServerClient(url, anonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        // In Next.js 16, response cookies are enough for the redirect session handoff.
-        cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options);
-        });
-      },
-    },
-  });
-
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-  if (error || !data.user) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+  if (code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error || !data.user) {
+      console.error("[auth/callback] exchangeCodeForSession", error);
+      return NextResponse.redirect(
+        `${origin}/login?error=auth_failed&detail=${encodeURIComponent(error?.message ?? "session")}`,
+      );
+    }
+    await ensureProfile(data.user.id, data.user.user_metadata, data.user.email);
+    return response;
   }
 
-  const user = data.user;
-  const meta = user.user_metadata ?? {};
+  if (tokenHash && type) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type as EmailOtpType,
+    });
 
+    if (error || !data.user) {
+      console.error("[auth/callback] verifyOtp", error);
+      return NextResponse.redirect(
+        `${origin}/login?error=auth_failed&detail=${encodeURIComponent(error?.message ?? "otp")}`,
+      );
+    }
+    await ensureProfile(data.user.id, data.user.user_metadata, data.user.email);
+    return response;
+  }
+
+  return NextResponse.redirect(`${origin}/login?error=missing_code`);
+}
+
+async function ensureProfile(
+  userId: string,
+  meta: Record<string, unknown>,
+  email: string | undefined,
+) {
   const firstName = (meta.first_name as string | undefined)?.trim() ?? "";
   const lastName = (meta.last_name as string | undefined)?.trim() ?? "";
-  const fullName = [firstName, lastName].filter(Boolean).join(" ") || (user.email ?? "");
+  const fullName = [firstName, lastName].filter(Boolean).join(" ") || (email ?? "");
 
   try {
-    await upsertProfile(user.id, { fullName });
+    await upsertProfile(userId, { fullName });
   } catch (profileError) {
     console.error("[auth/callback] profile upsert failed", profileError);
-    // Trigger on auth.users should have created the row; continue with session.
   }
-
-  return response;
 }

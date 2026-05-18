@@ -4,7 +4,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sendMagicLinkEmail } from "@/services/notifications/auth-email";
 import {
   buildAuthCallbackUrl,
-  normalizeSupabaseActionLink,
+  buildMagicLinkFromHashedToken,
   resolveAuthRedirectOrigin,
 } from "@/utils/auth-url";
 import { getResendEnv } from "@/utils/env";
@@ -63,15 +63,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const rawActionLink = data.properties?.action_link;
-    if (!rawActionLink) {
+    const hashedToken = data.properties?.hashed_token;
+    if (!hashedToken) {
       return NextResponse.json(
-        { error: "No se recibió el link de acceso." },
+        { error: "No se recibió el token de acceso." },
         { status: 500 },
       );
     }
 
-    const actionLink = normalizeSupabaseActionLink(rawActionLink, redirectTo);
+    const actionLink = buildMagicLinkFromHashedToken(redirectTo, hashedToken);
 
     try {
       await sendMagicLinkEmail({

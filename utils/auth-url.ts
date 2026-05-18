@@ -64,17 +64,15 @@ export function buildAuthCallbackUrl(origin: string, next?: string): string {
 }
 
 /** Client-side callback URL for signInWithOtp. */
-/** Supabase may embed Site URL in action_link; force our production callback. */
-export function normalizeSupabaseActionLink(actionLink: string, redirectTo: string): string {
-  try {
-    const url = new URL(actionLink);
-    if (url.searchParams.has("redirect_to")) {
-      url.searchParams.set("redirect_to", redirectTo);
-    }
-    return url.toString();
-  } catch {
-    return actionLink;
-  }
+/** Direct app link using hashed_token (avoids broken redirect_to / localhost). */
+export function buildMagicLinkFromHashedToken(
+  callbackUrl: string,
+  hashedToken: string,
+): string {
+  const url = new URL(callbackUrl);
+  url.searchParams.set("token_hash", hashedToken);
+  url.searchParams.set("type", "magiclink");
+  return url.toString();
 }
 
 export function getClientAuthCallbackUrl(next?: string): string | undefined {

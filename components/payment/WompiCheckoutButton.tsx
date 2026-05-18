@@ -148,7 +148,7 @@ export function WompiCheckoutButton({ matchId, orgFeeCop }: Props) {
         ) : (
           <>
             <LockIcon />
-            Reservar cupo y pagar
+            {orgFeeCop != null ? `Reservar cupo · ${fmt(totalCop)}` : "Reservar cupo y pagar"}
           </>
         )}
       </Button>

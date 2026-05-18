@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { CancellationPolicyNotice } from "@/components/match/CancellationPolicyNotice";
 import { CancelSpotButton } from "@/components/match/CancelSpotButton";
@@ -25,6 +26,33 @@ type Props = {
   params: Promise<{ matchId: string }>;
   searchParams: Promise<{ payment?: string }>;
 };
+
+const SKILL_META: Record<string, string> = {
+  beginner: "Principiante",
+  intermediate: "Intermedio",
+  advanced: "Avanzado",
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { matchId } = await params;
+  const match = await getMatchById(matchId).catch(() => null);
+  if (!match) return { title: "Partido — PadelYa!" };
+
+  const date = new Date(match.scheduledAt).toLocaleDateString("es-CO", { dateStyle: "medium" });
+  const skill = SKILL_META[match.skillLevel] ?? match.skillLevel;
+  const total = match.orgFeeCop + 5000;
+  const description = `Partido de pádel en ${match.venueName} el ${date}. Nivel ${skill}. Únete por $${total.toLocaleString("es-CO")} COP en PadelYa!`;
+
+  return {
+    title: `${match.venueName} · ${date} — PadelYa!`,
+    description,
+    openGraph: {
+      title: `${match.venueName} — PadelYa!`,
+      description,
+      siteName: "PadelYa!",
+    },
+  };
+}
 
 const SKILL_LABEL: Record<string, string> = {
   beginner: "Principiante",

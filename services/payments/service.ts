@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { APP_CONFIG } from "@/config/business";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { sendPaymentStatusEmail } from "@/services/notifications/email";
+import { sendPaymentStatusEmail, sendMatchFilledEmail } from "@/services/notifications/email";
 import { getWompiEnv } from "@/utils/env";
 
 type WompiCheckoutResult = {
@@ -209,7 +209,7 @@ export async function processWompiWebhook(eventPayload: unknown) {
 
     const { data: matchStatus } = await supabase
       .from("matches")
-      .select("status")
+      .select("status, host_player_id, venue_name, scheduled_at")
       .eq("id", payment.match_id)
       .maybeSingle();
     if (matchStatus?.status === "full") {
@@ -217,6 +217,26 @@ export async function processWompiWebhook(eventPayload: unknown) {
         event_name: "organizer_notification_needed",
         match_id: payment.match_id,
       });
+
+      if (matchStatus.host_player_id) {
+        const { data: hostAuth } = await supabase.auth.admin.getUserById(
+          matchStatus.host_player_id,
+        );
+        if (hostAuth?.user?.email) {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+          await sendMatchFilledEmail({
+            to: hostAuth.user.email,
+            hostName:
+              (hostAuth.user.user_metadata?.full_name as string | undefined) ??
+              (hostAuth.user.user_metadata?.first_name as string | undefined) ??
+              "Organizador",
+            matchVenueName: matchStatus.venue_name ?? "Tu partido",
+            matchScheduledAt: matchStatus.scheduled_at ?? null,
+            matchId: payment.match_id,
+            appUrl,
+          });
+        }
+      }
     }
   }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createCheckoutForMatch } from "@/services/payments/service";
 
 const schema = z.object({
   courtReference: z.string().min(1).max(200).optional(),
@@ -52,7 +53,16 @@ export async function POST(request: Request, { params }: Props) {
 
     if (error) throw error;
 
-    return NextResponse.json({ ok: true });
+    // Auto-create checkout for the host so they pay their own spot
+    let checkoutUrl: string | undefined;
+    try {
+      const checkout = await createCheckoutForMatch(matchId, { isHost: true });
+      checkoutUrl = checkout.checkoutUrl;
+    } catch {
+      // Non-fatal — host can pay from the match page
+    }
+
+    return NextResponse.json({ ok: true, ...(checkoutUrl ? { checkoutUrl } : {}) });
   } catch (error) {
     const message =
       error instanceof Error

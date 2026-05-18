@@ -11,8 +11,13 @@ const SKILL_LABEL: Record<string, string> = {
 
 export const dynamic = "force-dynamic";
 
-export default async function PlayersPage() {
-  const players = await listCommunityPlayers(36).catch(() => []);
+type Props = {
+  searchParams: Promise<{ skillLevel?: string }>;
+};
+
+export default async function PlayersPage({ searchParams }: Props) {
+  const { skillLevel } = await searchParams;
+  const players = await listCommunityPlayers(36, skillLevel).catch(() => []);
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
@@ -21,20 +26,30 @@ export default async function PlayersPage() {
         className="px-6 py-8"
       >
         <div className="mx-auto max-w-5xl">
-          <h1
-            style={{
-              fontFamily: "var(--font-syne)",
-              fontWeight: 800,
-              fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
-              letterSpacing: "-0.025em",
-              color: "var(--text)",
-            }}
-          >
-            Jugadores de la comunidad
-          </h1>
-          <p style={{ color: "var(--text-2)", marginTop: "0.25rem", fontSize: "0.9rem" }}>
-            Explora perfiles y conéctate para tus próximos partidos.
-          </p>
+          <div>
+            <h1
+              style={{
+                fontFamily: "var(--font-syne)",
+                fontWeight: 800,
+                fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
+                letterSpacing: "-0.025em",
+                color: "var(--text)",
+              }}
+            >
+              Jugadores de la comunidad
+            </h1>
+            <p style={{ color: "var(--text-2)", marginTop: "0.25rem", fontSize: "0.9rem" }}>
+              {players.length} jugador{players.length !== 1 ? "es" : ""}{skillLevel ? ` de nivel ${SKILL_LABEL[skillLevel] ?? skillLevel}` : ""}
+            </p>
+          </div>
+
+          {/* Skill level filter */}
+          <form className="flex flex-wrap gap-2 mt-4">
+            <SkillPill value="" current={skillLevel ?? ""} label="Todos" />
+            <SkillPill value="beginner" current={skillLevel ?? ""} label="Principiante" />
+            <SkillPill value="intermediate" current={skillLevel ?? ""} label="Intermedio" />
+            <SkillPill value="advanced" current={skillLevel ?? ""} label="Avanzado" />
+          </form>
         </div>
       </div>
 
@@ -98,6 +113,31 @@ export default async function PlayersPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function SkillPill({ value, current, label }: { value: string; current: string; label: string }) {
+  const isActive = current === value;
+  return (
+    <button
+      type="submit"
+      name="skillLevel"
+      value={value}
+      style={{
+        borderRadius: "999px",
+        padding: "0.35rem 0.85rem",
+        fontSize: "0.82rem",
+        fontWeight: isActive ? 600 : 400,
+        fontFamily: "var(--font-dm-sans)",
+        cursor: "pointer",
+        transition: "all 0.15s ease",
+        border: isActive ? "1px solid var(--primary)" : "1px solid var(--border)",
+        background: isActive ? "var(--primary-muted)" : "transparent",
+        color: isActive ? "var(--primary)" : "var(--text-2)",
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

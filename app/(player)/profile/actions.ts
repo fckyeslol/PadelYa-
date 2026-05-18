@@ -30,5 +30,10 @@ export async function updateProfileAction(formData: FormData) {
     ...(skillLevel && { skillLevel }),
   });
 
+  const next = (formData.get("next") as string | null)?.trim();
+  const setup = formData.get("setup") as string | null;
+  if (setup === "1" && next && next.startsWith("/") && !next.startsWith("//")) {
+    redirect(next);
+  }
   redirect("/profile");
 }

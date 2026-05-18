@@ -121,14 +121,15 @@ export async function getPlayerMatchHistory(
     }));
 }
 
-export async function listCommunityPlayers(limit = 30): Promise<CommunityPlayerCard[]> {
+export async function listCommunityPlayers(limit = 30, skillLevel?: string): Promise<CommunityPlayerCard[]> {
   const supabase = getSupabaseAdminClient();
+  const fetchLimit = skillLevel ? limit * 6 : limit * 3;
   const { data, error } = await supabase
     .from("match_players")
     .select("player_id, joined_at, profiles(full_name, avatar_url, skill_level)")
     .in("status", ["paid", "pending_payment"])
     .order("joined_at", { ascending: false })
-    .limit(limit * 3);
+    .limit(fetchLimit);
 
   if (error) throw error;
 
@@ -146,6 +147,7 @@ export async function listCommunityPlayers(limit = 30): Promise<CommunityPlayerC
     if (seen.has(row.player_id)) continue;
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
     if (!profile) continue;
+    if (skillLevel && profile.skill_level !== skillLevel) continue;
     seen.add(row.player_id);
     players.push({
       id: row.player_id,

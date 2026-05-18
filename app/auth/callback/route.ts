@@ -49,6 +49,11 @@ export async function GET(request: NextRequest) {
       );
     }
     await ensureProfile(data.user.id, data.user.user_metadata, data.user.email);
+
+    const incomplete = await isProfileIncomplete(data.user.id);
+    if (incomplete) {
+      return redirectToSetup(origin, next, response);
+    }
     return response;
   }
 
@@ -65,10 +70,40 @@ export async function GET(request: NextRequest) {
       );
     }
     await ensureProfile(data.user.id, data.user.user_metadata, data.user.email);
+
+    const incomplete = await isProfileIncomplete(data.user.id);
+    if (incomplete) {
+      return redirectToSetup(origin, next, response);
+    }
     return response;
   }
 
   return NextResponse.redirect(`${origin}/login?error=missing_code`);
+}
+
+function redirectToSetup(origin: string, next: string, sessionResponse: NextResponse) {
+  const setupUrl = `${origin}/profile?setup=1&next=${encodeURIComponent(next)}`;
+  const setupResponse = NextResponse.redirect(setupUrl);
+  // Copy session cookies so the user is logged in after the redirect
+  sessionResponse.cookies.getAll().forEach(({ name, value, ...opts }) => {
+    setupResponse.cookies.set(name, value, opts as Parameters<typeof setupResponse.cookies.set>[2]);
+  });
+  return setupResponse;
+}
+
+async function isProfileIncomplete(userId: string): Promise<boolean> {
+  try {
+    const { getSupabaseAdminClient } = await import("@/lib/supabase/admin");
+    const admin = getSupabaseAdminClient();
+    const { data } = await admin
+      .from("profiles")
+      .select("phone")
+      .eq("id", userId)
+      .maybeSingle();
+    return !data?.phone;
+  } catch {
+    return false;
+  }
 }
 
 async function ensureProfile(

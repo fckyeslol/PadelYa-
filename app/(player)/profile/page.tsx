@@ -15,7 +15,11 @@ const SKILL_LABELS: Record<string, string> = {
   advanced: "Avanzado",
 };
 
-export default async function ProfilePage() {
+type Props = {
+  searchParams: Promise<{ setup?: string; next?: string }>;
+};
+
+export default async function ProfilePage({ searchParams }: Props) {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -23,6 +27,10 @@ export default async function ProfilePage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
   const history = await getPlayerMatchHistory(user.id, 12).catch(() => []);
+
+  const { setup, next } = await searchParams;
+  const isSetup = setup === "1";
+  const setupNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/matches";
 
   const nameParts = profile.fullName.trim().split(/\s+/);
   const defaultFirst = nameParts[0] ?? "";
@@ -34,6 +42,22 @@ export default async function ProfilePage() {
       style={{ background: "var(--bg)" }}
     >
       <div style={{ width: "100%", maxWidth: "520px" }}>
+        {/* Setup banner */}
+        {isSetup && (
+          <div
+            className="banner-warning"
+            style={{ marginBottom: "1.5rem", display: "flex", alignItems: "flex-start", gap: "0.6rem" }}
+          >
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0, marginTop: "1px" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+            <div>
+              <strong>Completa tu perfil para continuar.</strong>{" "}
+              Agrega tu teléfono y nivel de juego — solo toma 30 segundos.
+            </div>
+          </div>
+        )}
+
         {/* Page title */}
         <div style={{ marginBottom: "2rem" }}>
           <h1
@@ -85,6 +109,7 @@ export default async function ProfilePage() {
         <form
           action={updateProfileAction}
           style={{
+
             background: "var(--card)",
             border: "1px solid var(--border)",
             borderRadius: "20px",
@@ -94,6 +119,9 @@ export default async function ProfilePage() {
             gap: "1.25rem",
           }}
         >
+          <input type="hidden" name="next" value={setupNext} />
+          <input type="hidden" name="setup" value={isSetup ? "1" : ""} />
+
           <SectionLabel>Información personal</SectionLabel>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { formatCop } from "@/utils/currency";
@@ -35,6 +36,25 @@ const PLAYER_STATUS_LABEL: Record<string, string> = {
 };
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { playerId } = await params;
+  const player = await getPublicPlayerProfile(playerId).catch(() => null);
+  if (!player) return { title: "Jugador — PadelYa!" };
+
+  const skill = SKILL_LABEL[player.skillLevel] ?? player.skillLevel;
+  const description = `${player.fullName} juega pádel en Barranquilla. Nivel ${skill} · ${player.matchesPlayed} partidos jugados.`;
+
+  return {
+    title: `${player.fullName} — PadelYa!`,
+    description,
+    openGraph: {
+      title: `${player.fullName} — PadelYa!`,
+      description,
+      siteName: "PadelYa!",
+    },
+  };
+}
 
 export default async function PublicPlayerPage({ params }: Props) {
   const { playerId } = await params;

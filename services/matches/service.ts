@@ -53,12 +53,15 @@ export async function listOpenMatches(filters?: {
   date?: string;
 }): Promise<MatchPreview[]> {
   const supabase = await getSupabaseServerClient();
+  const nowIso = new Date().toISOString();
+
   let query = supabase
     .from("matches")
     .select(
       "id, host_player_id, venue_name, scheduled_at, join_deadline, skill_level, max_players, org_fee_cop, status, notes, cancel_reason, court_reference, created_at, match_players(player_id, status, profiles(full_name, avatar_url))",
     )
     .in("status", ["open", "full", "confirmed"])
+    .gt("scheduled_at", nowIso)
     .order("scheduled_at", { ascending: true });
 
   if (filters?.skillLevel) {

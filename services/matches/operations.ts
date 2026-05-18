@@ -83,6 +83,39 @@ export async function cancelUnfilledMatchesNow() {
   }
 }
 
+/** Cierra partidos cuya fecha/hora de juego ya pasó (no se muestran en listados abiertos). */
+export async function completePastMatchesNow(): Promise<number> {
+  const supabase = getSupabaseAdminClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("matches")
+    .update({
+      status: "completed",
+      completed_at: now,
+    })
+    .in("status", ["open", "full", "confirmed", "pending_court"])
+    .lt("scheduled_at", now)
+    .select("id");
+
+  if (error) {
+    throw error;
+  }
+
+  const ids = (data ?? []).map((row) => row.id);
+  if (ids.length > 0) {
+    await supabase.from("analytics_events").insert(
+      ids.map((matchId) => ({
+        event_name: "match_completed",
+        match_id: matchId,
+        properties: { auto: true, reason: "scheduled_at_passed" },
+      })),
+    );
+  }
+
+  return ids.length;
+}
+
 export async function expirePendingPaymentsNow(minutes = 15) {
   const supabase = getSupabaseAdminClient();
   const { error } = await supabase.rpc("expire_pending_match_payments", {

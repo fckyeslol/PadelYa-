@@ -146,6 +146,7 @@ export function SiteHeader({ profile }: Props) {
       {/* Mobile menu */}
       {mobileOpen && (
         <div
+          className="md:hidden"
           style={{
             background: isHome ? "rgba(10,47,122,0.97)" : "rgba(247,248,252,0.97)",
             backdropFilter: "blur(20px)",

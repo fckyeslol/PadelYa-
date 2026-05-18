@@ -1,3 +1,4 @@
+import { getAppUrl } from "@/utils/auth-url";
 import { isSupabaseConfigured } from "@/utils/env";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ export async function GET() {
       process.env.SUPABASE_SERVICE_ROLE_KEY &&
         process.env.SUPABASE_SERVICE_ROLE_KEY !== "placeholder",
     ),
-    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+    appUrl: getAppUrl(),
+    configuredAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
   });
 }

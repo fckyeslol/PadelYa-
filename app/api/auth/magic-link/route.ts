@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sendMagicLinkEmail } from "@/services/notifications/auth-email";
+import {
+  buildAuthCallbackUrl,
+  normalizeSupabaseActionLink,
+  resolveAuthRedirectOrigin,
+} from "@/utils/auth-url";
 import { getResendEnv } from "@/utils/env";
 
 const bodySchema = z.object({
@@ -9,15 +14,8 @@ const bodySchema = z.object({
   firstName: z.string().min(1).max(80),
   lastName: z.string().min(1).max(80),
   next: z.string().optional(),
+  redirectOrigin: z.string().url().optional(),
 });
-
-function buildRedirectTo(origin: string, next?: string) {
-  const path = "/auth/callback";
-  if (next && next.startsWith("/") && !next.startsWith("//")) {
-    return `${origin}${path}?next=${encodeURIComponent(next)}`;
-  }
-  return `${origin}${path}`;
-}
 
 export async function POST(request: Request) {
   const resend = getResendEnv();
@@ -37,10 +35,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Revisa nombre, apellido y correo." }, { status: 400 });
   }
 
-  const { email, firstName, lastName, next } = parsed.data;
+  const { email, firstName, lastName, next, redirectOrigin } = parsed.data;
   const normalizedEmail = email.trim().toLowerCase();
-  const origin = resend.appUrl.replace(/\/$/, "");
-  const redirectTo = buildRedirectTo(origin, next);
+  const origin = resolveAuthRedirectOrigin(redirectOrigin);
+  const redirectTo = buildAuthCallbackUrl(origin, next);
 
   try {
     const admin = getSupabaseAdminClient();
@@ -65,13 +63,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const actionLink = data.properties?.action_link;
-    if (!actionLink) {
+    const rawActionLink = data.properties?.action_link;
+    if (!rawActionLink) {
       return NextResponse.json(
         { error: "No se recibió el link de acceso." },
         { status: 500 },
       );
     }
+
+    const actionLink = normalizeSupabaseActionLink(rawActionLink, redirectTo);
 
     try {
       await sendMagicLinkEmail({

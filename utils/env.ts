@@ -1,3 +1,5 @@
+import { getAppUrl } from "@/utils/auth-url";
+
 function required(name: string, value: string | undefined): string {
   if (!value || value === "placeholder") {
     throw new Error(`Missing required env var: ${name}`);
@@ -42,6 +44,6 @@ export function getResendEnv() {
   return {
     apiKey,
     from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
-    appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    appUrl: getAppUrl(),
   };
 }

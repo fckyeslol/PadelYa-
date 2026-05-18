@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
+import { getClientAuthCallbackUrl } from "@/utils/auth-url";
 
 function mapAuthError(message: string): string {
   const lower = message.toLowerCase();
@@ -30,6 +31,7 @@ async function requestMagicLink(input: {
   firstName: string;
   lastName: string;
   next?: string;
+  redirectOrigin?: string;
 }): Promise<{ ok: true } | { ok: false; error: string; fallback?: boolean }> {
   const response = await fetch("/api/auth/magic-link", {
     method: "POST",
@@ -75,9 +77,9 @@ export function AuthForm({
   function signInWithMagicLink() {
     startTransition(async () => {
       const supabase = getSupabaseBrowserClient();
-      const callbackUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`
-        : undefined;
+      const callbackUrl = getClientAuthCallbackUrl(next);
+      const redirectOrigin =
+        typeof window !== "undefined" ? window.location.origin : undefined;
 
       const normalizedEmail = email.trim().toLowerCase();
       const trimmedFirst = firstName.trim();
@@ -88,6 +90,7 @@ export function AuthForm({
         firstName: trimmedFirst,
         lastName: trimmedLast,
         next,
+        redirectOrigin,
       });
 
       if (viaResend.ok) {

@@ -3,12 +3,7 @@ import twilio from "twilio";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const secret = new URL(request.url).searchParams.get("secret");
-  if (!secret || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET() {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
   const from = process.env.TWILIO_WHATSAPP_FROM;

@@ -1,9 +1,10 @@
 import { APP_CONFIG } from "@/config/business";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { buildMatchRosterPreviews } from "@/services/matches/roster-preview";
 import { upsertProfile } from "@/services/profiles/service";
 import type { CreateMatchInput } from "@/types/contracts";
 import type { Match, MatchPreview } from "@/types/domain";
-import { sanitizeDisplayName } from "@/utils/name";
 
 type MatchRow = {
   id: string;
@@ -19,15 +20,6 @@ type MatchRow = {
   cancel_reason: string | null;
   court_reference: string | null;
   created_at: string;
-};
-
-type MatchPlayerRow = {
-  player_id: string;
-  status: string;
-  profiles:
-    | { full_name: string; avatar_url: string | null }
-    | Array<{ full_name: string; avatar_url: string | null }>
-    | null;
 };
 
 function mapMatch(row: MatchRow): Match {
@@ -52,13 +44,13 @@ export async function listOpenMatches(filters?: {
   skillLevel?: Match["skillLevel"];
   date?: string;
 }): Promise<MatchPreview[]> {
-  const supabase = await getSupabaseServerClient();
+  const admin = getSupabaseAdminClient();
   const nowIso = new Date().toISOString();
 
-  let query = supabase
+  let query = admin
     .from("matches")
     .select(
-      "id, host_player_id, venue_name, scheduled_at, join_deadline, skill_level, max_players, org_fee_cop, status, notes, cancel_reason, court_reference, created_at, match_players(player_id, status, profiles(full_name, avatar_url))",
+      "id, host_player_id, venue_name, scheduled_at, join_deadline, skill_level, max_players, org_fee_cop, status, notes, cancel_reason, court_reference, created_at, match_players(player_id, status)",
     )
     .in("status", ["open", "full", "confirmed"])
     .gt("scheduled_at", nowIso)
@@ -78,26 +70,29 @@ export async function listOpenMatches(filters?: {
 
   if (error) throw error;
 
-  return (data as unknown as (MatchRow & { match_players: MatchPlayerRow[] })[]).map((row) => {
-    const activePlayers = (row.match_players ?? []).filter(
-      (p) => p.status === "paid" || p.status === "pending_payment",
-    ).slice(0, 4);
+  const rows = (data ?? []) as (MatchRow & {
+    match_players: { player_id: string; status: string }[] | null;
+  })[];
+
+  const rosterByMatch = await buildMatchRosterPreviews(
+    rows.map((row) => ({
+      id: row.id,
+      host_player_id: row.host_player_id,
+      match_players: row.match_players,
+    })),
+  );
+
+  return rows.map((row) => {
+    const roster = rosterByMatch.get(row.id) ?? {
+      paidCount: 0,
+      playerNames: [],
+      playerAvatars: [],
+    };
     return {
       ...mapMatch(row),
-      paidCount: activePlayers.filter((p) => p.status === "paid").length,
-      playerNames: activePlayers.map((p) =>
-        sanitizeDisplayName(getProfileRow(p.profiles)?.full_name ?? "Jugador", "Jugador"),
-      ),
-      playerAvatars: activePlayers.map((p) => getProfileRow(p.profiles)?.avatar_url ?? null),
+      ...roster,
     };
   });
-}
-
-function getProfileRow(
-  profile: MatchPlayerRow["profiles"],
-): { full_name: string; avatar_url: string | null } | null {
-  if (!profile) return null;
-  return Array.isArray(profile) ? (profile[0] ?? null) : profile;
 }
 
 export async function getMatchById(matchId: string): Promise<Match | null> {

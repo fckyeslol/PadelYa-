@@ -45,7 +45,13 @@ function formatMatchDate(scheduledAt: string | null): string {
   }
 }
 
-/** Paid players in a match with a whatsapp_phone, excluding excludePlayerId. */
+type ProfilePhoneRow = { whatsapp_phone?: string | null; phone?: string | null; full_name?: string | null };
+
+function bestPhone(profile: ProfilePhoneRow | null): string {
+  return (profile?.whatsapp_phone ?? profile?.phone ?? "").trim();
+}
+
+/** Paid players in a match with a phone, excluding excludePlayerId. */
 async function getPaidPlayerPhones(
   matchId: string,
   excludePlayerId: string,
@@ -54,7 +60,7 @@ async function getPaidPlayerPhones(
 
   const { data, error } = await supabase
     .from("match_players")
-    .select("player_id, profiles(full_name, whatsapp_phone)")
+    .select("player_id, profiles(full_name, phone, whatsapp_phone)")
     .eq("match_id", matchId)
     .eq("status", "paid")
     .neq("player_id", excludePlayerId);
@@ -63,13 +69,13 @@ async function getPaidPlayerPhones(
 
   return data
     .map((row) => {
-      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+      const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as ProfilePhoneRow | null;
       return {
-        phone: (profile as { whatsapp_phone?: string | null } | null)?.whatsapp_phone ?? "",
-        name: (profile as { full_name?: string | null } | null)?.full_name ?? "Jugador",
+        phone: bestPhone(profile),
+        name: profile?.full_name ?? "Jugador",
       };
     })
-    .filter((p) => p.phone.trim() !== "");
+    .filter((p) => p.phone !== "");
 }
 
 /** Notifies the host (creator) when their match is confirmed and they're in. */
@@ -192,16 +198,16 @@ export async function notifyMatchFull(params: {
   const supabase = getSupabaseAdminClient();
   const { data } = await supabase
     .from("match_players")
-    .select("player_id, profiles(whatsapp_phone)")
+    .select("player_id, profiles(phone, whatsapp_phone)")
     .eq("match_id", params.matchId)
     .eq("status", "paid");
 
   const phones = (data ?? [])
     .map((row) => {
-      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-      return (profile as { whatsapp_phone?: string | null } | null)?.whatsapp_phone ?? "";
+      const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as ProfilePhoneRow | null;
+      return bestPhone(profile);
     })
-    .filter((p) => p.trim() !== "");
+    .filter((p) => p !== "");
 
   if (phones.length === 0) return;
 

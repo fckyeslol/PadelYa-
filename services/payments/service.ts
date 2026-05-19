@@ -226,11 +226,12 @@ export async function processWompiWebhook(eventPayload: unknown) {
     // Get the joining player's profile for WhatsApp messages
     const { data: joiningProfile } = await supabase
       .from("profiles")
-      .select("full_name, whatsapp_phone")
+      .select("full_name, phone, whatsapp_phone")
       .eq("id", payment.player_id)
       .maybeSingle();
     const joiningPlayerName = joiningProfile?.full_name ?? "Un jugador";
-    const joiningPlayerPhone = joiningProfile?.whatsapp_phone ?? null;
+    const joiningPlayerPhone =
+      joiningProfile?.whatsapp_phone?.trim() || joiningProfile?.phone?.trim() || null;
 
     // Count paid players AFTER this payment (including current)
     const { count: paidCount } = await supabase

@@ -242,7 +242,7 @@ export function MatchCard({ match }: { match: MatchPreview }) {
           className="block text-center"
           style={{
             background: isOpen ? "var(--primary)" : "var(--surface)",
-            color: isOpen ? "#ffffff" : "var(--text-2)",
+            color: isOpen ? "var(--primary-fg)" : "var(--text-2)",
             borderRadius: "10px",
             padding: "0.6rem 1rem",
             fontWeight: 700,

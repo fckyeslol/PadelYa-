@@ -106,10 +106,11 @@ export function buildAuthCallbackUrl(origin: string, next?: string): string {
 export function buildMagicLinkFromHashedToken(
   callbackUrl: string,
   hashedToken: string,
+  type: "magiclink" | "signup" = "magiclink",
 ): string {
   const url = new URL(callbackUrl);
   url.searchParams.set("token_hash", hashedToken);
-  url.searchParams.set("type", "magiclink");
+  url.searchParams.set("type", type);
   return url.toString();
 }
 

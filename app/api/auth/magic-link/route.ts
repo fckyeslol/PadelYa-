@@ -42,9 +42,19 @@ export async function POST(request: Request) {
 
   try {
     const admin = getSupabaseAdminClient();
+    const { data: existingUser, error: lookupError } = await admin
+      .schema("auth")
+      .from("users")
+      .select("id")
+      .eq("email", normalizedEmail)
+      .maybeSingle();
 
-    const { data, error } = await admin.auth.admin.generateLink({
-      type: "magiclink",
+    if (lookupError) {
+      console.error("[auth/magic-link] auth.users lookup", lookupError);
+    }
+
+    const linkType: "magiclink" | "signup" = existingUser ? "magiclink" : "signup";
+    const linkPayload = {
       email: normalizedEmail,
       options: {
         redirectTo,
@@ -53,7 +63,14 @@ export async function POST(request: Request) {
           last_name: lastName.trim(),
         },
       },
-    });
+    };
+    const { data, error } = await (linkType === "signup"
+      ? admin.auth.admin.generateLink({
+          type: "signup",
+          password: `${crypto.randomUUID()}Aa1!`,
+          ...linkPayload,
+        })
+      : admin.auth.admin.generateLink({ type: "magiclink", ...linkPayload }));
 
     if (error) {
       console.error("[auth/magic-link] generateLink", error);
@@ -71,7 +88,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const actionLink = buildMagicLinkFromHashedToken(redirectTo, hashedToken);
+    const actionLink = buildMagicLinkFromHashedToken(redirectTo, hashedToken, linkType);
 
     try {
       await sendMagicLinkEmail({

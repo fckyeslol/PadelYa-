@@ -588,47 +588,14 @@ input[type="time"].input-base {
   background: #ffffff;
 }
 
-/* Header: same dark tone as the sticky navbar above it — seamless */
 .app-top-section {
-  background: #0C1527;
+  background: #ffffff;
   border-bottom: none;
-  --text:          #EBF2FF;
-  --text-2:        rgba(235, 242, 255, 0.60);
-  --text-3:        rgba(235, 242, 255, 0.36);
-  --border:        rgba(255, 255, 255, 0.10);
-  --primary:       #c8f135;
-  --primary-dim:   #b5d92b;
-  --primary-muted: rgba(200, 241, 53, 0.12);
-  --primary-fg:    #0C1527;
-  --card:          rgba(255, 255, 255, 0.07);
-  --card-hover:    rgba(255, 255, 255, 0.12);
-  --surface:       rgba(255, 255, 255, 0.07);
 }
 
-.app-top-section .glow-primary {
-  box-shadow: 0 4px 22px rgba(200, 241, 53, 0.44);
-}
-
-/* Filter strip: continues the dark zone, lime line marks the boundary */
 .app-filter-section {
-  background: #0C1527;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  border-bottom: 2.5px solid rgba(200, 241, 53, 0.55);
-  --text:          #EBF2FF;
-  --text-2:        rgba(235, 242, 255, 0.60);
-  --text-3:        rgba(235, 242, 255, 0.36);
-  --border:        rgba(255, 255, 255, 0.12);
-  --primary:       #c8f135;
-  --primary-muted: rgba(200, 241, 53, 0.12);
-  --card:          rgba(255, 255, 255, 0.07);
-  --card-hover:    rgba(255, 255, 255, 0.12);
-  --surface:       rgba(255, 255, 255, 0.08);
-}
-
-.app-top-section .input-base:focus,
-.app-filter-section .input-base:focus {
-  box-shadow: 0 0 0 3px rgba(200, 241, 53, 0.22);
-  border-color: #c8f135;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
 }
 
 /* Content frame: white elevated panel on the light body */

@@ -585,7 +585,7 @@ input[type="time"].input-base {
  */
 .app-page-shell {
   min-height: 100vh;
-  background: #ECF2FD;
+  background: #ffffff;
 }
 
 /* Header: same dark tone as the sticky navbar above it — seamless */

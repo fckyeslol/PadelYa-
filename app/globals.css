@@ -576,60 +576,67 @@ input[type="time"].input-base {
   color: #0f1629 !important;
 }
 
+/* ─── App page shell — solid, no gradients ───────────────────── */
+
 .app-page-shell {
   min-height: 100vh;
-  background:
-    radial-gradient(ellipse 1400px 650px at 100% 0%, rgba(26, 79, 214, 0.5) 0%, transparent 62%),
-    radial-gradient(ellipse 1000px 800px at -5% 100%, rgba(200, 241, 53, 0.15) 0%, transparent 55%),
-    linear-gradient(175deg, #0c3091 0%, #0b2980 10%, #8eb0de 46%, #7da2d6 100%);
+  background: #F0F4FA;
 }
 
+/* Header: solid sport-dark navy. CSS variables flip so all child
+   text/borders/inputs inside this zone inherit the right colors. */
 .app-top-section {
-  background: var(--landing-hero-gradient);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  /* Token overrides: white text on deep-blue header */
+  background: #0F1629;
+  border-bottom: none;
   --text:          #ffffff;
-  --text-2:        rgba(255, 255, 255, 0.78);
-  --text-3:        rgba(255, 255, 255, 0.52);
-  --border:        rgba(255, 255, 255, 0.18);
+  --text-2:        rgba(255, 255, 255, 0.66);
+  --text-3:        rgba(255, 255, 255, 0.42);
+  --border:        rgba(255, 255, 255, 0.12);
   --primary:       #c8f135;
   --primary-dim:   #b8e02a;
-  --primary-muted: rgba(200, 241, 53, 0.18);
+  --primary-muted: rgba(200, 241, 53, 0.14);
   --primary-fg:    #0f1629;
-  --card:          rgba(255, 255, 255, 0.09);
-  --card-hover:    rgba(255, 255, 255, 0.15);
+  --card:          rgba(255, 255, 255, 0.06);
+  --card-hover:    rgba(255, 255, 255, 0.10);
 }
 
+/* Lime glow for primary action buttons inside the dark header */
 .app-top-section .glow-primary {
-  box-shadow: 0 4px 20px rgba(200, 241, 53, 0.42);
+  box-shadow: 0 4px 18px rgba(200, 241, 53, 0.38);
 }
 
+/* Filter strip: extends the dark zone, ends with a 3px lime accent
+   line that marks the boundary to the light content area. */
 .app-filter-section {
-  background: rgba(9, 26, 78, 0.70);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-  /* Token overrides: white text on translucent dark strip */
+  background: #0F1629;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 3px solid #c8f135;
   --text:          #ffffff;
-  --text-2:        rgba(255, 255, 255, 0.76);
-  --text-3:        rgba(255, 255, 255, 0.50);
-  --border:        rgba(255, 255, 255, 0.18);
+  --text-2:        rgba(255, 255, 255, 0.66);
+  --text-3:        rgba(255, 255, 255, 0.42);
+  --border:        rgba(255, 255, 255, 0.14);
   --primary:       #c8f135;
-  --primary-muted: rgba(200, 241, 53, 0.15);
-  --card:          rgba(255, 255, 255, 0.08);
-  --card-hover:    rgba(255, 255, 255, 0.13);
-  --surface:       rgba(255, 255, 255, 0.13);
+  --primary-muted: rgba(200, 241, 53, 0.14);
+  --card:          rgba(255, 255, 255, 0.07);
+  --card-hover:    rgba(255, 255, 255, 0.12);
+  --surface:       rgba(255, 255, 255, 0.11);
 }
 
+/* Lime focus ring in dark zones */
+.app-top-section .input-base:focus,
+.app-filter-section .input-base:focus {
+  box-shadow: 0 0 0 3px rgba(200, 241, 53, 0.24);
+  border-color: #c8f135;
+}
+
+/* Content frame: clean white card, minimal shadow */
 .app-content-frame {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
   box-shadow:
-    0 24px 64px rgba(8, 22, 72, 0.22),
-    0 1px 0 rgba(255, 255, 255, 0.95) inset;
+    0 1px 3px rgba(15, 22, 41, 0.06),
+    0 8px 24px rgba(15, 22, 41, 0.05);
 }
 
 .venue-photo-image {

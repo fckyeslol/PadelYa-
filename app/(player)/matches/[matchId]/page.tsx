@@ -176,6 +176,9 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const isCompleted = match!.status === "completed";
   const isConfirmed = match!.status === "confirmed";
   const paidCount = players.filter((p) => p.status === "paid").length;
+  const occupiedCount = players.filter(
+    (p) => p.status === "paid" || p.status === "pending_payment",
+  ).length;
   const canChat =
     match!.hostPlayerId === user?.id ||
     (!!myPlayer &&
@@ -411,7 +414,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
             venueName={match!.venueName}
             scheduledAt={match!.scheduledAt}
             orgFeeCop={match!.orgFeeCop}
-            spotsLeft={(match!.maxPlayers ?? 4) - paidCount}
+            spotsLeft={(match!.maxPlayers ?? 4) - occupiedCount}
             isParticipant={isParticipant}
           />
         )}

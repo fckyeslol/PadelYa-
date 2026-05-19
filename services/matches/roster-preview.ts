@@ -81,7 +81,9 @@ export async function buildMatchRosterPreviews(
     }
 
     const visible = roster.slice(0, 4);
-    const paidCount = visible.filter((p) => p.status === "paid").length;
+    // For list cards, show occupied slots (paid + pending_payment),
+    // so the counter matches the visible avatars.
+    const paidCount = visible.length;
 
     result.set(match.id, {
       paidCount,

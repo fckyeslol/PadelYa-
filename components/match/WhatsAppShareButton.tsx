@@ -34,10 +34,10 @@ export function WhatsAppShareButton({
     const origin = window.location.origin;
     const url = `${origin}/matches/${matchId}`;
     const message = [
-      `🏸 *Partido de pádel en ${venueName}*`,
-      `📅 ${formatDateTime(scheduledAt)}`,
-      `💰 ${fmt(orgFeeCop)} / jugador`,
-      `🟢 ${spotsText}`,
+      `Partido de pádel en ${venueName}`,
+      `${formatDateTime(scheduledAt)}`,
+      `${fmt(orgFeeCop)} / jugador`,
+      `${spotsText}`,
       ``,
       `Únete aquí: ${url}`,
     ].join("\n");

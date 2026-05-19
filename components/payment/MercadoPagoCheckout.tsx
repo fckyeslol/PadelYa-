@@ -4,6 +4,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { APP_CONFIG } from "@/config/business";
 import { formatCop } from "@/utils/currency";
+import {
+  BrickLoadingOverlay,
+  GhostButton,
+  IdlePriceHero,
+  MercadoPagoBadge,
+  OrderSummary,
+  PaymentError,
+  PaymentFunnelShell,
+  PrimaryButton,
+  StatusPending,
+  StatusSuccess,
+  TrustStrip,
+  type FunnelStepKey,
+} from "@/components/payment/PaymentFunnelUI";
+import styles from "@/components/payment/payment-funnel.module.css";
 
 declare global {
   interface Window {
@@ -54,6 +69,12 @@ type Step = "idle" | "confirm" | "initiating" | "paying" | "success" | "pending_
 const MP_SCRIPT = "https://sdk.mercadopago.com/js/v2";
 const BRICK_CONTAINER_ID = "mp-payment-brick";
 
+function funnelStep(step: Step): FunnelStepKey {
+  if (step === "success" || step === "pending_payment") return "done";
+  if (step === "paying" || step === "initiating") return "payment";
+  return "summary";
+}
+
 export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: Props) {
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +89,8 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
   const serviceFee = APP_CONFIG.platformFeeCop;
   const totalCop = (orgFeeCop ?? 0) + serviceFee;
   const totalLabel = formatCop(totalCop);
+  const activeFunnelStep = funnelStep(step);
+  const brickLoading = step === "paying" && (!scriptLoaded || !brickReady);
 
   const startCheckout = useCallback(async () => {
     if (checkoutInFlightRef.current) return;
@@ -194,8 +217,7 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
               Boolean(brickTd?.financial_institution);
 
             if (!hasPaymentData) {
-              const message =
-                "Completa los datos del método de pago antes de continuar.";
+              const message = "Completa los datos del método de pago antes de continuar.";
               if (!cancelled) setError(message);
               return Promise.reject(new Error(message));
             }
@@ -270,255 +292,96 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
         }}
       />
 
-      {step === "success" && (
-        <div
-          style={{
-            background: "rgba(22,101,52,0.07)",
-            border: "1px solid rgba(22,101,52,0.22)",
-            borderRadius: "14px",
-            padding: "1.25rem",
-            textAlign: "center",
-          }}
-        >
-          <p style={{ color: "var(--success)", fontWeight: 700, fontSize: "1rem", marginBottom: "0.35rem" }}>
-            Pago aprobado
-          </p>
-          <p style={{ color: "var(--text-2)", fontSize: "0.875rem" }}>
-            Tu cupo está confirmado. Recargando el partido...
-          </p>
-        </div>
-      )}
+      <PaymentFunnelShell activeStep={activeFunnelStep}>
+        {step === "success" && (
+          <StatusSuccess
+            title="Pago aprobado"
+            description="Tu cupo está confirmado. Estamos actualizando el partido…"
+          />
+        )}
 
-      {step === "pending_payment" && (
-        <div
-          style={{
-            background: "rgba(146,64,14,0.07)",
-            border: "1px solid rgba(146,64,14,0.22)",
-            borderRadius: "14px",
-            padding: "1.25rem",
-            textAlign: "center",
-          }}
-        >
-          <p style={{ color: "var(--warning)", fontWeight: 700, fontSize: "1rem", marginBottom: "0.35rem" }}>
-            Pago en proceso
-          </p>
-          <p style={{ color: "var(--text-2)", fontSize: "0.875rem" }}>
-            Tu pago está siendo procesado. Te notificaremos cuando se confirme.
-          </p>
-        </div>
-      )}
+        {step === "pending_payment" && (
+          <StatusPending
+            title="Pago en proceso"
+            description="Tu transacción está siendo verificada. Te avisaremos en cuanto se confirme."
+          />
+        )}
 
-      {step === "initiating" && (
-        <div
-          style={{
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "14px",
-            padding: "1.25rem",
-            textAlign: "center",
-          }}
-        >
-          <p style={{ color: "var(--text)", fontWeight: 600, fontSize: "0.9rem", marginBottom: "0.35rem" }}>
-            Preparando Mercado Pago...
-          </p>
-          <p style={{ color: "var(--text-3)", fontSize: "0.8rem" }}>
-            Un momento, estamos cargando el formulario de pago.
-          </p>
-        </div>
-      )}
+        {step === "initiating" && (
+          <>
+            <OrderSummary orgFeeCop={orgFeeCop} serviceFee={serviceFee} totalLabel={totalLabel} />
+            <div className={styles.brickWrap}>
+              <BrickLoadingOverlay label="Preparando checkout seguro…" />
+            </div>
+          </>
+        )}
 
-      {step === "paying" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          {(!scriptLoaded || !brickReady) && (
-            <p style={{ color: "var(--text-2)", fontSize: "0.875rem", textAlign: "center" }}>
-              Cargando formulario de pago...
-            </p>
-          )}
-          <div id={BRICK_CONTAINER_ID} />
-          {error && <div className="banner-danger">{error}</div>}
-          <button
-            type="button"
-            onClick={() => {
-              controllerRef.current?.unmount();
-              setStep("confirm");
-            }}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--text-3)",
-              fontSize: "0.82rem",
-              cursor: "pointer",
-              fontFamily: "var(--font-dm-sans)",
-              padding: "0.25rem",
-            }}
-          >
-            ← Volver
-          </button>
-        </div>
-      )}
-
-      {step === "confirm" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-          <div
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "14px",
-              padding: "1.1rem 1.25rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.5rem",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                color: "var(--text-2)",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                marginBottom: "0.25rem",
-              }}
-            >
-              Resumen del pago
-            </p>
-            {orgFeeCop != null && (
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem" }}>
-                <span style={{ color: "var(--text-2)" }}>Cupo del partido</span>
-                <span style={{ color: "var(--text)", fontWeight: 500 }}>{formatCop(orgFeeCop)}</span>
+        {step === "paying" && (
+          <>
+            <OrderSummary orgFeeCop={orgFeeCop} serviceFee={serviceFee} totalLabel={totalLabel} />
+            <div className={styles.brickWrap}>
+              {brickLoading && <BrickLoadingOverlay label="Cargando métodos de pago…" />}
+              <div className={styles.brickHost}>
+                <div id={BRICK_CONTAINER_ID} />
               </div>
-            )}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem" }}>
-              <span style={{ color: "var(--text-2)" }}>Servicio de plataforma</span>
-              <span style={{ color: "var(--text)", fontWeight: 500 }}>{formatCop(serviceFee)}</span>
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: "0.95rem",
-                fontWeight: 700,
-                paddingTop: "0.5rem",
-                borderTop: "1px solid var(--border)",
-                marginTop: "0.25rem",
+            {error && <PaymentError message={error} />}
+            <div className={styles.actions}>
+              <GhostButton
+                onClick={() => {
+                  controllerRef.current?.unmount();
+                  setStep("confirm");
+                }}
+              >
+                ← Cambiar método de pago
+              </GhostButton>
+            </div>
+            <MercadoPagoBadge />
+          </>
+        )}
+
+        {step === "confirm" && (
+          <>
+            <OrderSummary orgFeeCop={orgFeeCop} serviceFee={serviceFee} totalLabel={totalLabel} />
+            {error && <PaymentError message={error} />}
+            <PrimaryButton onClick={() => void startCheckout()}>
+              <LockIcon />
+              Continuar al pago
+            </PrimaryButton>
+            <GhostButton onClick={() => setStep("idle")}>← Volver al resumen</GhostButton>
+            <div className={styles.divider} />
+            <TrustStrip />
+            <MercadoPagoBadge />
+          </>
+        )}
+
+        {step === "idle" && (
+          <>
+            <IdlePriceHero totalLabel={totalLabel} />
+            <OrderSummary orgFeeCop={orgFeeCop} serviceFee={serviceFee} totalLabel={totalLabel} />
+            {error && <PaymentError message={error} />}
+            <PrimaryButton
+              onClick={() => {
+                setError(null);
+                setStep("confirm");
               }}
             >
-              <span style={{ color: "var(--text)" }}>Total</span>
-              <span style={{ color: "var(--primary)" }}>{totalLabel}</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => void startCheckout()}
-            style={{
-              background: "var(--primary)",
-              color: "var(--primary-fg)",
-              border: "none",
-              borderRadius: "12px",
-              padding: "0.875rem",
-              fontSize: "0.95rem",
-              fontWeight: 700,
-              fontFamily: "var(--font-dm-sans)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              width: "100%",
-            }}
-          >
-            <LockIcon />
-            Confirmar y pagar
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStep("idle")}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--text-3)",
-              fontSize: "0.82rem",
-              cursor: "pointer",
-              fontFamily: "var(--font-dm-sans)",
-              padding: "0.25rem",
-            }}
-          >
-            ← Volver
-          </button>
-
-          {error && <div className="banner-danger">{error}</div>}
-
-          <p
-            style={{
-              color: "var(--text-3)",
-              fontSize: "0.75rem",
-              textAlign: "center",
-              fontFamily: "var(--font-dm-sans)",
-            }}
-          >
-            Pago procesado por Mercado Pago — tarjeta, PSE, Nequi o efectivo.
-          </p>
-        </div>
-      )}
-
-      {step === "idle" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          {error && <div className="banner-danger">{error}</div>}
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setStep("confirm");
-            }}
-            style={{
-              background: "var(--primary)",
-              color: "var(--primary-fg)",
-              border: "none",
-              borderRadius: "12px",
-              padding: "0.875rem",
-              fontSize: "0.95rem",
-              fontWeight: 700,
-              fontFamily: "var(--font-dm-sans)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              width: "100%",
-            }}
-          >
-            <LockIcon />
-            {orgFeeCop != null ? `Reservar cupo · ${totalLabel}` : "Reservar cupo y pagar"}
-          </button>
-
-          <p
-            style={{
-              color: "var(--text-3)",
-              fontSize: "0.75rem",
-              textAlign: "center",
-              fontFamily: "var(--font-dm-sans)",
-            }}
-          >
-            Pago seguro con Mercado Pago — tarjeta, PSE, Nequi o efectivo.
-          </p>
-        </div>
-      )}
+              <LockIcon />
+              Continuar
+            </PrimaryButton>
+            <div className={styles.divider} />
+            <TrustStrip />
+            <MercadoPagoBadge />
+          </>
+        )}
+      </PaymentFunnelShell>
     </>
   );
 }
 
 function LockIcon() {
   return (
-    <svg
-      width="14"
-      height="14"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2.5}
-    >
+    <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
       <path
         strokeLinecap="round"
         strokeLinejoin="round"

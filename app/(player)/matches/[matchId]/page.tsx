@@ -319,7 +319,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
         </Section>
 
         {/* Join / payment */}
-        <Section title="Reserva tu cupo">
+        <Section>
           {isOpen ? (
             !user ? (
               /* ── Anon gate ──────────────────────────────── */
@@ -562,7 +562,7 @@ function Section({
   children,
   style,
 }: {
-  title: string;
+  title?: string;
   subtitle?: string;
   children: React.ReactNode;
   style?: React.CSSProperties;
@@ -570,31 +570,33 @@ function Section({
   return (
     <div
       style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        borderRadius: "20px",
-        padding: "1.5rem",
+        background: title ? "var(--card)" : "transparent",
+        border: title ? "1px solid var(--border)" : "none",
+        borderRadius: title ? "20px" : 0,
+        padding: title ? "1.5rem" : 0,
         ...style,
       }}
     >
-      <div style={{ marginBottom: "1rem" }}>
-        <h2
-          style={{
-            fontFamily: "var(--font-montserrat)",
-            fontWeight: 700,
-            fontSize: "1.05rem",
-            color: "var(--text)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {title}
-        </h2>
-        {subtitle && (
-          <p style={{ color: "var(--text-2)", fontSize: "0.82rem", marginTop: "0.15rem" }}>
-            {subtitle}
-          </p>
-        )}
-      </div>
+      {title ? (
+        <div style={{ marginBottom: "1rem" }}>
+          <h2
+            style={{
+              fontFamily: "var(--font-montserrat)",
+              fontWeight: 700,
+              fontSize: "1.05rem",
+              color: "var(--text)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {title}
+          </h2>
+          {subtitle && (
+            <p style={{ color: "var(--text-2)", fontSize: "0.82rem", marginTop: "0.15rem" }}>
+              {subtitle}
+            </p>
+          )}
+        </div>
+      ) : null}
       {children}
     </div>
   );

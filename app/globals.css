@@ -48,7 +48,7 @@
   --color-warning:      var(--warning);
   --color-danger:       var(--danger);
   --font-sans:          var(--font-dm-sans);
-  --font-display:       var(--font-syne);
+  --font-display:       var(--font-montserrat);
 }
 
 /* ─── Base ───────────────────────────────────────────────────── */
@@ -72,7 +72,7 @@ body {
 }
 
 /* ─── Typography ─────────────────────────────────────────────── */
-.font-display { font-family: var(--font-syne, 'Syne', sans-serif); }
+.font-display { font-family: var(--font-montserrat, 'Montserrat', sans-serif); }
 
 /* ─── Glow / Shadow Effects ──────────────────────────────────── */
 .glow-primary {
@@ -441,7 +441,7 @@ input[type="time"].input-base {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-syne);
+  font-family: var(--font-montserrat);
   flex-shrink: 0;
 }
 
@@ -521,7 +521,7 @@ input[type="time"].input-base {
 }
 
 .landing-discover-title {
-  font-family: var(--font-syne);
+  font-family: var(--font-montserrat);
   font-weight: 700;
   font-size: 1.15rem;
   letter-spacing: -0.02em;
@@ -659,7 +659,7 @@ input[type="time"].input-base {
   color: #ffffff !important;
   font-weight: 700;
   font-size: 0.85rem;
-  font-family: var(--font-syne);
+  font-family: var(--font-montserrat);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
   line-height: 1.25;
   z-index: 1;

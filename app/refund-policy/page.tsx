@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 export default function RefundPolicyPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10" style={{ color: "var(--text)" }}>
-      <h1 style={{ fontFamily: "var(--font-syne)", fontSize: "1.8rem", fontWeight: 800, marginBottom: "1rem" }}>
+      <h1 style={{ fontFamily: "var(--font-montserrat)", fontSize: "1.8rem", fontWeight: 800, marginBottom: "1rem" }}>
         Política de reembolsos
       </h1>
       <p style={{ color: "var(--text-2)", marginBottom: "1.2rem" }}>

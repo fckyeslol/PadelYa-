@@ -82,7 +82,7 @@ export default async function ConfirmCourtPage({ params }: Props) {
         <div>
           <h1
             style={{
-              fontFamily: "var(--font-syne)",
+              fontFamily: "var(--font-montserrat)",
               fontWeight: 800,
               fontSize: "1.6rem",
               letterSpacing: "-0.03em",
@@ -123,7 +123,7 @@ export default async function ConfirmCourtPage({ params }: Props) {
           </p>
           <p
             style={{
-              fontFamily: "var(--font-syne)",
+              fontFamily: "var(--font-montserrat)",
               fontWeight: 700,
               fontSize: "1.1rem",
               color: "var(--text)",

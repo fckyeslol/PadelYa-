@@ -242,7 +242,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
               <div>
                 <h1
                   style={{
-                    fontFamily: "var(--font-syne)",
+                    fontFamily: "var(--font-montserrat)",
                     fontWeight: 800,
                     fontSize: "clamp(1.4rem, 3vw, 1.9rem)",
                     letterSpacing: "-0.025em",
@@ -527,7 +527,7 @@ function Section({
       <div style={{ marginBottom: "1rem" }}>
         <h2
           style={{
-            fontFamily: "var(--font-syne)",
+            fontFamily: "var(--font-montserrat)",
             fontWeight: 700,
             fontSize: "1.05rem",
             color: "var(--text)",
@@ -579,7 +579,7 @@ function ResultDisplay({ result }: {
             <p style={{ fontSize: "0.68rem", color: "var(--text-3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>
               Set {i + 1}
             </p>
-            <p style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-syne)", letterSpacing: "-0.02em" }}>
+            <p style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-montserrat)", letterSpacing: "-0.02em" }}>
               {t1}–{t2}
             </p>
           </div>

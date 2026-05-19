@@ -9,7 +9,7 @@ export default function TermsPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10" style={{ color: "var(--text)" }}>
       <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontFamily: "var(--font-syne)", fontSize: "1.8rem", fontWeight: 800, marginBottom: "0.5rem", letterSpacing: "-0.025em" }}>
+        <h1 style={{ fontFamily: "var(--font-montserrat)", fontSize: "1.8rem", fontWeight: 800, marginBottom: "0.5rem", letterSpacing: "-0.025em" }}>
           Términos de servicio
         </h1>
         <p style={{ color: "var(--text-3)", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}>
@@ -62,7 +62,7 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: "1rem", padding: "1.25rem 1.5rem", border: "1px solid var(--border)", borderRadius: "12px", background: "var(--card)" }}>
-      <h2 style={{ fontWeight: 700, marginBottom: "0.6rem", fontSize: "0.95rem", fontFamily: "var(--font-syne)", color: "var(--text)" }}>{title}</h2>
+      <h2 style={{ fontWeight: 700, marginBottom: "0.6rem", fontSize: "0.95rem", fontFamily: "var(--font-montserrat)", color: "var(--text)" }}>{title}</h2>
       <p style={{ color: "var(--text-2)", lineHeight: 1.7, fontSize: "0.9rem", fontFamily: "var(--font-dm-sans)" }}>{children}</p>
     </section>
   );

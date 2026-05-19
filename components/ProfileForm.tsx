@@ -33,7 +33,7 @@ export function ProfileForm() {
       <div style={{ marginBottom: "1.5rem" }}>
         <h2
           style={{
-            fontFamily: "var(--font-syne)",
+            fontFamily: "var(--font-montserrat)",
             fontWeight: 700,
             fontSize: "1.2rem",
             letterSpacing: "-0.02em",

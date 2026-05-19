@@ -66,7 +66,7 @@ export function MatchCard({ match }: { match: MatchPreview }) {
           <div className="flex-1 min-w-0">
             <h3
               style={{
-                fontFamily: "var(--font-syne)",
+                fontFamily: "var(--font-montserrat)",
                 fontWeight: 700,
                 fontSize: "1.05rem",
                 color: "var(--text)",

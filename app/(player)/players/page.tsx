@@ -26,7 +26,7 @@ export default async function PlayersPage({ searchParams }: Props) {
           <div>
             <h1
               style={{
-                fontFamily: "var(--font-syne)",
+                fontFamily: "var(--font-montserrat)",
                 fontWeight: 800,
                 fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
                 letterSpacing: "-0.025em",

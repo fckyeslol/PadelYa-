@@ -34,7 +34,7 @@ export function PlayerStepsSection() {
                 <span className="landing-step-num">{i + 1}</span>
                 <h3
                   style={{
-                    fontFamily: "var(--font-syne)",
+                    fontFamily: "var(--font-montserrat)",
                     fontWeight: 700,
                     fontSize: "1.15rem",
                   }}

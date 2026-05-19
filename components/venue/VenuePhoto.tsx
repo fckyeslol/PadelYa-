@@ -54,7 +54,7 @@ export function VenuePhoto({
             fontWeight: 700,
             fontSize: "0.9rem",
             textAlign: "center",
-            fontFamily: "var(--font-syne)",
+            fontFamily: "var(--font-montserrat)",
           }}
         >
           {venueName}

@@ -77,7 +77,7 @@ export default async function ProfilePage({ searchParams }: Props) {
         <div style={{ marginBottom: "2rem" }}>
           <h1
             style={{
-              fontFamily: "var(--font-syne)",
+              fontFamily: "var(--font-montserrat)",
               fontWeight: 800,
               fontSize: "1.75rem",
               letterSpacing: "-0.025em",
@@ -111,7 +111,7 @@ export default async function ProfilePage({ searchParams }: Props) {
             fullName={profile.fullName}
           />
           <div>
-            <p style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text)", fontFamily: "var(--font-syne)" }}>
+            <p style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text)", fontFamily: "var(--font-montserrat)" }}>
               {profile.fullName}
             </p>
             <p style={{ fontSize: "0.8rem", color: "var(--text-3)", fontFamily: "var(--font-dm-sans)", marginTop: "0.15rem" }}>
@@ -208,7 +208,7 @@ export default async function ProfilePage({ searchParams }: Props) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.8rem" }}>
             <h2
               style={{
-                fontFamily: "var(--font-syne)",
+                fontFamily: "var(--font-montserrat)",
                 fontWeight: 700,
                 fontSize: "1rem",
                 color: "var(--text)",

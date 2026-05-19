@@ -60,7 +60,7 @@ export default async function MatchesPage({ searchParams }: Props) {
                   fontWeight: 600,
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
-                  fontFamily: "var(--font-syne)",
+                  fontFamily: "var(--font-montserrat)",
                   marginBottom: "0.4rem",
                 }}
               >
@@ -68,7 +68,7 @@ export default async function MatchesPage({ searchParams }: Props) {
               </p>
               <h1
                 style={{
-                  fontFamily: "var(--font-syne)",
+                  fontFamily: "var(--font-montserrat)",
                   fontWeight: 800,
                   fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
                   letterSpacing: "-0.025em",
@@ -280,7 +280,7 @@ function EmptyState({ skillLevel }: { skillLevel?: string }) {
       </div>
       <h3
         style={{
-          fontFamily: "var(--font-syne)",
+          fontFamily: "var(--font-montserrat)",
           fontWeight: 700,
           fontSize: "1.15rem",
           color: "var(--text)",

@@ -89,7 +89,7 @@ export default async function PublicPlayerPage({ params }: Props) {
             <div style={{ flex: 1, minWidth: "220px" }}>
               <h1
                 style={{
-                  fontFamily: "var(--font-syne)",
+                  fontFamily: "var(--font-montserrat)",
                   fontWeight: 800,
                   fontSize: "1.5rem",
                   color: "var(--text)",
@@ -156,7 +156,7 @@ export default async function PublicPlayerPage({ params }: Props) {
         >
           <h2
             style={{
-              fontFamily: "var(--font-syne)",
+              fontFamily: "var(--font-montserrat)",
               fontWeight: 700,
               fontSize: "1.1rem",
               color: "var(--text)",

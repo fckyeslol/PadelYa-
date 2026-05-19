@@ -162,7 +162,7 @@ export function AuthForm({
         </div>
         <h2
           style={{
-            fontFamily: "var(--font-syne)",
+            fontFamily: "var(--font-montserrat)",
             fontWeight: 700,
             fontSize: "1.25rem",
             color: "var(--text)",
@@ -228,7 +228,7 @@ export function AuthForm({
 
         <h1
           style={{
-            fontFamily: "var(--font-syne)",
+            fontFamily: "var(--font-montserrat)",
             fontWeight: 800,
             fontSize: "1.75rem",
             letterSpacing: "-0.025em",

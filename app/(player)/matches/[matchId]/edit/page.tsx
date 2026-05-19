@@ -29,7 +29,7 @@ export default async function EditMatchPage({ params }: Props) {
         <div style={{ marginBottom: "2rem" }}>
           <h1
             style={{
-              fontFamily: "var(--font-syne)",
+              fontFamily: "var(--font-montserrat)",
               fontWeight: 800,
               fontSize: "1.75rem",
               letterSpacing: "-0.025em",

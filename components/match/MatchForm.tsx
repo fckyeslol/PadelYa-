@@ -126,7 +126,7 @@ export function MatchForm() {
       <div style={{ marginBottom: "1.5rem" }}>
         <h1
           style={{
-            fontFamily: "var(--font-syne)",
+            fontFamily: "var(--font-montserrat)",
             fontWeight: 800,
             fontSize: "1.5rem",
             letterSpacing: "-0.025em",
@@ -235,7 +235,7 @@ export function MatchForm() {
                     fontSize: "1.15rem",
                     fontWeight: 800,
                     color: selected ? "var(--primary)" : "var(--text)",
-                    fontFamily: "var(--font-syne)",
+                    fontFamily: "var(--font-montserrat)",
                     lineHeight: 1,
                   }}>
                     {d.dayNum}

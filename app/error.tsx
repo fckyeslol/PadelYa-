@@ -34,7 +34,7 @@ export default function ErrorPage({
       </div>
       <h1
         style={{
-          fontFamily: "var(--font-syne)",
+          fontFamily: "var(--font-montserrat)",
           fontWeight: 800,
           fontSize: "clamp(1.3rem, 3vw, 1.75rem)",
           letterSpacing: "-0.025em",

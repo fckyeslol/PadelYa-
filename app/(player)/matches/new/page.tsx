@@ -34,7 +34,7 @@ export default function NewMatchPage() {
               fontWeight: 600,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
-              fontFamily: "var(--font-syne)",
+              fontFamily: "var(--font-montserrat)",
               marginBottom: "0.35rem",
             }}
           >
@@ -42,7 +42,7 @@ export default function NewMatchPage() {
           </p>
           <h1
             style={{
-              fontFamily: "var(--font-syne)",
+              fontFamily: "var(--font-montserrat)",
               fontWeight: 800,
               fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
               letterSpacing: "-0.025em",

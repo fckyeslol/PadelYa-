@@ -71,7 +71,7 @@ export function SiteHeader({ profile }: Props) {
           />
           <span
             style={{
-              fontFamily: "var(--font-syne)",
+              fontFamily: "var(--font-montserrat)",
               fontWeight: 800,
               fontSize: "1.05rem",
               letterSpacing: "-0.02em",

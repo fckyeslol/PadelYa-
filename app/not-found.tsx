@@ -21,7 +21,7 @@ export default function NotFound() {
       </p>
       <h1
         style={{
-          fontFamily: "var(--font-syne)",
+          fontFamily: "var(--font-montserrat)",
           fontWeight: 800,
           fontSize: "clamp(1.4rem, 3vw, 1.9rem)",
           letterSpacing: "-0.025em",

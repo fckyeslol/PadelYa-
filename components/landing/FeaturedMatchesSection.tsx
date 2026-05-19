@@ -60,7 +60,7 @@ export async function FeaturedMatchesSection() {
                 <div>
                   <h3
                     style={{
-                      fontFamily: "var(--font-syne)",
+                      fontFamily: "var(--font-montserrat)",
                       fontWeight: 700,
                       fontSize: "1.05rem",
                       marginBottom: "0.25rem",

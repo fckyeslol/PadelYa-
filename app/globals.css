@@ -12,6 +12,7 @@
   --primary:      #1E3A6E;
   --primary-dim:  #2B4F96;
   --primary-muted: rgba(30, 58, 110, 0.07);
+  --primary-fg:   #ffffff;
 
   --gold:         #D4891A;
   --gold-muted:   rgba(212, 137, 26, 0.10);
@@ -578,34 +579,57 @@ input[type="time"].input-base {
 .app-page-shell {
   min-height: 100vh;
   background:
-    radial-gradient(1200px 500px at 100% -12%, rgba(13, 58, 158, 0.28) 0%, rgba(13, 58, 158, 0) 64%),
-    radial-gradient(1100px 420px at -10% 18%, rgba(200, 241, 53, 0.2) 0%, rgba(200, 241, 53, 0) 60%),
-    linear-gradient(180deg, #edf3ff 0%, #e7eefc 45%, #e5ecfb 100%);
+    radial-gradient(ellipse 1400px 650px at 100% 0%, rgba(26, 79, 214, 0.5) 0%, transparent 62%),
+    radial-gradient(ellipse 1000px 800px at -5% 100%, rgba(200, 241, 53, 0.15) 0%, transparent 55%),
+    linear-gradient(175deg, #0c3091 0%, #0b2980 10%, #8eb0de 46%, #7da2d6 100%);
 }
 
 .app-top-section {
-  background:
-    linear-gradient(180deg, rgba(248, 252, 255, 0.97) 0%, rgba(240, 247, 255, 0.94) 100%),
-    radial-gradient(120% 180% at 0% 0%, rgba(26, 79, 214, 0.08) 0%, rgba(26, 79, 214, 0) 55%);
-  border-bottom: 1px solid rgba(30, 58, 110, 0.2);
-  backdrop-filter: blur(6px);
+  background: var(--landing-hero-gradient);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  /* Token overrides: white text on deep-blue header */
+  --text:          #ffffff;
+  --text-2:        rgba(255, 255, 255, 0.78);
+  --text-3:        rgba(255, 255, 255, 0.52);
+  --border:        rgba(255, 255, 255, 0.18);
+  --primary:       #c8f135;
+  --primary-dim:   #b8e02a;
+  --primary-muted: rgba(200, 241, 53, 0.18);
+  --primary-fg:    #0f1629;
+  --card:          rgba(255, 255, 255, 0.09);
+  --card-hover:    rgba(255, 255, 255, 0.15);
+}
+
+.app-top-section .glow-primary {
+  box-shadow: 0 4px 20px rgba(200, 241, 53, 0.42);
 }
 
 .app-filter-section {
-  background:
-    linear-gradient(180deg, rgba(246, 251, 255, 0.96) 0%, rgba(237, 245, 255, 0.95) 100%),
-    radial-gradient(100% 180% at 100% 0%, rgba(200, 241, 53, 0.08) 0%, rgba(200, 241, 53, 0) 68%);
-  border-bottom: 1px solid rgba(30, 58, 110, 0.14);
+  background: rgba(9, 26, 78, 0.70);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  /* Token overrides: white text on translucent dark strip */
+  --text:          #ffffff;
+  --text-2:        rgba(255, 255, 255, 0.76);
+  --text-3:        rgba(255, 255, 255, 0.50);
+  --border:        rgba(255, 255, 255, 0.18);
+  --primary:       #c8f135;
+  --primary-muted: rgba(200, 241, 53, 0.15);
+  --card:          rgba(255, 255, 255, 0.08);
+  --card-hover:    rgba(255, 255, 255, 0.13);
+  --surface:       rgba(255, 255, 255, 0.13);
 }
 
 .app-content-frame {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(252, 254, 255, 0.76) 100%);
-  border: 1px solid rgba(30, 58, 110, 0.16);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   border-radius: 18px;
   box-shadow:
-    0 12px 30px rgba(15, 22, 41, 0.09),
-    0 1px 0 rgba(255, 255, 255, 0.85) inset;
+    0 24px 64px rgba(8, 22, 72, 0.22),
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
 }
 
 .venue-photo-image {

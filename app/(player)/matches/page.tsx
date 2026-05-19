@@ -89,7 +89,7 @@ export default async function MatchesPage({ searchParams }: Props) {
               className="glow-primary self-start sm:self-auto"
               style={{
               background: "var(--primary)",
-              color: "#ffffff",
+              color: "var(--primary-fg)",
               borderRadius: "10px",
               padding: "0.625rem 1.25rem",
               fontWeight: 700,
@@ -175,7 +175,7 @@ export default async function MatchesPage({ searchParams }: Props) {
 
       {/* Onboarding banner for guests */}
       {!isLoggedIn && !setupError && (
-        <div style={{ background: "var(--primary-muted)", borderBottom: "1px solid rgba(16,185,129,0.15)" }}>
+        <div style={{ background: "rgba(200, 241, 53, 0.12)", borderBottom: "1px solid rgba(200, 241, 53, 0.22)" }}>
           <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
             <p style={{ fontSize: "0.875rem", color: "var(--text-2)" }}>
               <span style={{ color: "var(--primary)", fontWeight: 600 }}>¿Primera vez?</span>
@@ -184,8 +184,8 @@ export default async function MatchesPage({ searchParams }: Props) {
             <Link
               href="/login"
               style={{
-                background: "var(--primary)",
-                color: "#ffffff",
+                background: "#c8f135",
+                color: "#0f1629",
                 borderRadius: "8px",
                 padding: "0.35rem 1rem",
                 fontWeight: 700,

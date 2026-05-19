@@ -41,9 +41,12 @@ export function getResendEnv() {
     return null;
   }
 
+  const from =
+    process.env.RESEND_FROM_EMAIL?.trim() || "PadelYa <noreply@padelya.uk>";
+
   return {
     apiKey,
-    from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+    from,
     appUrl: getAppUrl(),
   };
 }

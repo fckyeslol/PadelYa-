@@ -1,10 +1,12 @@
 import { getAppUrl } from "@/utils/auth-url";
-import { isSupabaseConfigured } from "@/utils/env";
+import { getResendEnv, isSupabaseConfigured } from "@/utils/env";
 
 export const dynamic = "force-dynamic";
 
 /** Lightweight check for Vercel env setup (no secrets exposed). */
 export async function GET() {
+  const resend = getResendEnv();
+
   return Response.json({
     ok: isSupabaseConfigured(),
     supabasePublic: isSupabaseConfigured(),
@@ -14,5 +16,7 @@ export async function GET() {
     ),
     appUrl: getAppUrl(),
     configuredAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+    resendConfigured: Boolean(resend),
+    resendFrom: resend?.from ?? null,
   });
 }

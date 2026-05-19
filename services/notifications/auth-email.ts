@@ -41,7 +41,14 @@ export async function sendMagicLinkEmail(input: MagicLinkEmailInput): Promise<vo
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(body || `Resend error ${response.status}`);
+    let message = body || `Resend error ${response.status}`;
+    try {
+      const parsed = JSON.parse(body) as { message?: string };
+      if (parsed.message) message = parsed.message;
+    } catch {
+      // keep raw body
+    }
+    throw new Error(message);
   }
 }
 

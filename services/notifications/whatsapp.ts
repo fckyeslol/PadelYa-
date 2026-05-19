@@ -1,13 +1,11 @@
-import twilio from "twilio";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatDateTime } from "@/utils/dates";
 
-function getTwilioEnv() {
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_WHATSAPP_FROM;
-  if (!sid || !token || !from) return null;
-  return { sid, token, from };
+function getUltraMsgEnv() {
+  const instance = process.env.ULTRAMSG_INSTANCE;
+  const token = process.env.ULTRAMSG_TOKEN;
+  if (!instance || !token) return null;
+  return { instance, token };
 }
 
 function getOwnerPhone(): string | null {
@@ -15,17 +13,21 @@ function getOwnerPhone(): string | null {
 }
 
 async function send(to: string, body: string): Promise<void> {
-  const env = getTwilioEnv();
+  const env = getUltraMsgEnv();
   if (!env) return;
 
   const phone = to.startsWith("+") ? to : `+${to}`;
-  const client = twilio(env.sid, env.token);
 
-  await client.messages.create({
-    from: `whatsapp:${env.from}`,
-    to: `whatsapp:${phone}`,
-    body,
+  const res = await fetch(`https://api.ultramsg.com/${env.instance}/messages/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ token: env.token, to: phone, body }),
   });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`UltraMsg send failed (${res.status}): ${err}`);
+  }
 }
 
 async function safeSend(to: string, body: string): Promise<void> {

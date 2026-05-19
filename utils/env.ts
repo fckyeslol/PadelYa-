@@ -35,12 +35,11 @@ export function getWompiEnv() {
   };
 }
 
-export function getTwilioEnv() {
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_WHATSAPP_FROM;
-  if (!sid || !token || !from) return null;
-  return { sid, token, from };
+export function getUltraMsgEnv() {
+  const instance = process.env.ULTRAMSG_INSTANCE;
+  const token = process.env.ULTRAMSG_TOKEN;
+  if (!instance || !token) return null;
+  return { instance, token };
 }
 
 export function getResendEnv() {

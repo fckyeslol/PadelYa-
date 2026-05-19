@@ -16,6 +16,9 @@ export async function GET() {
     ),
     appUrl: getAppUrl(),
     configuredAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+    appUrlNeedsUpdate:
+      Boolean(process.env.NEXT_PUBLIC_APP_URL?.includes("padel-ya.vercel.app")) ||
+      Boolean(process.env.NEXT_PUBLIC_APP_URL?.includes("localhost")),
     resendConfigured: Boolean(resend),
     resendFrom: resend?.from ?? null,
   });

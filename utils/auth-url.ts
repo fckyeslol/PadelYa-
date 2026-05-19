@@ -1,18 +1,49 @@
+/** Canonical production domain (custom domain on Vercel). */
+export const PRODUCTION_APP_URL = "https://padelya.uk";
+
+const DEPRECATED_APP_HOSTS = new Set(["padel-ya.vercel.app"]);
+
+function stripTrailingSlash(url: string) {
+  return url.replace(/\/$/, "");
+}
+
+/** Rewrites dead preview URLs to the live custom domain. */
+export function normalizeAppUrl(url: string): string {
+  const trimmed = stripTrailingSlash(url);
+  try {
+    const { hostname } = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+    if (DEPRECATED_APP_HOSTS.has(hostname)) {
+      return PRODUCTION_APP_URL;
+    }
+  } catch {
+    // keep trimmed
+  }
+  return trimmed;
+}
+
 /** Public site URL for auth redirects (never localhost in production when Vercel is set). */
 export function getAppUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (configured && configured !== "placeholder" && !configured.includes("localhost")) {
-    return configured;
+    return normalizeAppUrl(configured);
   }
 
   const vercelHost =
     process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() ||
     process.env.VERCEL_URL?.trim();
   if (vercelHost) {
-    return vercelHost.startsWith("http") ? vercelHost.replace(/\/$/, "") : `https://${vercelHost}`;
+    const raw = vercelHost.startsWith("http") ? vercelHost : `https://${vercelHost}`;
+    const normalized = normalizeAppUrl(stripTrailingSlash(raw));
+    if (!normalized.includes("localhost")) {
+      return normalized;
+    }
   }
 
-  return configured || "http://localhost:3000";
+  if (process.env.VERCEL === "1") {
+    return PRODUCTION_APP_URL;
+  }
+
+  return configured ? normalizeAppUrl(configured) : "http://localhost:3000";
 }
 
 export function isAllowedAuthOrigin(origin: string): boolean {
@@ -27,6 +58,10 @@ export function isAllowedAuthOrigin(origin: string): boolean {
       return true;
     }
     if (host.endsWith(".vercel.app")) {
+      return true;
+    }
+
+    if (host === "padelya.uk" || host === "www.padelya.uk") {
       return true;
     }
 
@@ -48,8 +83,11 @@ export function isAllowedAuthOrigin(origin: string): boolean {
 /** Prefer the live browser origin on production; env/Vercel on the server. */
 export function resolveAuthRedirectOrigin(requestOrigin?: string): string {
   const trimmed = requestOrigin?.trim().replace(/\/$/, "");
-  if (trimmed && isAllowedAuthOrigin(trimmed)) {
-    return trimmed;
+  if (trimmed) {
+    const normalized = normalizeAppUrl(trimmed);
+    if (isAllowedAuthOrigin(normalized)) {
+      return normalized;
+    }
   }
   return getAppUrl();
 }
@@ -85,9 +123,9 @@ export function getClientAuthCallbackUrl(next?: string): string | undefined {
     return buildAuthCallbackUrl(origin, next);
   }
 
-  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (envUrl && envUrl !== "placeholder" && !envUrl.includes("localhost")) {
-    return buildAuthCallbackUrl(envUrl, next);
+    return buildAuthCallbackUrl(normalizeAppUrl(envUrl), next);
   }
 
   return buildAuthCallbackUrl(origin, next);

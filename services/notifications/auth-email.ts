@@ -15,7 +15,7 @@ export async function sendMagicLinkEmail(input: MagicLinkEmailInput): Promise<vo
   const safeName = escapeHtml(input.firstName);
   const safeLink = escapeHtml(input.actionLink);
 
-  const html = `<motionlessdiv style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5; max-width: 480px;">
+  const html = `<div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5; max-width: 480px;">
 <h2 style="margin: 0 0 12px;">Hola ${safeName}</h2>
 <p style="margin: 0 0 16px;">Haz clic en el botón para ingresar a PadelYa!. El link expira en aproximadamente 1 hora.</p>
 <p style="margin: 0 0 20px;">
@@ -23,7 +23,7 @@ export async function sendMagicLinkEmail(input: MagicLinkEmailInput): Promise<vo
 </p>
 <p style="margin: 0; font-size: 13px; color: #6b7280;">Si el botón no funciona, copia y pega este enlace en tu navegador:<br />
 <a href="${safeLink}" style="color: #1e3a6e; word-break: break-all;">${safeLink}</a></p>
-</motionlessdiv>`.replaceAll("motionless", "");
+</div>`;
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",

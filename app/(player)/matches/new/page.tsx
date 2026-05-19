@@ -7,12 +7,12 @@ export default function NewMatchPage() {
   return (
     <div className="app-page-shell">
       {/* Page header */}
-      <div className="app-top-section px-6 py-6">
+      <div className="app-top-section-hero px-6 py-6">
         <div className="mx-auto max-w-3xl">
           <Link
             href="/matches"
             style={{
-              color: "var(--text-2)",
+              color: "rgba(255,255,255,0.85)",
               fontSize: "0.82rem",
               display: "inline-flex",
               alignItems: "center",
@@ -20,7 +20,7 @@ export default function NewMatchPage() {
               fontFamily: "var(--font-dm-sans)",
               marginBottom: "0.875rem",
             }}
-            className="hover:text-[var(--text)]"
+            className="hover:text-white"
           >
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -29,7 +29,7 @@ export default function NewMatchPage() {
           </Link>
           <p
             style={{
-              color: "var(--primary)",
+              color: "rgba(200,241,53,0.95)",
               fontSize: "0.72rem",
               fontWeight: 600,
               letterSpacing: "0.12em",
@@ -46,7 +46,7 @@ export default function NewMatchPage() {
               fontWeight: 800,
               fontSize: "clamp(1.5rem, 3.5vw, 2rem)",
               letterSpacing: "-0.025em",
-              color: "var(--text)",
+              color: "#ffffff",
             }}
           >
             Crear partido

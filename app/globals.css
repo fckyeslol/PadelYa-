@@ -593,6 +593,13 @@ input[type="time"].input-base {
   border-bottom: none;
 }
 
+.app-top-section-hero {
+  background:
+    radial-gradient(140% 180% at 12% 18%, rgba(200, 241, 53, 0.16) 0%, rgba(200, 241, 53, 0) 42%),
+    var(--landing-hero-gradient);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+}
+
 .app-filter-section {
   background: #ffffff;
   border-bottom: 1px solid var(--border);

@@ -49,6 +49,31 @@ const DEADLINE_OPTIONS = [
 
 const POPULAR_HOURS = ["07:00", "08:00", "18:00", "19:00", "20:00", "21:00"];
 
+function formatSelectedDay(dateValue: string) {
+  const d = DAYS.find((day) => day.value === dateValue);
+  if (!d) return dateValue;
+  return `${d.dayName} ${d.dayNum} ${d.monthName}`;
+}
+
+function slotsForDate(dateValue: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  const isToday = dateValue === `${yyyy}-${mm}-${dd}`;
+
+  if (!isToday) return TIME_SLOTS;
+
+  const now = new Date();
+  return TIME_SLOTS.filter((slot) => {
+    const [h, m] = slot.value.split(":").map(Number);
+    const slotAt = new Date();
+    slotAt.setHours(h, m, 0, 0);
+    return slotAt > now;
+  });
+}
+
 import { ALL_VENUE_NAMES } from "@/config/venues";
 
 const BAQ_VENUES = ALL_VENUE_NAMES;
@@ -57,6 +82,7 @@ export function MatchForm() {
   const [venueName, setVenueName] = useState("");
   const [matchDate, setMatchDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
+  const [showAllTimes, setShowAllTimes] = useState(false);
   const [deadlineHours, setDeadlineHours] = useState(4);
   const [skillLevel, setSkillLevel] = useState("intermediate");
   const [notes, setNotes] = useState("");
@@ -175,7 +201,11 @@ export function MatchForm() {
                 <button
                   key={d.value}
                   type="button"
-                  onClick={() => setMatchDate(d.value)}
+                  onClick={() => {
+                    setMatchDate(d.value);
+                    setMatchTime("");
+                    setShowAllTimes(false);
+                  }}
                   style={{
                     flexShrink: 0,
                     display: "flex",
@@ -221,19 +251,81 @@ export function MatchForm() {
               );
             })}
           </div>
+          {!matchDate ? (
+            <p
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "0.78rem",
+                color: "var(--text-3)",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              Elige un día para ver los horarios disponibles.
+            </p>
+          ) : null}
         </div>
 
-        {/* Time grid */}
-        <div>
-          <label className="form-label">Hora</label>
-
-          {/* Popular hours fast-pick */}
-          <div style={{ marginBottom: "0.6rem" }}>
-            <p style={{ fontSize: "0.72rem", color: "var(--text-3)", marginBottom: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
-              Populares
+        {matchDate ? (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                gap: "0.75rem",
+                marginBottom: "0.65rem",
+              }}
+            >
+              <label className="form-label" style={{ marginBottom: 0 }}>
+                Hora del partido
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setMatchDate("");
+                  setMatchTime("");
+                  setShowAllTimes(false);
+                }}
+                style={{
+                  border: "none",
+                  background: "none",
+                  padding: 0,
+                  fontSize: "0.78rem",
+                  color: "var(--primary)",
+                  fontFamily: "var(--font-dm-sans)",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Cambiar día
+              </button>
+            </div>
+            <p
+              style={{
+                fontSize: "0.8rem",
+                color: "var(--text-2)",
+                marginBottom: "0.75rem",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              {formatSelectedDay(matchDate)}
             </p>
-            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+
+            <p
+              style={{
+                fontSize: "0.72rem",
+                color: "var(--text-3)",
+                marginBottom: "0.4rem",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              Horarios populares
+            </p>
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
               {POPULAR_HOURS.map((t) => {
+                const available = slotsForDate(matchDate).some((s) => s.value === t);
+                if (!available) return null;
                 const selected = matchTime === t;
                 return (
                   <button
@@ -241,16 +333,15 @@ export function MatchForm() {
                     type="button"
                     onClick={() => setMatchTime(selected ? "" : t)}
                     style={{
-                      padding: "0.3rem 0.75rem",
+                      padding: "0.45rem 0.9rem",
                       borderRadius: "8px",
                       border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
-                      background: selected ? "var(--primary-muted)" : "var(--surface)",
+                      background: selected ? "var(--primary-muted)" : "var(--card)",
                       color: selected ? "var(--primary)" : "var(--text-2)",
-                      fontSize: "0.82rem",
+                      fontSize: "0.85rem",
                       fontWeight: selected ? 700 : 500,
                       fontFamily: "var(--font-dm-sans)",
                       cursor: "pointer",
-                      transition: "border-color 0.1s, background 0.1s, color 0.1s",
                     }}
                   >
                     {t}
@@ -258,43 +349,92 @@ export function MatchForm() {
                 );
               })}
             </div>
-          </div>
 
-          {/* Full grid */}
-          <p style={{ fontSize: "0.72rem", color: "var(--text-3)", marginBottom: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
-            Todos los horarios
-          </p>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))",
-            gap: "0.4rem",
-          }}>
-            {TIME_SLOTS.map((s) => {
-              const selected = matchTime === s.value;
-              return (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => setMatchTime(s.value)}
+            {showAllTimes ? (
+              <>
+                <p
                   style={{
-                    padding: "0.45rem 0",
-                    borderRadius: "8px",
-                    border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
-                    background: selected ? "var(--primary-muted)" : "var(--card)",
-                    color: selected ? "var(--primary)" : "var(--text-2)",
-                    fontSize: "0.82rem",
-                    fontWeight: selected ? 700 : 400,
+                    fontSize: "0.72rem",
+                    color: "var(--text-3)",
+                    marginBottom: "0.4rem",
                     fontFamily: "var(--font-dm-sans)",
-                    cursor: "pointer",
-                    transition: "border-color 0.1s, background 0.1s, color 0.1s",
                   }}
                 >
-                  {s.label}
+                  Más horarios
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.4rem",
+                    overflowX: "auto",
+                    paddingBottom: "4px",
+                    scrollbarWidth: "thin",
+                  }}
+                >
+                  {slotsForDate(matchDate).map((s) => {
+                    const selected = matchTime === s.value;
+                    return (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => setMatchTime(s.value)}
+                        style={{
+                          flexShrink: 0,
+                          padding: "0.45rem 0.75rem",
+                          borderRadius: "8px",
+                          border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
+                          background: selected ? "var(--primary-muted)" : "var(--card)",
+                          color: selected ? "var(--primary)" : "var(--text-2)",
+                          fontSize: "0.82rem",
+                          fontWeight: selected ? 700 : 400,
+                          fontFamily: "var(--font-dm-sans)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAllTimes(false)}
+                  style={{
+                    marginTop: "0.5rem",
+                    border: "none",
+                    background: "none",
+                    padding: 0,
+                    fontSize: "0.78rem",
+                    color: "var(--text-3)",
+                    fontFamily: "var(--font-dm-sans)",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Ocultar horarios
                 </button>
-              );
-            })}
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAllTimes(true)}
+                style={{
+                  padding: "0.5rem 0.875rem",
+                  borderRadius: "8px",
+                  border: "1px dashed var(--border)",
+                  background: "var(--surface)",
+                  color: "var(--text-2)",
+                  fontSize: "0.82rem",
+                  fontFamily: "var(--font-dm-sans)",
+                  cursor: "pointer",
+                  width: "100%",
+                }}
+              >
+                Ver más horarios
+              </button>
+            )}
           </div>
-        </div>
+        ) : null}
 
         {/* Deadline chips */}
         <div>

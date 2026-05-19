@@ -62,12 +62,15 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
   const [externalReference, setExternalReference] = useState<string | null>(null);
   const controllerRef = useRef<MPBrickController | null>(null);
   const autoStartedRef = useRef(false);
+  const checkoutInFlightRef = useRef(false);
 
   const serviceFee = APP_CONFIG.platformFeeCop;
   const totalCop = (orgFeeCop ?? 0) + serviceFee;
   const totalLabel = formatCop(totalCop);
 
   const startCheckout = useCallback(async () => {
+    if (checkoutInFlightRef.current) return;
+    checkoutInFlightRef.current = true;
     setStep("initiating");
     setError(null);
     try {
@@ -90,6 +93,8 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error iniciando el pago");
       setStep("idle");
+    } finally {
+      checkoutInFlightRef.current = false;
     }
   }, [matchId]);
 

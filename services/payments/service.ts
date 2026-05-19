@@ -323,6 +323,100 @@ function buildMercadoPagoPaymentBody(
   return body;
 }
 
+function isPostgresUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: string }).code === "23505"
+  );
+}
+
+/** Reserves a match_players row; reuses existing row (unique on match_id + player_id). */
+async function reserveMatchPlayerForCheckout(
+  supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
+  matchId: string,
+  playerId: string,
+  isHost: boolean,
+): Promise<string> {
+  const { data: existing } = await supabase
+    .from("match_players")
+    .select("id, status")
+    .eq("match_id", matchId)
+    .eq("player_id", playerId)
+    .maybeSingle();
+
+  if (existing?.status === "paid") {
+    throw new Error("Ya tienes un cupo confirmado en este partido.");
+  }
+
+  if (existing?.status === "pending_payment") {
+    return existing.id;
+  }
+
+  if (existing) {
+    const { data: updated, error } = await supabase
+      .from("match_players")
+      .update({
+        status: "pending_payment",
+        is_host: isHost,
+        cancelled_at: null,
+      })
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) {
+      throw new Error(getErrorMessage(error, "No se pudo reservar tu cupo"));
+    }
+    return updated.id;
+  }
+
+  const { data: created, error } = await supabase
+    .from("match_players")
+    .insert({
+      match_id: matchId,
+      player_id: playerId,
+      status: "pending_payment",
+      is_host: isHost,
+    })
+    .select("id")
+    .single();
+
+  if (!error) return created.id;
+
+  if (isPostgresUniqueViolation(error)) {
+    const { data: raced } = await supabase
+      .from("match_players")
+      .select("id, status")
+      .eq("match_id", matchId)
+      .eq("player_id", playerId)
+      .maybeSingle();
+
+    if (raced?.status === "paid") {
+      throw new Error("Ya tienes un cupo confirmado en este partido.");
+    }
+
+    if (raced) {
+      if (raced.status !== "pending_payment") {
+        const { error: updateError } = await supabase
+          .from("match_players")
+          .update({
+            status: "pending_payment",
+            is_host: isHost,
+            cancelled_at: null,
+          })
+          .eq("id", raced.id);
+        if (updateError) {
+          throw new Error(getErrorMessage(updateError, "No se pudo reservar tu cupo"));
+        }
+      }
+      return raced.id;
+    }
+  }
+
+  throw new Error(getErrorMessage(error, "No se pudo reservar tu cupo"));
+}
+
 // ── Checkout: create DB records + MP preference ────────────────────────────
 
 export async function createCheckoutForMatch(
@@ -357,52 +451,27 @@ export async function createCheckoutForMatch(
     throw new Error("Este partido ya está completo.");
   }
 
-  const { data: existingPlayer } = await supabase
-    .from("match_players")
-    .select("id, status")
-    .eq("match_id", matchId)
-    .eq("player_id", user.id)
+  const matchPlayerId = await reserveMatchPlayerForCheckout(
+    supabase,
+    matchId,
+    user.id,
+    options?.isHost ?? false,
+  );
+
+  const { data: existingPayment } = await supabase
+    .from("payments")
+    .select("id, mp_preference_id, wompi_reference")
+    .eq("match_player_id", matchPlayerId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (existingPlayer?.status === "paid") {
-    throw new Error("Ya tienes un cupo confirmado en este partido.");
-  }
-
-  let matchPlayerId: string;
-
-  if (existingPlayer?.status === "pending_payment") {
-    matchPlayerId = existingPlayer.id;
-
-    const { data: existingPayment } = await supabase
-      .from("payments")
-      .select("id, mp_preference_id, wompi_reference")
-      .eq("match_player_id", matchPlayerId)
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existingPayment?.mp_preference_id && existingPayment.wompi_reference) {
-      return {
-        preferenceId: existingPayment.mp_preference_id,
-        externalReference: existingPayment.wompi_reference,
-      };
-    }
-  } else {
-    const { data: matchPlayer, error: matchPlayerError } = await supabase
-      .from("match_players")
-      .insert({
-        match_id: matchId,
-        player_id: user.id,
-        status: "pending_payment",
-        is_host: options?.isHost ?? false,
-      })
-      .select("id")
-      .single();
-    if (matchPlayerError) {
-      throw new Error(getErrorMessage(matchPlayerError, "No se pudo reservar tu cupo"));
-    }
-    matchPlayerId = matchPlayer.id;
+  if (existingPayment?.mp_preference_id && existingPayment.wompi_reference) {
+    return {
+      preferenceId: existingPayment.mp_preference_id,
+      externalReference: existingPayment.wompi_reference,
+    };
   }
 
   const idempotencyKey = crypto.randomUUID();

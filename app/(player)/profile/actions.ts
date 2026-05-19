@@ -35,5 +35,5 @@ export async function updateProfileAction(formData: FormData) {
   if (setup === "1" && next && next.startsWith("/") && !next.startsWith("//")) {
     redirect(next);
   }
-  redirect("/profile");
+  redirect("/profile?saved=1");
 }

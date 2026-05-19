@@ -5,6 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getPlayerMatchHistory } from "@/services/players/service";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { SkillLevelPicker } from "@/components/profile/SkillLevelPicker";
+import { SaveProfileButton } from "@/components/profile/SaveProfileButton";
 import { updateProfileAction } from "./actions";
 import { formatCop } from "@/utils/currency";
 import { formatDateTime } from "@/utils/dates";
@@ -16,7 +17,7 @@ const SKILL_LABELS: Record<string, string> = {
 };
 
 type Props = {
-  searchParams: Promise<{ setup?: string; next?: string }>;
+  searchParams: Promise<{ setup?: string; next?: string; saved?: string }>;
 };
 
 export default async function ProfilePage({ searchParams }: Props) {
@@ -28,8 +29,9 @@ export default async function ProfilePage({ searchParams }: Props) {
   if (!profile) redirect("/login");
   const history = await getPlayerMatchHistory(user.id, 12).catch(() => []);
 
-  const { setup, next } = await searchParams;
+  const { setup, next, saved } = await searchParams;
   const isSetup = setup === "1";
+  const isSaved = saved === "1";
   const setupNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/matches";
 
   const nameParts = profile.fullName.trim().split(/\s+/);
@@ -42,6 +44,19 @@ export default async function ProfilePage({ searchParams }: Props) {
       style={{ background: "var(--bg)" }}
     >
       <div style={{ width: "100%", maxWidth: "520px" }}>
+        {/* Saved banner */}
+        {isSaved && (
+          <div
+            className="banner-success"
+            style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.6rem" }}
+          >
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span><strong>Perfil actualizado.</strong> Los cambios se guardaron correctamente.</span>
+          </div>
+        )}
+
         {/* Setup banner */}
         {isSetup && (
           <div
@@ -177,25 +192,7 @@ export default async function ProfilePage({ searchParams }: Props) {
 
           <SkillLevelPicker defaultValue={profile.skillLevel} />
 
-          <button
-            type="submit"
-            className="glow-primary-sm"
-            style={{
-              background: "var(--primary)",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "10px",
-              padding: "0.7rem 1.5rem",
-              fontWeight: 700,
-              fontSize: "0.9rem",
-              fontFamily: "var(--font-dm-sans)",
-              cursor: "pointer",
-              marginTop: "0.5rem",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Guardar cambios
-          </button>
+          <SaveProfileButton />
         </form>
 
         {/* History */}

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createCheckoutForMatch } from "@/services/payments/service";
+import { notifyOwnerNewGame } from "@/services/notifications/whatsapp";
 
 const schema = z.object({
   courtReference: z.string().min(1).max(200).optional(),
@@ -52,6 +53,26 @@ export async function POST(request: Request, { params }: Props) {
       .eq("id", matchId);
 
     if (error) throw error;
+
+    // Notify owner that a new game was just created
+    const { data: hostProfile } = await admin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const { data: matchData } = await admin
+      .from("matches")
+      .select("venue_name, scheduled_at")
+      .eq("id", matchId)
+      .maybeSingle();
+
+    notifyOwnerNewGame({
+      matchId,
+      hostName: hostProfile?.full_name ?? "Un jugador",
+      venueName: matchData?.venue_name ?? "partido",
+      scheduledAt: matchData?.scheduled_at ?? null,
+    }).catch(() => {});
 
     // Auto-create checkout for the host so they pay their own spot
     let checkoutUrl: string | undefined;

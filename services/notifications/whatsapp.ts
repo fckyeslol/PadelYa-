@@ -91,13 +91,16 @@ export async function notifyHostMatchCreated(params: {
 }): Promise<void> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padel-ya.uk";
   const body = [
-    `🎾 *¡Tu partido está creado, ${params.hostName}!*`,
+    `*PadelYa!*`,
     ``,
-    `📍 ${params.venueName}`,
-    `📅 ${formatMatchDate(params.scheduledAt)}`,
-    `👥 1/${params.maxPlayers} jugadores — ¡Comparte el link para llenar!`,
+    `Hola ${params.hostName}, tu partido ha sido creado exitosamente.`,
     ``,
-    `🔗 ${appUrl}/matches/${params.matchId}`,
+    `Cancha: ${params.venueName}`,
+    `Fecha: ${formatMatchDate(params.scheduledAt)}`,
+    `Jugadores: 1/${params.maxPlayers}`,
+    ``,
+    `Comparte este link para llenar el partido:`,
+    `${appUrl}/matches/${params.matchId}`,
   ].join("\n");
 
   await safeSend(params.hostPhone, body);
@@ -115,14 +118,15 @@ export async function notifyOwnerNewGame(params: {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padel-ya.uk";
   const body = [
-    `🎾 *Nuevo partido creado en PadelYa!*`,
+    `*PadelYa! — Nuevo partido*`,
     ``,
-    `📍 ${params.venueName}`,
-    `📅 ${formatMatchDate(params.scheduledAt)}`,
-    `👤 Creado por: ${params.hostName}`,
-    `🟡 Estado: 1/4 jugadores`,
+    `${params.hostName} acaba de crear un partido.`,
     ``,
-    `🔗 ${appUrl}/matches/${params.matchId}`,
+    `Cancha: ${params.venueName}`,
+    `Fecha: ${formatMatchDate(params.scheduledAt)}`,
+    `Estado: 1/4 jugadores`,
+    ``,
+    `${appUrl}/matches/${params.matchId}`,
   ].join("\n");
 
   await safeSend(ownerPhone, body);
@@ -140,18 +144,20 @@ export async function notifyOnPlayerJoined(params: {
 }): Promise<void> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padel-ya.uk";
   const matchLink = `${appUrl}/matches/${params.matchId}`;
-  const roster = `${params.currentPaidCount}/${params.maxPlayers} jugadores`;
+  const roster = `${params.currentPaidCount}/${params.maxPlayers}`;
 
   const ownerPhone = getOwnerPhone();
   if (ownerPhone) {
     const ownerMsg = [
-      `🎾 *${params.newPlayerName} se unió a un partido*`,
+      `*PadelYa! — Jugador unido*`,
       ``,
-      `📍 ${params.venueName}`,
-      `📅 ${formatMatchDate(params.scheduledAt)}`,
-      `👥 ${roster}`,
+      `${params.newPlayerName} se unio a un partido.`,
       ``,
-      `🔗 ${matchLink}`,
+      `Cancha: ${params.venueName}`,
+      `Fecha: ${formatMatchDate(params.scheduledAt)}`,
+      `Estado: ${roster} jugadores`,
+      ``,
+      `${matchLink}`,
     ].join("\n");
     await safeSend(ownerPhone, ownerMsg);
   }
@@ -160,13 +166,15 @@ export async function notifyOnPlayerJoined(params: {
   if (others.length === 0) return;
 
   const playerMsg = [
-    `🎾 *${params.newPlayerName} se unió a tu partido*`,
+    `*PadelYa!*`,
     ``,
-    `📍 ${params.venueName}`,
-    `📅 ${formatMatchDate(params.scheduledAt)}`,
-    `👥 ${roster}`,
+    `${params.newPlayerName} se unio a tu partido.`,
     ``,
-    `🔗 ${matchLink}`,
+    `Cancha: ${params.venueName}`,
+    `Fecha: ${formatMatchDate(params.scheduledAt)}`,
+    `Jugadores: ${roster}`,
+    ``,
+    `${matchLink}`,
   ].join("\n");
 
   await Promise.all(others.map((p) => safeSend(p.phone, playerMsg)));
@@ -186,13 +194,15 @@ export async function notifyMatchFull(params: {
   const ownerPhone = getOwnerPhone();
   if (ownerPhone) {
     const ownerMsg = [
-      `✅ *¡Partido lleno en PadelYa!*`,
+      `*PadelYa! — Partido lleno*`,
       ``,
-      `📍 ${params.venueName}`,
-      `📅 ${formatMatchDate(params.scheduledAt)}`,
-      `👥 ${roster} — ¡Todo listo para jugar!`,
+      `Un partido acaba de llenarse.`,
       ``,
-      `🔗 ${matchLink}`,
+      `Cancha: ${params.venueName}`,
+      `Fecha: ${formatMatchDate(params.scheduledAt)}`,
+      `Jugadores: ${roster}`,
+      ``,
+      `${matchLink}`,
     ].join("\n");
     await safeSend(ownerPhone, ownerMsg);
   }
@@ -214,13 +224,14 @@ export async function notifyMatchFull(params: {
   if (phones.length === 0) return;
 
   const playerMsg = [
-    `✅ *¡Tu partido está lleno!*`,
+    `*PadelYa!*`,
     ``,
-    `📍 ${params.venueName}`,
-    `📅 ${formatMatchDate(params.scheduledAt)}`,
-    `👥 ${roster} — ¡Todo listo para jugar!`,
+    `Tu partido esta completo. Ya son ${roster} jugadores confirmados.`,
     ``,
-    `🔗 ${matchLink}`,
+    `Cancha: ${params.venueName}`,
+    `Fecha: ${formatMatchDate(params.scheduledAt)}`,
+    ``,
+    `${matchLink}`,
   ].join("\n");
 
   await Promise.all(phones.map((phone) => safeSend(phone, playerMsg)));

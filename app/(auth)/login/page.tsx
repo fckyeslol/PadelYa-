@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: Props) {
     }
   }
 
-  const initialError = (error && LOGIN_ERRORS[error]) || detailMessage;
+  const initialError = detailMessage || (error && LOGIN_ERRORS[error]) || null;
 
   return (
     <div

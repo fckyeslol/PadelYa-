@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const { data: existingUser, error: lookupError } = await admin
       .schema("auth")
       .from("users")
-      .select("id")
+      .select("id, email_confirmed_at")
       .eq("email", normalizedEmail)
       .maybeSingle();
 
@@ -53,7 +53,8 @@ export async function POST(request: Request) {
       console.error("[auth/magic-link] auth.users lookup", lookupError);
     }
 
-    const linkType: "magiclink" | "signup" = existingUser ? "magiclink" : "signup";
+    const requiresSignup = !existingUser || !existingUser.email_confirmed_at;
+    const linkType: "magiclink" | "signup" = requiresSignup ? "signup" : "magiclink";
     const linkPayload = {
       email: normalizedEmail,
       options: {

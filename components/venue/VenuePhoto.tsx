@@ -24,6 +24,7 @@ export function VenuePhoto({
 }: Props) {
   const image = getVenueImage(venueName, imageVariant);
   const info = getVenueInfo(venueName);
+  const objectFit = info?.imageFit ?? "cover";
 
   if (!image) {
     return (
@@ -70,7 +71,11 @@ export function VenuePhoto({
         alt={venueName}
         fill
         sizes="(max-width: 768px) 100vw, 400px"
-        style={{ objectFit: "cover" }}
+        style={{
+          objectFit,
+          objectPosition: "center",
+          background: objectFit === "contain" ? "#0F1629" : undefined,
+        }}
       />
       <div
         style={{

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { BARRANQUILLA_VENUES } from "@/config/venues";
+import { VenuePhoto } from "@/components/venue/VenuePhoto";
 
 export function VenuesSection() {
   return (
@@ -18,26 +18,13 @@ export function VenuesSection() {
               href={`/matches?venue=${encodeURIComponent(venue.name)}`}
               className="landing-match-card landing-venue-card overflow-hidden p-0"
             >
-              <div style={{ position: "relative", height: "180px" }}>
-                <Image
-                  src={venue.clubImage}
-                  alt={venue.name}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  style={{ objectFit: "cover" }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(to top, rgba(15,22,41,0.85) 0%, rgba(15,22,41,0.3) 55%, transparent 100%)",
-                  }}
-                />
-                <span className="venue-photo-overlay-title">
-                  {venue.name}
-                </span>
-              </div>
+              <VenuePhoto
+                venueName={venue.name}
+                height={180}
+                rounded="0"
+                showLabel
+                imageVariant="club"
+              />
               <div className="p-4">
                 <p className="landing-match-meta" style={{ marginBottom: "0.75rem" }}>
                   Ver partidos en {venue.name}

@@ -1,3 +1,4 @@
+import twilio from "twilio";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatDateTime } from "@/utils/dates";
 
@@ -18,7 +19,6 @@ async function send(to: string, body: string): Promise<void> {
   if (!env) return;
 
   const phone = to.startsWith("+") ? to : `+${to}`;
-  const { default: twilio } = await import("twilio");
   const client = twilio(env.sid, env.token);
 
   await client.messages.create({

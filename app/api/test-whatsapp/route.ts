@@ -1,0 +1,41 @@
+import { NextResponse } from "next/server";
+import twilio from "twilio";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: Request) {
+  const secret = new URL(request.url).searchParams.get("secret");
+  if (!secret || secret !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_WHATSAPP_FROM;
+  const ownerPhone = process.env.OWNER_WHATSAPP_PHONE;
+
+  const configured = {
+    TWILIO_ACCOUNT_SID: Boolean(sid),
+    TWILIO_AUTH_TOKEN: Boolean(token),
+    TWILIO_WHATSAPP_FROM: from ?? null,
+    OWNER_WHATSAPP_PHONE: ownerPhone ?? null,
+  };
+
+  if (!sid || !token || !from || !ownerPhone) {
+    return NextResponse.json({ ok: false, configured, error: "Missing env vars" }, { status: 500 });
+  }
+
+  try {
+    const client = twilio(sid, token);
+    const msg = await client.messages.create({
+      from: `whatsapp:${from}`,
+      to: `whatsapp:${ownerPhone}`,
+      body: "🎾 PadelYa! — Mensaje de prueba. ¡Las notificaciones de WhatsApp están funcionando!",
+    });
+
+    return NextResponse.json({ ok: true, sid: msg.sid, status: msg.status, configured });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ ok: false, error: message, configured }, { status: 500 });
+  }
+}

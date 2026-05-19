@@ -47,12 +47,9 @@ export default async function MatchesPage({ searchParams }: Props) {
   }
 
   return (
-    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
+    <div className="app-page-shell">
       {/* Page header */}
-      <div
-        style={{ borderBottom: "1px solid var(--border)", background: "var(--surface)" }}
-        className="px-6 py-8"
-      >
+      <div className="app-top-section px-6 py-8">
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -112,10 +109,7 @@ export default async function MatchesPage({ searchParams }: Props) {
       </div>
 
       {/* Filters */}
-      <div
-        className="px-6 py-4"
-        style={{ borderBottom: "1px solid var(--border-light)", background: "var(--surface)" }}
-      >
+      <div className="app-filter-section px-6 py-4">
         <div className="mx-auto max-w-5xl">
           <form className="flex flex-wrap items-center gap-3">
             {/* Skill level pills */}
@@ -224,7 +218,9 @@ export default async function MatchesPage({ searchParams }: Props) {
         ) : matches.length === 0 ? (
           <EmptyState skillLevel={params.skillLevel} />
         ) : (
-          <MatchList matches={matches} />
+          <div className="app-content-frame p-4 sm:p-5">
+            <MatchList matches={matches} />
+          </div>
         )}
       </div>
     </div>

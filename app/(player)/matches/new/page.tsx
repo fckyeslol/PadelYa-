@@ -5,12 +5,9 @@ import Link from "next/link";
 
 export default function NewMatchPage() {
   return (
-    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
+    <div className="app-page-shell">
       {/* Page header */}
-      <div
-        style={{ borderBottom: "1px solid var(--border)", background: "var(--surface)" }}
-        className="px-6 py-6"
-      >
+      <div className="app-top-section px-6 py-6">
         <div className="mx-auto max-w-3xl">
           <Link
             href="/matches"
@@ -62,7 +59,9 @@ export default function NewMatchPage() {
         className="mx-auto max-w-3xl px-6 py-8"
         style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
       >
-        <MatchForm />
+        <div className="app-content-frame p-2 sm:p-3">
+          <MatchForm />
+        </div>
         <CancellationPolicyNotice />
         <ProfileForm />
       </div>

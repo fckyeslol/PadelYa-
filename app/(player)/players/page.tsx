@@ -20,11 +20,8 @@ export default async function PlayersPage({ searchParams }: Props) {
   const players = await listCommunityPlayers(36, skillLevel).catch(() => []);
 
   return (
-    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-      <div
-        style={{ borderBottom: "1px solid var(--border)", background: "var(--surface)" }}
-        className="px-6 py-8"
-      >
+    <div className="app-page-shell">
+      <div className="app-top-section px-6 py-8">
         <div className="mx-auto max-w-5xl">
           <div>
             <h1
@@ -57,7 +54,8 @@ export default async function PlayersPage({ searchParams }: Props) {
         {players.length === 0 ? (
           <div className="banner-warning">Aún no hay jugadores visibles en la comunidad.</div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="app-content-frame p-4 sm:p-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {players.map((player) => (
               <Link
                 key={player.id}
@@ -109,6 +107,7 @@ export default async function PlayersPage({ searchParams }: Props) {
                 </span>
               </Link>
             ))}
+            </div>
           </div>
         )}
       </div>

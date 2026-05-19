@@ -9,7 +9,9 @@ import { PlayerSlots } from "@/components/match/PlayerSlots";
 import { OrganizerMatchActions } from "@/components/organizer/OrganizerMatchActions";
 import { NoShowMarkControl } from "@/components/organizer/NoShowMarkControl";
 import { PaymentStatusBanner } from "@/components/payment/PaymentStatusBanner";
-import { MercadoPagoCheckout } from "@/components/payment/MercadoPagoCheckout";
+import { MatchPaymentCheckout } from "@/components/payment/MatchPaymentCheckout";
+
+
 import { WhatsAppShareButton } from "@/components/match/WhatsAppShareButton";
 import { getPlayersForMatch } from "@/services/matches/operations";
 import { getMatchById } from "@/services/matches/service";
@@ -373,7 +375,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
             ) : canJoin ? (
               /* ── Auth user ──────────────────────────────── */
               <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-                <MercadoPagoCheckout
+                <MatchPaymentCheckout
                   matchId={match!.id}
                   orgFeeCop={match!.orgFeeCop}
                   autoStart={shouldAutoStartPayment}
@@ -652,8 +654,6 @@ function EditIcon() {
 }
 
 function RefundStatusBanner({ refund }: { refund: { status: string; amount_cop: number; reason: string } }) {
-  const fmt = (n: number) =>
-    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
 
   const configs: Record<string, { bg: string; border: string; icon: string; label: string; detail: string }> = {
     pending_manual: {
@@ -661,14 +661,14 @@ function RefundStatusBanner({ refund }: { refund: { status: string; amount_cop: 
       border: "rgba(251,191,36,0.25)",
       icon: "🕐",
       label: "Reembolso en proceso",
-      detail: `Estamos procesando tu devolución de ${fmt(refund.amount_cop)}. Puede tardar 24–72 horas hábiles.`,
+      detail: `Estamos procesando tu devolución de ${formatCop(refund.amount_cop)}. Puede tardar 24–72 horas hábiles.`,
     },
     processed: {
       bg: "rgba(16,185,129,0.06)",
       border: "rgba(16,185,129,0.2)",
       icon: "✅",
       label: "Reembolso procesado",
-      detail: `Tu devolución de ${fmt(refund.amount_cop)} fue procesada. Revisa tu método de pago original.`,
+      detail: `Tu devolución de ${formatCop(refund.amount_cop)} fue procesada. Revisa tu método de pago original.`,
     },
     rejected: {
       bg: "rgba(239,68,68,0.06)",

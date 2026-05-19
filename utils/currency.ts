@@ -1,7 +1,7 @@
+/** Deterministic COP formatting — safe for SSR hydration (no Intl locale drift). */
 export function formatCop(value: number): string {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value);
+  const n = Math.round(Math.abs(value));
+  const digits = n.toString();
+  const withDots = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `$ ${withDots}`;
 }

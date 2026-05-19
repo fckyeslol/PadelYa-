@@ -52,11 +52,9 @@ export function SiteHeader({ profile }: Props) {
         isHome
           ? undefined
           : {
-              background: "rgba(247,248,252,0.92)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              borderBottom: "1.5px solid var(--border)",
-              boxShadow: "0 1px 16px rgba(30,58,110,0.06)",
+              background: "#0C1527",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
+              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.28)",
             }
       }
       className={`sticky top-0 z-50 ${homeHeaderClass}`}
@@ -77,14 +75,14 @@ export function SiteHeader({ profile }: Props) {
               fontWeight: 800,
               fontSize: "1.05rem",
               letterSpacing: "-0.02em",
-              color: isHome ? "#ffffff" : "var(--text)",
+              color: "#ffffff",
             }}
           >
             {isHome ? (
               "PadelYa!"
             ) : (
               <>
-                Padel<span style={{ color: "var(--primary)" }}>Ya!</span>
+                Padel<span style={{ color: "#c8f135" }}>Ya!</span>
               </>
             )}
           </span>
@@ -108,8 +106,8 @@ export function SiteHeader({ profile }: Props) {
               href="/login"
               className="hidden md:inline-flex items-center gap-1"
               style={{
-                background: isHome ? "#c8f135" : "var(--primary)",
-                color: isHome ? "#0f1629" : "#ffffff",
+                background: "#c8f135",
+                color: "#0C1527",
                 borderRadius: isHome ? "999px" : "8px",
                 padding: isHome ? "0.5rem 1rem" : "0.45rem 1.1rem",
                 fontWeight: 700,
@@ -132,7 +130,7 @@ export function SiteHeader({ profile }: Props) {
               border: "none",
               cursor: "pointer",
               padding: "0.4rem",
-              color: isHome ? "#ffffff" : "var(--text)",
+              color: "rgba(255, 255, 255, 0.85)",
               borderRadius: "8px",
             }}
           >
@@ -146,10 +144,10 @@ export function SiteHeader({ profile }: Props) {
         <div
           className="md:hidden"
           style={{
-            background: isHome ? "rgba(10,47,122,0.97)" : "rgba(247,248,252,0.97)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            borderBottom: `1px solid ${isHome ? "rgba(255,255,255,0.12)" : "var(--border)"}`,
+            background: "rgba(8, 16, 36, 0.97)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
             padding: "0.5rem 1.25rem 1rem",
           }}
         >
@@ -160,7 +158,7 @@ export function SiteHeader({ profile }: Props) {
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
                 style={{
-                  color: isHome ? "rgba(255,255,255,0.9)" : "var(--text)",
+                  color: "rgba(255, 255, 255, 0.85)",
                   padding: "0.7rem 0.75rem",
                   borderRadius: "10px",
                   fontSize: "0.95rem",
@@ -170,7 +168,7 @@ export function SiteHeader({ profile }: Props) {
                   display: "block",
                   transition: "background 0.15s",
                 }}
-                className={isHome ? "hover:bg-white/10" : "hover:bg-[var(--card)]"}
+                className="hover:bg-white/10"
               >
                 {link.label}
               </Link>
@@ -182,8 +180,8 @@ export function SiteHeader({ profile }: Props) {
                 onClick={() => setMobileOpen(false)}
                 style={{
                   marginTop: "0.5rem",
-                  background: isHome ? "#c8f135" : "var(--primary)",
-                  color: isHome ? "#0f1629" : "#ffffff",
+                  background: "#c8f135",
+                  color: "#0C1527",
                   borderRadius: "10px",
                   padding: "0.75rem 1rem",
                   fontWeight: 700,
@@ -217,7 +215,7 @@ function NavLink({
     <Link
       href={href}
       style={{
-        color: isHome ? "rgba(255,255,255,0.9)" : "var(--text-2)",
+        color: "rgba(255, 255, 255, 0.75)",
         fontSize: "0.875rem",
         fontWeight: 500,
         padding: "0.4rem 0.875rem",
@@ -226,11 +224,7 @@ function NavLink({
         fontFamily: "var(--font-dm-sans)",
         border: "1px solid transparent",
       }}
-      className={
-        isHome
-          ? "hover:bg-white/10"
-          : "hover:text-[var(--text)] hover:border-[var(--border)] hover:bg-[var(--card)]"
-      }
+      className="hover:bg-white/10 hover:text-white"
     >
       {children}
     </Link>

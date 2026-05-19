@@ -576,88 +576,69 @@ input[type="time"].input-base {
   color: #0f1629 !important;
 }
 
-/* ─── App page shell — dark sport theme ─────────────────────── */
+/* ─── App page shell ─────────────────────────────────────────── */
 
 /*
- * Full dark-theme token cascade. All child components using CSS vars
- * (MatchCard, pills, inputs, badges) automatically pick up the right
- * colors without individual changes.
+ * Structure: dark unified zone (nav → header → filter) separated
+ * from the light content area by a 2.5px lime accent line.
+ * Body uses :root light tokens — cards, text, inputs all light.
  */
 .app-page-shell {
   min-height: 100vh;
-  background: #070D1C;
-  color: var(--text);
-
-  --bg:            #070D1C;
-  --surface:       #0C1526;
-  --card:          #0C1526;
-  --card-hover:    #112030;
-  --border:        rgba(255, 255, 255, 0.08);
-  --border-light:  rgba(255, 255, 255, 0.04);
-
-  --text:          #E8F0FF;
-  --text-2:        rgba(232, 240, 255, 0.54);
-  --text-3:        rgba(232, 240, 255, 0.30);
-
-  --primary:       #c8f135;
-  --primary-dim:   #b4d92b;
-  --primary-muted: rgba(200, 241, 53, 0.11);
-  --primary-fg:    #070D1C;
-
-  --gold:          #FBBF24;
-  --gold-muted:    rgba(251, 191, 36, 0.12);
-  --success:       #34D399;
-  --warning:       #FBBF24;
-  --danger:        #F87171;
-  --info:          #60A5FA;
+  background: #ECF2FD;
 }
 
-/* Header: deepest layer — structural anchor */
+/* Header: same dark tone as the sticky navbar above it — seamless */
 .app-top-section {
-  background: #030711;
+  background: #0C1527;
   border-bottom: none;
+  --text:          #EBF2FF;
+  --text-2:        rgba(235, 242, 255, 0.60);
+  --text-3:        rgba(235, 242, 255, 0.36);
+  --border:        rgba(255, 255, 255, 0.10);
+  --primary:       #c8f135;
+  --primary-dim:   #b5d92b;
+  --primary-muted: rgba(200, 241, 53, 0.12);
+  --primary-fg:    #0C1527;
+  --card:          rgba(255, 255, 255, 0.07);
+  --card-hover:    rgba(255, 255, 255, 0.12);
+  --surface:       rgba(255, 255, 255, 0.07);
 }
 
 .app-top-section .glow-primary {
-  box-shadow: 0 4px 22px rgba(200, 241, 53, 0.40);
+  box-shadow: 0 4px 22px rgba(200, 241, 53, 0.44);
 }
 
-/* Filter strip: same depth as header, lime line marks the transition */
+/* Filter strip: continues the dark zone, lime line marks the boundary */
 .app-filter-section {
-  background: #030711;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  border-bottom: 2px solid rgba(200, 241, 53, 0.38);
+  background: #0C1527;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 2.5px solid rgba(200, 241, 53, 0.55);
+  --text:          #EBF2FF;
+  --text-2:        rgba(235, 242, 255, 0.60);
+  --text-3:        rgba(235, 242, 255, 0.36);
+  --border:        rgba(255, 255, 255, 0.12);
+  --primary:       #c8f135;
+  --primary-muted: rgba(200, 241, 53, 0.12);
+  --card:          rgba(255, 255, 255, 0.07);
+  --card-hover:    rgba(255, 255, 255, 0.12);
+  --surface:       rgba(255, 255, 255, 0.08);
 }
 
 .app-top-section .input-base:focus,
 .app-filter-section .input-base:focus {
-  box-shadow: 0 0 0 3px rgba(200, 241, 53, 0.18);
+  box-shadow: 0 0 0 3px rgba(200, 241, 53, 0.22);
   border-color: #c8f135;
 }
 
-/* Content frame: elevated panel over the dark base */
+/* Content frame: white elevated panel on the light body */
 .app-content-frame {
-  background: #0A1220;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #ffffff;
+  border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.40);
-}
-
-/* Slot dots: lime glow instead of navy in dark context */
-.app-page-shell .slot-dot-filled {
-  box-shadow: 0 0 7px rgba(200, 241, 53, 0.52);
-}
-
-/* Dark date/time picker color scheme */
-.app-page-shell input[type="datetime-local"].input-base,
-.app-page-shell input[type="date"].input-base,
-.app-page-shell input[type="time"].input-base {
-  color-scheme: dark;
-}
-
-/* Card hover shadow adapted to dark base */
-.app-page-shell .card-lift:hover {
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.40);
+  box-shadow:
+    0 1px 3px rgba(15, 22, 41, 0.05),
+    0 10px 28px rgba(15, 22, 41, 0.07);
 }
 
 .venue-photo-image {

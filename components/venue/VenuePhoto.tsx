@@ -25,6 +25,10 @@ export function VenuePhoto({
   const image = getVenueImage(venueName, imageVariant);
   const info = getVenueInfo(venueName);
   const objectFit = info?.imageFit ?? "cover";
+  const objectPosition =
+    imageVariant === "club"
+      ? (info?.clubImagePosition ?? "center")
+      : (info?.matchImagePosition ?? "center");
 
   if (!image) {
     return (
@@ -73,7 +77,7 @@ export function VenuePhoto({
         sizes="(max-width: 768px) 100vw, 400px"
         style={{
           objectFit,
-          objectPosition: "center",
+          objectPosition,
           background: objectFit === "contain" ? "#0F1629" : undefined,
         }}
       />

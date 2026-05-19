@@ -1,19 +1,66 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function getPlayersForMatch(matchId: string) {
-  const supabase = await getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("match_players")
-    .select("id, player_id, is_host, status, joined_at, profiles(full_name, avatar_url)")
-    .eq("match_id", matchId)
-    .order("joined_at", { ascending: true });
+export type MatchPlayerRow = {
+  id: string;
+  player_id: string;
+  is_host: boolean;
+  status: string;
+  joined_at: string | null;
+  profiles: { full_name: string | null; avatar_url: string | null } | null;
+};
 
-  if (error) {
-    throw error;
+/** Server-side roster: bypasses RLS so names/avatars always load for match detail. */
+export async function getPlayersForMatch(matchId: string): Promise<MatchPlayerRow[]> {
+  const admin = getSupabaseAdminClient();
+
+  const [{ data: match, error: matchError }, { data: rows, error }] = await Promise.all([
+    admin.from("matches").select("host_player_id").eq("id", matchId).maybeSingle(),
+    admin
+      .from("match_players")
+      .select("id, player_id, is_host, status, joined_at, profiles(full_name, avatar_url)")
+      .eq("match_id", matchId)
+      .order("joined_at", { ascending: true }),
+  ]);
+
+  if (matchError) throw matchError;
+  if (error) throw error;
+
+  const players: MatchPlayerRow[] = (rows ?? []).map((row) => {
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return {
+      id: row.id,
+      player_id: row.player_id,
+      is_host: row.is_host ?? false,
+      status: row.status,
+      joined_at: row.joined_at,
+      profiles: profile
+        ? { full_name: profile.full_name ?? null, avatar_url: profile.avatar_url ?? null }
+        : null,
+    };
+  });
+
+  const hostId = match?.host_player_id;
+  if (hostId && !players.some((p) => p.player_id === hostId)) {
+    const { data: hostProfile } = await admin
+      .from("profiles")
+      .select("full_name, avatar_url")
+      .eq("id", hostId)
+      .maybeSingle();
+
+    players.unshift({
+      id: `host-${hostId}`,
+      player_id: hostId,
+      is_host: true,
+      status: "paid",
+      joined_at: null,
+      profiles: hostProfile
+        ? { full_name: hostProfile.full_name ?? null, avatar_url: hostProfile.avatar_url ?? null }
+        : null,
+    });
   }
 
-  return data ?? [];
+  return players;
 }
 
 export async function confirmCourt(matchId: string, courtReference: string) {

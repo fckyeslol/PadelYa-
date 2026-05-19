@@ -70,12 +70,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const [{ matchId }, query] = await Promise.all([params, searchParams]);
   let user: { id: string } | null = null;
   let match = null;
-  let players: Array<{
-    id: string;
-    player_id: string;
-    profiles?: { full_name?: string } | Array<{ full_name?: string }>;
-    status: string;
-  }> = [];
+  let players: Awaited<ReturnType<typeof getPlayersForMatch>> = [];
   let profile: Awaited<ReturnType<typeof getCurrentProfile>> = null;
   let setupError: string | null = null;
   let initialMessages: Array<{

@@ -127,17 +127,15 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
 
     mp.bricks()
       .create("payment", BRICK_CONTAINER_ID, {
-        initialization: { amount: totalCop, preferenceId },
+        initialization: { amount: totalCop },
         customization: {
           paymentMethods: {
             creditCard: "all",
             debitCard: "all",
             ticket: "all",
             bankTransfer: "all",
-          },
-          visual: {
-            style: { theme: "default" },
-            hideFormTitle: true,
+            mercadoPago: "none",
+            atm: "none",
           },
         },
         callbacks: {
@@ -149,15 +147,33 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
               setError(err.message ?? "Error en el formulario de pago");
             }
           },
-          onSubmit: ({ formData }) => {
+          onSubmit: (submitPayload) => {
             if (!externalReference) {
               return Promise.reject(new Error("Referencia de pago no disponible. Intenta de nuevo."));
+            }
+
+            const payload =
+              submitPayload && typeof submitPayload === "object"
+                ? (submitPayload as Record<string, unknown>)
+                : {};
+            const brickFormData =
+              payload.formData && typeof payload.formData === "object" && payload.formData !== null
+                ? (payload.formData as Record<string, unknown>)
+                : payload.payment_method_id || payload.token
+                  ? payload
+                  : {};
+
+            if (!brickFormData.payment_method_id && !brickFormData.token) {
+              const message =
+                "Completa los datos del método de pago antes de continuar.";
+              if (!cancelled) setError(message);
+              return Promise.reject(new Error(message));
             }
 
             return fetch("/api/payments/process", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ formData: formData ?? {}, externalReference }),
+              body: JSON.stringify({ formData: brickFormData, externalReference }),
             })
               .then(async (res) => {
                 const result = (await res.json()) as {

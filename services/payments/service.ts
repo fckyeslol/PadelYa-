@@ -51,12 +51,26 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return null;
 }
 
+/** Normalizes Payment Brick onSubmit payload (shape varies by SDK version). */
+export function normalizeBrickFormData(submitPayload: unknown): MPBrickFormData {
+  const payload = asRecord(submitPayload);
+  if (!payload) return {};
+
+  const nested = asRecord(payload.formData);
+  if (nested) return nested;
+
+  if (payload.payment_method_id || payload.token) return payload;
+
+  return payload;
+}
+
 /** Builds a clean /v1/payments body from Payment Brick formData (avoids invalid extra fields). */
 function buildMercadoPagoPaymentBody(
   raw: MPBrickFormData,
   payment: { amount_cop: number; match_id: string },
   externalReference: string,
   appUrl: string,
+  options?: { clientIp?: string | null; payerEmail?: string | null },
 ): Record<string, unknown> {
   const paymentMethodId = String(raw.payment_method_id ?? "").trim();
   if (!paymentMethodId) {
@@ -68,6 +82,9 @@ function buildMercadoPagoPaymentBody(
   const transactionDetailsRaw = asRecord(raw.transaction_details);
   const additionalInfoRaw = asRecord(raw.additional_info);
 
+  const isCard = Boolean(raw.token);
+  const isPse = paymentMethodId === "pse";
+
   const body: Record<string, unknown> = {
     transaction_amount: payment.amount_cop,
     payment_method_id: paymentMethodId,
@@ -75,11 +92,11 @@ function buildMercadoPagoPaymentBody(
     external_reference: externalReference,
     notification_url: `${appUrl}/api/webhooks/mercadopago`,
     callback_url: `${appUrl}/matches/${payment.match_id}`,
-    installments: Number(raw.installments ?? 1) || 1,
   };
 
-  if (raw.token) {
+  if (isCard) {
     body.token = String(raw.token);
+    body.installments = Number(raw.installments ?? 1) || 1;
   }
 
   if (raw.issuer_id != null && raw.issuer_id !== "") {
@@ -88,9 +105,12 @@ function buildMercadoPagoPaymentBody(
   }
 
   const payer: Record<string, unknown> = {};
-  if (payerRaw?.email) payer.email = String(payerRaw.email);
+  const payerEmail =
+    (payerRaw?.email ? String(payerRaw.email) : null) ??
+    options?.payerEmail ??
+    null;
+  if (payerEmail) payer.email = payerEmail;
 
-  const isPse = paymentMethodId === "pse";
   if (isPse) {
     payer.entity_type = payerRaw?.entity_type ? String(payerRaw.entity_type) : "individual";
   } else if (payerRaw?.entity_type) {
@@ -123,6 +143,10 @@ function buildMercadoPagoPaymentBody(
     throw new Error("Selecciona el banco para continuar con PSE.");
   }
 
+  if (isCard && !payer.email) {
+    throw new Error("Ingresa un correo electrónico para continuar con el pago.");
+  }
+
   if (isPse && !payer.email) {
     throw new Error("Ingresa un correo electrónico para PSE.");
   }
@@ -131,8 +155,11 @@ function buildMercadoPagoPaymentBody(
     throw new Error("Ingresa tu tipo y número de documento para PSE.");
   }
 
+  const clientIp = options?.clientIp?.trim() || null;
   if (additionalInfoRaw?.ip_address) {
     body.additional_info = { ip_address: String(additionalInfoRaw.ip_address) };
+  } else if (isPse && clientIp) {
+    body.additional_info = { ip_address: clientIp };
   } else if (isPse) {
     body.additional_info = { ip_address: "127.0.0.1" };
   }
@@ -321,8 +348,11 @@ export async function createCheckoutForMatch(
 export async function processMercadoPagoPayment(
   formData: MPBrickFormData,
   externalReference: string,
+  options?: { clientIp?: string | null },
 ): Promise<ProcessPaymentResult> {
   const supabase = getSupabaseAdminClient();
+
+  const normalizedFormData = normalizeBrickFormData(formData);
 
   const { data: payment } = await supabase
     .from("payments")
@@ -335,10 +365,19 @@ export async function processMercadoPagoPayment(
     return { status: "approved", mpPaymentId: "" };
   }
 
+  const { data: authUser } = await supabase.auth.admin.getUserById(payment.player_id);
+  const payerEmail = authUser?.user?.email ?? null;
+
   const accessToken = getMercadoPagoAccessToken();
   const appUrl = getAppUrl();
 
-  const payBody = buildMercadoPagoPaymentBody(formData, payment, externalReference, appUrl);
+  const payBody = buildMercadoPagoPaymentBody(
+    normalizedFormData,
+    payment,
+    externalReference,
+    appUrl,
+    { clientIp: options?.clientIp, payerEmail },
+  );
 
   const mpResponse = await fetch(`${MP_API}/v1/payments`, {
     method: "POST",
@@ -352,6 +391,12 @@ export async function processMercadoPagoPayment(
 
   if (!mpResponse.ok) {
     const err = await mpResponse.text();
+    console.error("[payments/process] MP rejected payment", {
+      paymentMethodId: payBody.payment_method_id,
+      hasToken: Boolean(payBody.token),
+      status: mpResponse.status,
+      err: err.slice(0, 500),
+    });
     throw new Error(parseMercadoPagoApiError(err));
   }
 

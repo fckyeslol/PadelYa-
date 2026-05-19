@@ -5,6 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { sendPaymentStatusEmail, sendMatchFilledEmail } from "@/services/notifications/email";
 import {
   notifyOwnerNewGame,
+  notifyHostMatchCreated,
   notifyOnPlayerJoined,
   notifyMatchFull,
 } from "@/services/notifications/whatsapp";
@@ -222,13 +223,14 @@ export async function processWompiWebhook(eventPayload: unknown) {
     const scheduledAt = matchStatus?.scheduled_at ?? null;
     const maxPlayers = matchStatus?.max_players ?? APP_CONFIG.maxPlayersPerMatch;
 
-    // Get the joining player's name for WhatsApp messages
+    // Get the joining player's profile for WhatsApp messages
     const { data: joiningProfile } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, whatsapp_phone")
       .eq("id", payment.player_id)
       .maybeSingle();
     const joiningPlayerName = joiningProfile?.full_name ?? "Un jugador";
+    const joiningPlayerPhone = joiningProfile?.whatsapp_phone ?? null;
 
     // Count paid players AFTER this payment (including current)
     const { count: paidCount } = await supabase
@@ -248,13 +250,23 @@ export async function processWompiWebhook(eventPayload: unknown) {
     const isHost = matchPlayer?.is_host ?? false;
 
     if (isHost && currentPaidCount === 1) {
-      // Host created and joined — notify owner of new game
+      // Host created and joined — notify owner + notify the host themselves
       await notifyOwnerNewGame({
         matchId: payment.match_id,
         hostName: joiningPlayerName,
         venueName,
         scheduledAt,
       });
+      if (joiningPlayerPhone) {
+        await notifyHostMatchCreated({
+          hostPhone: joiningPlayerPhone,
+          hostName: joiningPlayerName,
+          matchId: payment.match_id,
+          venueName,
+          scheduledAt,
+          maxPlayers,
+        });
+      }
     } else {
       // A non-host player joined — notify owner + existing players
       await notifyOnPlayerJoined({

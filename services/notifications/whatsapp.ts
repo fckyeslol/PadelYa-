@@ -72,6 +72,29 @@ async function getPaidPlayerPhones(
     .filter((p) => p.phone.trim() !== "");
 }
 
+/** Notifies the host (creator) when their match is confirmed and they're in. */
+export async function notifyHostMatchCreated(params: {
+  hostPhone: string;
+  hostName: string;
+  matchId: string;
+  venueName: string;
+  scheduledAt: string | null;
+  maxPlayers: number;
+}): Promise<void> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padel-ya.uk";
+  const body = [
+    `🎾 *¡Tu partido está creado, ${params.hostName}!*`,
+    ``,
+    `📍 ${params.venueName}`,
+    `📅 ${formatMatchDate(params.scheduledAt)}`,
+    `👥 1/${params.maxPlayers} jugadores — ¡Comparte el link para llenar!`,
+    ``,
+    `🔗 ${appUrl}/matches/${params.matchId}`,
+  ].join("\n");
+
+  await safeSend(params.hostPhone, body);
+}
+
 /** Notifies the owner when the host creates a game and joins (1st paid slot). */
 export async function notifyOwnerNewGame(params: {
   matchId: string;

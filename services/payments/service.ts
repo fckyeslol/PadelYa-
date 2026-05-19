@@ -37,11 +37,159 @@ function parseMercadoPagoApiError(raw: string): string {
       cause?: Array<{ description?: string; code?: string }>;
     };
     const detail = parsed.cause?.[0]?.description ?? parsed.message;
-    if (detail) return `Mercado Pago: ${detail}`;
+    if (detail) {
+      if (/banktransfers?\s*api\s*fail/i.test(detail)) {
+        return (
+          "PSE no pudo conectarse con el banco. Verifica banco, documento y teléfono en tu perfil, " +
+          "o paga con tarjeta. Si el problema continúa, PSE puede no estar habilitado en la cuenta de Mercado Pago."
+        );
+      }
+      return `Mercado Pago: ${detail}`;
+    }
   } catch {
     // keep raw text
   }
   return `Mercado Pago: ${raw.slice(0, 280)}`;
+}
+
+type PayerProfile = {
+  fullName?: string | null;
+  phone?: string | null;
+};
+
+function extractFinancialInstitution(raw: MPBrickFormData): string | null {
+  const td = asRecord(raw.transaction_details);
+  if (td?.financial_institution != null && String(td.financial_institution).trim()) {
+    return String(td.financial_institution).trim();
+  }
+  if (raw.financial_institution != null && String(raw.financial_institution).trim()) {
+    return String(raw.financial_institution).trim();
+  }
+  return null;
+}
+
+function normalizePaymentMethodId(raw: MPBrickFormData): {
+  paymentMethodId: string;
+  financialInstitution: string | null;
+  isCard: boolean;
+  isPse: boolean;
+} {
+  const isCard = Boolean(raw.token);
+  let paymentMethodId = String(raw.payment_method_id ?? "").trim();
+  let financialInstitution = extractFinancialInstitution(raw);
+
+  // Brick may send the bank code as payment_method_id (e.g. "1040", "1507").
+  if (/^\d{3,6}$/.test(paymentMethodId)) {
+    financialInstitution = financialInstitution ?? paymentMethodId;
+    paymentMethodId = "pse";
+  }
+
+  if (!isCard && financialInstitution && paymentMethodId !== "pse") {
+    paymentMethodId = "pse";
+  }
+
+  return {
+    paymentMethodId,
+    financialInstitution,
+    isCard,
+    isPse: paymentMethodId === "pse",
+  };
+}
+
+function normalizeIdentificationType(type: string): string {
+  const normalized = type.trim().toUpperCase();
+  if (normalized === "OTRO" || normalized === "OTHER") return "CC";
+  return type.trim();
+}
+
+function splitFullName(fullName: string): { first_name: string; last_name: string } {
+  const cleaned = fullName.trim();
+  if (!cleaned) return { first_name: "Jugador", last_name: "PadelYa" };
+  const parts = cleaned.split(/\s+/);
+  if (parts.length === 1) {
+    return { first_name: parts[0].slice(0, 32), last_name: parts[0].slice(0, 32) };
+  }
+  return {
+    first_name: parts[0].slice(0, 32),
+    last_name: parts.slice(1).join(" ").slice(0, 32),
+  };
+}
+
+function parseColombianPhone(phone: string): { area_code: string; number: string } | null {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("57") && digits.length >= 12) digits = digits.slice(2);
+  if (digits.length === 10) {
+    return { area_code: digits.slice(0, 3), number: digits.slice(3) };
+  }
+  return null;
+}
+
+function defaultPseAddress(): Record<string, string> {
+  return {
+    zip_code: "08001",
+    street_name: "Calle 72",
+    street_number: "1",
+    neighborhood: "Centro",
+    city: APP_CONFIG.city.slice(0, 18),
+    federal_unit: "ATL",
+  };
+}
+
+function enrichPsePayer(
+  payer: Record<string, unknown>,
+  payerRaw: Record<string, unknown> | null,
+  options?: { payerProfile?: PayerProfile | null },
+): void {
+  const profileNames = options?.payerProfile?.fullName
+    ? splitFullName(options.payerProfile.fullName)
+    : null;
+
+  if (!payer.first_name) {
+    payer.first_name = payerRaw?.first_name
+      ? String(payerRaw.first_name).slice(0, 32)
+      : profileNames?.first_name ?? "Jugador";
+  }
+  if (!payer.last_name) {
+    payer.last_name = payerRaw?.last_name
+      ? String(payerRaw.last_name).slice(0, 32)
+      : profileNames?.last_name ?? "PadelYa";
+  }
+
+  const addressRaw = payerRaw ? asRecord(payerRaw.address) : null;
+  const defaults = defaultPseAddress();
+  const address: Record<string, string> = {};
+  for (const key of [
+    "zip_code",
+    "street_name",
+    "street_number",
+    "neighborhood",
+    "city",
+    "federal_unit",
+  ] as const) {
+    const fromBrick = addressRaw?.[key];
+    address[key] = fromBrick ? String(fromBrick) : defaults[key];
+  }
+  if (address.zip_code.replace(/\D/g, "").length !== 5) {
+    address.zip_code = defaults.zip_code;
+  }
+  payer.address = address;
+
+  const phoneRaw = payerRaw ? asRecord(payerRaw.phone) : null;
+  if (phoneRaw?.area_code && phoneRaw?.number) {
+    payer.phone = {
+      area_code: String(phoneRaw.area_code).replace(/\D/g, "").slice(0, 3),
+      number: String(phoneRaw.number).replace(/\D/g, "").slice(0, 10),
+    };
+    return;
+  }
+
+  const phoneSource =
+    (options?.payerProfile?.phone?.trim() ? options.payerProfile.phone : null) ??
+    (typeof payerRaw?.phone === "string" ? payerRaw.phone : null);
+  const parsed = phoneSource ? parseColombianPhone(phoneSource) : null;
+  if (parsed) {
+    payer.phone = parsed;
+  }
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -61,6 +209,8 @@ export function normalizeBrickFormData(submitPayload: unknown): MPBrickFormData 
 
   if (payload.payment_method_id || payload.token) return payload;
 
+  if (extractFinancialInstitution(payload)) return payload;
+
   return payload;
 }
 
@@ -70,20 +220,22 @@ function buildMercadoPagoPaymentBody(
   payment: { amount_cop: number; match_id: string },
   externalReference: string,
   appUrl: string,
-  options?: { clientIp?: string | null; payerEmail?: string | null },
+  options?: {
+    clientIp?: string | null;
+    payerEmail?: string | null;
+    payerProfile?: PayerProfile | null;
+  },
 ): Record<string, unknown> {
-  const paymentMethodId = String(raw.payment_method_id ?? "").trim();
+  const { paymentMethodId, financialInstitution, isCard, isPse } =
+    normalizePaymentMethodId(raw);
+
   if (!paymentMethodId) {
     throw new Error("Selecciona un método de pago válido.");
   }
 
   const payerRaw = asRecord(raw.payer);
   const identificationRaw = payerRaw ? asRecord(payerRaw.identification) : null;
-  const transactionDetailsRaw = asRecord(raw.transaction_details);
   const additionalInfoRaw = asRecord(raw.additional_info);
-
-  const isCard = Boolean(raw.token);
-  const isPse = paymentMethodId === "pse";
 
   const body: Record<string, unknown> = {
     transaction_amount: payment.amount_cop,
@@ -97,11 +249,10 @@ function buildMercadoPagoPaymentBody(
   if (isCard) {
     body.token = String(raw.token);
     body.installments = Number(raw.installments ?? 1) || 1;
-  }
-
-  if (raw.issuer_id != null && raw.issuer_id !== "") {
-    body.issuer_id =
-      typeof raw.issuer_id === "number" ? raw.issuer_id : String(raw.issuer_id);
+    if (raw.issuer_id != null && raw.issuer_id !== "") {
+      body.issuer_id =
+        typeof raw.issuer_id === "number" ? raw.issuer_id : String(raw.issuer_id);
+    }
   }
 
   const payer: Record<string, unknown> = {};
@@ -119,28 +270,29 @@ function buildMercadoPagoPaymentBody(
 
   if (identificationRaw?.type && identificationRaw?.number != null) {
     payer.identification = {
-      type: String(identificationRaw.type),
-      number: String(identificationRaw.number),
+      type: normalizeIdentificationType(String(identificationRaw.type)),
+      number: String(identificationRaw.number).replace(/\s/g, ""),
     };
   }
 
-  if (payerRaw?.first_name) payer.first_name = String(payerRaw.first_name);
-  if (payerRaw?.last_name) payer.last_name = String(payerRaw.last_name);
-  if (payerRaw?.address) payer.address = payerRaw.address;
-  if (payerRaw?.phone) payer.phone = payerRaw.phone;
+  if (!isPse) {
+    if (payerRaw?.first_name) payer.first_name = String(payerRaw.first_name);
+    if (payerRaw?.last_name) payer.last_name = String(payerRaw.last_name);
+    if (payerRaw?.address) payer.address = payerRaw.address;
+    if (payerRaw?.phone) payer.phone = payerRaw.phone;
+  }
+
+  if (isPse) {
+    enrichPsePayer(payer, payerRaw, { payerProfile: options?.payerProfile });
+
+    if (!financialInstitution) {
+      throw new Error("Selecciona el banco para continuar con PSE.");
+    }
+    body.transaction_details = { financial_institution: financialInstitution };
+  }
 
   if (Object.keys(payer).length > 0) {
     body.payer = payer;
-  }
-
-  if (transactionDetailsRaw?.financial_institution != null) {
-    body.transaction_details = {
-      financial_institution: String(transactionDetailsRaw.financial_institution),
-    };
-  }
-
-  if (isPse && !body.transaction_details) {
-    throw new Error("Selecciona el banco para continuar con PSE.");
   }
 
   if (isCard && !payer.email) {
@@ -155,13 +307,17 @@ function buildMercadoPagoPaymentBody(
     throw new Error("Ingresa tu tipo y número de documento para PSE.");
   }
 
+  if (isPse && !payer.phone) {
+    throw new Error(
+      "Agrega un teléfono móvil válido en tu perfil (10 dígitos) para pagar con PSE.",
+    );
+  }
+
   const clientIp = options?.clientIp?.trim() || null;
   if (additionalInfoRaw?.ip_address) {
     body.additional_info = { ip_address: String(additionalInfoRaw.ip_address) };
-  } else if (isPse && clientIp) {
-    body.additional_info = { ip_address: clientIp };
   } else if (isPse) {
-    body.additional_info = { ip_address: "127.0.0.1" };
+    body.additional_info = { ip_address: clientIp ?? "127.0.0.1" };
   }
 
   return body;
@@ -365,8 +521,19 @@ export async function processMercadoPagoPayment(
     return { status: "approved", mpPaymentId: "" };
   }
 
-  const { data: authUser } = await supabase.auth.admin.getUserById(payment.player_id);
+  const [{ data: authUser }, { data: profile }] = await Promise.all([
+    supabase.auth.admin.getUserById(payment.player_id),
+    supabase
+      .from("profiles")
+      .select("full_name, phone, whatsapp_phone")
+      .eq("id", payment.player_id)
+      .maybeSingle(),
+  ]);
   const payerEmail = authUser?.user?.email ?? null;
+  const payerProfile: PayerProfile = {
+    fullName: profile?.full_name ?? null,
+    phone: profile?.phone ?? profile?.whatsapp_phone ?? null,
+  };
 
   const accessToken = getMercadoPagoAccessToken();
   const appUrl = getAppUrl();
@@ -376,7 +543,7 @@ export async function processMercadoPagoPayment(
     payment,
     externalReference,
     appUrl,
-    { clientIp: options?.clientIp, payerEmail },
+    { clientIp: options?.clientIp, payerEmail, payerProfile },
   );
 
   const mpResponse = await fetch(`${MP_API}/v1/payments`, {

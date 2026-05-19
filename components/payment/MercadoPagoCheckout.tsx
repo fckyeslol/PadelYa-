@@ -133,7 +133,7 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
             creditCard: "all",
             debitCard: "all",
             ticket: "all",
-            bankTransfer: "all",
+            bankTransfer: "pse",
             mercadoPago: "none",
             atm: "none",
           },
@@ -163,7 +163,18 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
                   ? payload
                   : {};
 
-            if (!brickFormData.payment_method_id && !brickFormData.token) {
+            const brickTd =
+              brickFormData.transaction_details &&
+              typeof brickFormData.transaction_details === "object"
+                ? (brickFormData.transaction_details as Record<string, unknown>)
+                : null;
+            const hasPaymentData =
+              Boolean(brickFormData.token) ||
+              Boolean(brickFormData.payment_method_id) ||
+              Boolean(brickFormData.financial_institution) ||
+              Boolean(brickTd?.financial_institution);
+
+            if (!hasPaymentData) {
               const message =
                 "Completa los datos del método de pago antes de continuar.";
               if (!cancelled) setError(message);

@@ -25,10 +25,14 @@ export function VenuePhoto({
   const image = getVenueImage(venueName, imageVariant);
   const info = getVenueInfo(venueName);
   const objectFit = info?.imageFit ?? "cover";
-  const objectPosition =
+  const objectPositionDesktop =
     imageVariant === "club"
       ? (info?.clubImagePosition ?? "center")
       : (info?.matchImagePosition ?? "center");
+  const objectPositionMobile =
+    imageVariant === "club"
+      ? (info?.clubImagePositionMobile ?? objectPositionDesktop)
+      : (info?.matchImagePositionMobile ?? objectPositionDesktop);
 
   if (!image) {
     return (
@@ -68,16 +72,18 @@ export function VenuePhoto({
         position: "relative",
         overflow: "hidden",
         background: "#0d3a9e",
+        ["--venue-object-position-desktop" as string]: objectPositionDesktop,
+        ["--venue-object-position-mobile" as string]: objectPositionMobile,
       }}
     >
       <Image
+        className="venue-photo-image"
         src={image}
         alt={venueName}
         fill
         sizes="(max-width: 768px) 100vw, 400px"
         style={{
           objectFit,
-          objectPosition,
           background: objectFit === "contain" ? "#0F1629" : undefined,
         }}
       />

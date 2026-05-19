@@ -11,8 +11,12 @@ export type VenueInfo = {
   imageFit?: "cover" | "contain";
   /** Posición de recorte para la imagen del club (ej: "center 40%"). */
   clubImagePosition?: string;
+  /** Posición móvil para la imagen del club. */
+  clubImagePositionMobile?: string;
   /** Posición de recorte para banner de partido (ej: "center 35%"). */
   matchImagePosition?: string;
+  /** Posición móvil para banner de partido. */
+  matchImagePositionMobile?: string;
   bookingHint?: string;
 };
 
@@ -23,7 +27,9 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
     clubImage: "/venues/padel-zenter-del-rio.jpg",
     matchCardImage: "/venues/padel-zenter-del-rio.jpg",
     clubImagePosition: "center 48%",
+    clubImagePositionMobile: "center 52%",
     matchImagePosition: "center 46%",
+    matchImagePositionMobile: "center 50%",
     bookingHint: "EasyCancha",
   },
   {
@@ -32,7 +38,9 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
     clubImage: "/venues/casa-padel.png",
     matchCardImage: "/venues/casa-padel.png",
     clubImagePosition: "center 62%",
+    clubImagePositionMobile: "center 68%",
     matchImagePosition: "center 60%",
+    matchImagePositionMobile: "center 66%",
     bookingHint: "ReservaDeportes",
   },
   {
@@ -41,7 +49,9 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
     clubImage: "/venues/padel-zenter-la-arenosa.png",
     matchCardImage: "/venues/padel-zenter-la-arenosa.png",
     clubImagePosition: "center 45%",
+    clubImagePositionMobile: "center 50%",
     matchImagePosition: "center 44%",
+    matchImagePositionMobile: "center 48%",
     bookingHint: "EasyCancha",
   },
   {
@@ -50,7 +60,9 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
     clubImage: "/venues/la-jaula.png",
     matchCardImage: "/venues/la-jaula.png",
     clubImagePosition: "center 34%",
+    clubImagePositionMobile: "center 40%",
     matchImagePosition: "center 30%",
+    matchImagePositionMobile: "center 36%",
   },
   {
     id: "padel-park",
@@ -59,7 +71,9 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
     matchCardImage: "/venues/padel-park.png",
     imageFit: "contain",
     clubImagePosition: "center",
+    clubImagePositionMobile: "center",
     matchImagePosition: "center",
+    matchImagePositionMobile: "center",
   },
   {
     id: "ace-padel-club",
@@ -68,7 +82,9 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
     matchCardImage: "/venues/ace-padel-club.png",
     imageFit: "contain",
     clubImagePosition: "center",
+    clubImagePositionMobile: "center",
     matchImagePosition: "center",
+    matchImagePositionMobile: "center",
   },
   {
     id: "x3-padel-club",
@@ -77,7 +93,9 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
     matchCardImage: "/venues/x3-padel-club.png",
     imageFit: "contain",
     clubImagePosition: "center",
+    clubImagePositionMobile: "center",
     matchImagePosition: "center",
+    matchImagePositionMobile: "center",
   },
 ];
 

@@ -575,6 +575,16 @@ input[type="time"].input-base {
   color: #0f1629 !important;
 }
 
+.venue-photo-image {
+  object-position: var(--venue-object-position-desktop, center) !important;
+}
+
+@media (max-width: 768px) {
+  .venue-photo-image {
+    object-position: var(--venue-object-position-mobile, center) !important;
+  }
+}
+
 .venue-photo-overlay-title {
   position: absolute;
   bottom: 0.65rem;

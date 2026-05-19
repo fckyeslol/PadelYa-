@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createCheckoutForMatch } from "@/services/payments/service";
-import { notifyOwnerNewGame } from "@/services/notifications/whatsapp";
+import { notifyOwnerNewGame, notifyHostMatchCreated } from "@/services/notifications/whatsapp";
 
 const schema = z.object({
   courtReference: z.string().min(1).max(200).optional(),
@@ -54,28 +54,32 @@ export async function POST(request: Request, { params }: Props) {
 
     if (error) throw error;
 
-    // Notify owner that a new game was just created
-    const { data: hostProfile } = await admin
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .maybeSingle();
+    // Fetch host profile and match data for notifications
+    const [{ data: hostProfile }, { data: matchData }] = await Promise.all([
+      admin.from("profiles").select("full_name, phone, whatsapp_phone").eq("id", user.id).maybeSingle(),
+      admin.from("matches").select("venue_name, scheduled_at, max_players").eq("id", matchId).maybeSingle(),
+    ]);
 
-    const { data: matchData } = await admin
-      .from("matches")
-      .select("venue_name, scheduled_at")
-      .eq("id", matchId)
-      .maybeSingle();
+    const hostName = hostProfile?.full_name ?? "Un jugador";
+    const venueName = matchData?.venue_name ?? "partido";
+    const scheduledAt = matchData?.scheduled_at ?? null;
+    const maxPlayers = matchData?.max_players ?? 4;
+    const hostPhone = hostProfile?.whatsapp_phone?.trim() || hostProfile?.phone?.trim() || null;
 
+    // Notify owner
     try {
-      await notifyOwnerNewGame({
-        matchId,
-        hostName: hostProfile?.full_name ?? "Un jugador",
-        venueName: matchData?.venue_name ?? "partido",
-        scheduledAt: matchData?.scheduled_at ?? null,
-      });
+      await notifyOwnerNewGame({ matchId, hostName, venueName, scheduledAt });
     } catch (err) {
       console.error("[WhatsApp] notifyOwnerNewGame failed", err);
+    }
+
+    // Notify the host themselves
+    if (hostPhone) {
+      try {
+        await notifyHostMatchCreated({ hostPhone, hostName, matchId, venueName, scheduledAt, maxPlayers });
+      } catch (err) {
+        console.error("[WhatsApp] notifyHostMatchCreated failed", err);
+      }
     }
 
     // Auto-create checkout for the host so they pay their own spot

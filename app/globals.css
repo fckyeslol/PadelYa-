@@ -578,27 +578,34 @@ input[type="time"].input-base {
 .app-page-shell {
   min-height: 100vh;
   background:
-    radial-gradient(1200px 420px at 100% -8%, rgba(13, 58, 158, 0.14) 0%, rgba(13, 58, 158, 0) 62%),
-    radial-gradient(900px 320px at -6% 16%, rgba(200, 241, 53, 0.12) 0%, rgba(200, 241, 53, 0) 55%),
-    linear-gradient(180deg, #f5f8ff 0%, #eef2fb 42%, #edf1fa 100%);
+    radial-gradient(1200px 500px at 100% -12%, rgba(13, 58, 158, 0.28) 0%, rgba(13, 58, 158, 0) 64%),
+    radial-gradient(1100px 420px at -10% 18%, rgba(200, 241, 53, 0.2) 0%, rgba(200, 241, 53, 0) 60%),
+    linear-gradient(180deg, #edf3ff 0%, #e7eefc 45%, #e5ecfb 100%);
 }
 
 .app-top-section {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(247, 250, 255, 0.9) 100%);
-  border-bottom: 1px solid rgba(30, 58, 110, 0.14);
-  backdrop-filter: blur(4px);
+  background:
+    linear-gradient(180deg, rgba(248, 252, 255, 0.97) 0%, rgba(240, 247, 255, 0.94) 100%),
+    radial-gradient(120% 180% at 0% 0%, rgba(26, 79, 214, 0.08) 0%, rgba(26, 79, 214, 0) 55%);
+  border-bottom: 1px solid rgba(30, 58, 110, 0.2);
+  backdrop-filter: blur(6px);
 }
 
 .app-filter-section {
-  background: linear-gradient(180deg, rgba(248, 251, 255, 0.95) 0%, rgba(242, 247, 255, 0.95) 100%);
-  border-bottom: 1px solid rgba(30, 58, 110, 0.1);
+  background:
+    linear-gradient(180deg, rgba(246, 251, 255, 0.96) 0%, rgba(237, 245, 255, 0.95) 100%),
+    radial-gradient(100% 180% at 100% 0%, rgba(200, 241, 53, 0.08) 0%, rgba(200, 241, 53, 0) 68%);
+  border-bottom: 1px solid rgba(30, 58, 110, 0.14);
 }
 
 .app-content-frame {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.56) 100%);
-  border: 1px solid rgba(30, 58, 110, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(252, 254, 255, 0.76) 100%);
+  border: 1px solid rgba(30, 58, 110, 0.16);
   border-radius: 18px;
-  box-shadow: 0 10px 26px rgba(15, 22, 41, 0.07);
+  box-shadow:
+    0 12px 30px rgba(15, 22, 41, 0.09),
+    0 1px 0 rgba(255, 255, 255, 0.85) inset;
 }
 
 .venue-photo-image {

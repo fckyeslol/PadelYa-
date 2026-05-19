@@ -1,6 +1,5 @@
 import { MatchForm } from "@/components/match/MatchForm";
 import { CancellationPolicyNotice } from "@/components/match/CancellationPolicyNotice";
-import { ProfileForm } from "@/components/ProfileForm";
 import Link from "next/link";
 
 export default function NewMatchPage() {
@@ -63,7 +62,6 @@ export default function NewMatchPage() {
           <MatchForm />
         </div>
         <CancellationPolicyNotice />
-        <ProfileForm />
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ const STEPS = [
   {
     title: "Reserva",
     description:
-      "Paga tu cupo con Wompi en segundos. Tu plaza queda confirmada al instante.",
+      "Paga tu cupo con Mercado Pago en segundos. Tu plaza queda confirmada al instante.",
   },
   {
     title: "Juega",

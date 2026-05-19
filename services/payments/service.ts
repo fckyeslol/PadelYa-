@@ -9,321 +9,529 @@ import {
   notifyOnPlayerJoined,
   notifyMatchFull,
 } from "@/services/notifications/whatsapp";
-import { getWompiEnv } from "@/utils/env";
+import { getAppUrl } from "@/utils/auth-url";
+import { getMercadoPagoAccessToken, getMercadoPagoWebhookSecret } from "@/utils/env";
+import { getErrorMessage } from "@/utils/errors";
 
-type WompiCheckoutResult = {
-  checkoutUrl: string;
-  reference: string;
+const MP_API = "https://api.mercadopago.com";
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
+export type CheckoutResult = {
+  preferenceId: string;
+  externalReference: string;
 };
+
+export type ProcessPaymentResult = {
+  status: "approved" | "pending" | "rejected";
+  redirectUrl?: string;
+  mpPaymentId: string;
+};
+
+export type MPFormData = {
+  token?: string;
+  issuer_id?: string | number;
+  payment_method_id: string;
+  transaction_amount: number;
+  installments: number;
+  payer: {
+    email: string;
+    identification?: { type: string; number: string };
+    entity_type?: string;
+    first_name?: string;
+    last_name?: string;
+  };
+  callback_url?: string;
+  [key: string]: unknown;
+};
+
+// ── Checkout: create DB records + MP preference ────────────────────────────
 
 export async function createCheckoutForMatch(
   matchId: string,
   options?: { isHost?: boolean },
-): Promise<WompiCheckoutResult> {
+): Promise<CheckoutResult> {
   const supabase = await getSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error("User is not authenticated");
-  }
+  if (!user) throw new Error("User is not authenticated");
 
   const { data: match, error: matchError } = await supabase
     .from("matches")
-    .select("status, org_fee_cop")
+    .select("status, org_fee_cop, venue_name, scheduled_at")
     .eq("id", matchId)
     .maybeSingle();
-  if (matchError || !match) {
-    throw matchError ?? new Error("Match not found");
-  }
-  if (match.status !== "open") {
-    throw new Error("This match is not open for new players.");
-  }
+  if (matchError) throw new Error(getErrorMessage(matchError, "No se pudo cargar el partido"));
+  if (!match) throw new Error("Partido no encontrado");
+  if (match.status !== "open") throw new Error("Este partido ya no acepta jugadores.");
 
-  const totalAmountCop = (match.org_fee_cop ?? APP_CONFIG.defaultFeeCop) + APP_CONFIG.platformFeeCop;
+  const totalAmountCop =
+    (match.org_fee_cop ?? APP_CONFIG.defaultFeeCop) + APP_CONFIG.platformFeeCop;
 
   const { count: paidCount, error: paidCountError } = await supabase
     .from("match_players")
     .select("*", { count: "exact", head: true })
     .eq("match_id", matchId)
     .eq("status", "paid");
-  if (paidCountError) {
-    throw paidCountError;
-  }
+  if (paidCountError) throw new Error(getErrorMessage(paidCountError, "No se pudo verificar cupos"));
   if ((paidCount ?? 0) >= APP_CONFIG.maxPlayersPerMatch) {
-    throw new Error("This match is already full.");
+    throw new Error("Este partido ya está completo.");
+  }
+
+  const { data: existingPlayer } = await supabase
+    .from("match_players")
+    .select("id, status")
+    .eq("match_id", matchId)
+    .eq("player_id", user.id)
+    .maybeSingle();
+
+  if (existingPlayer?.status === "paid") {
+    throw new Error("Ya tienes un cupo confirmado en este partido.");
+  }
+
+  let matchPlayerId: string;
+
+  if (existingPlayer?.status === "pending_payment") {
+    matchPlayerId = existingPlayer.id;
+
+    const { data: existingPayment } = await supabase
+      .from("payments")
+      .select("id, mp_preference_id, wompi_reference")
+      .eq("match_player_id", matchPlayerId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingPayment?.mp_preference_id && existingPayment.wompi_reference) {
+      return {
+        preferenceId: existingPayment.mp_preference_id,
+        externalReference: existingPayment.wompi_reference,
+      };
+    }
+  } else {
+    const { data: matchPlayer, error: matchPlayerError } = await supabase
+      .from("match_players")
+      .insert({
+        match_id: matchId,
+        player_id: user.id,
+        status: "pending_payment",
+        is_host: options?.isHost ?? false,
+      })
+      .select("id")
+      .single();
+    if (matchPlayerError) {
+      throw new Error(getErrorMessage(matchPlayerError, "No se pudo reservar tu cupo"));
+    }
+    matchPlayerId = matchPlayer.id;
   }
 
   const idempotencyKey = crypto.randomUUID();
-  const reference = crypto.randomUUID();
+  const externalReference = crypto.randomUUID();
 
-  const { data: matchPlayer, error: matchPlayerError } = await supabase
-    .from("match_players")
-    .insert({
-      match_id: matchId,
-      player_id: user.id,
-      status: "pending_payment",
-      is_host: options?.isHost ?? false,
-    })
+  const { data: stalePendingPayment } = await supabase
+    .from("payments")
     .select("id")
-    .single();
+    .eq("match_player_id", matchPlayerId)
+    .eq("status", "pending")
+    .is("mp_preference_id", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (matchPlayerError) {
-    throw matchPlayerError;
+  // Create MP preference
+  const accessToken = getMercadoPagoAccessToken();
+  const appUrl = getAppUrl();
+  const matchUrl = `${appUrl}/matches/${matchId}`;
+
+  const prefBody = {
+    items: [
+      {
+        id: matchId,
+        title: `Cupo partido pádel — ${match.venue_name}`,
+        unit_price: totalAmountCop,
+        quantity: 1,
+        currency_id: "COP",
+      },
+    ],
+    payer: { email: user.email ?? "jugador@padelya.co" },
+    external_reference: externalReference,
+    back_urls: {
+      success: matchUrl,
+      failure: matchUrl,
+      pending: matchUrl,
+    },
+    auto_return: "approved",
+    notification_url: `${appUrl}/api/webhooks/mercadopago`,
+    statement_descriptor: "PADELYA",
+  };
+
+  const prefResponse = await fetch(`${MP_API}/checkout/preferences`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify(prefBody),
+  });
+
+  if (!prefResponse.ok) {
+    const err = await prefResponse.text();
+    let detail = err;
+    try {
+      const parsed = JSON.parse(err) as { message?: string; cause?: Array<{ description?: string }> };
+      detail = parsed.message ?? parsed.cause?.[0]?.description ?? err;
+    } catch {
+      // keep raw text
+    }
+    throw new Error(`Mercado Pago: ${detail}`);
   }
 
-  const { error: paymentError } = await supabase.from("payments").insert({
-    match_player_id: matchPlayer.id,
+  const prefData = (await prefResponse.json()) as { id: string };
+
+  const paymentPayload = {
+    match_player_id: matchPlayerId,
     match_id: matchId,
     player_id: user.id,
     amount_cop: totalAmountCop,
-    status: "pending",
-    provider: "wompi",
-    wompi_reference: reference,
+    status: "pending" as const,
+    provider: "mercadopago",
+    wompi_reference: externalReference,
+    mp_preference_id: prefData.id,
     idempotency_key: idempotencyKey,
-  });
+  };
+
+  const { error: paymentError } = stalePendingPayment
+    ? await supabase.from("payments").update(paymentPayload).eq("id", stalePendingPayment.id)
+    : await supabase.from("payments").insert(paymentPayload);
 
   if (paymentError) {
-    throw paymentError;
+    throw new Error(getErrorMessage(paymentError, "No se pudo registrar el pago"));
   }
 
   await supabase.from("analytics_events").insert({
     event_name: "checkout_started",
     user_id: user.id,
     match_id: matchId,
-    properties: { preferred_method: "nequi" },
+    properties: { provider: "mercadopago" },
   });
 
-  const redirectUrl = process.env.NEXT_PUBLIC_APP_URL
-    ? `${process.env.NEXT_PUBLIC_APP_URL}/matches/${matchId}`
-    : `http://localhost:3000/matches/${matchId}`;
-
-  const wompi = getWompiEnv();
-  const response = await fetch("https://production.wompi.co/v1/checkout/sessions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${wompi.privateKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      amount_in_cents: totalAmountCop * 100,
-      currency: "COP",
-      reference,
-      customer_email: user.email ?? "no-email@padelbaq.local",
-      redirect_url: redirectUrl,
-      payment_method_types: [{ type: "NEQUI" }, { type: "PSE" }, { type: "CARD" }],
-      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Could not create Wompi checkout session");
-  }
-
-  const payload = (await response.json()) as {
-    data?: { id: string; checkout_url: string };
-  };
-
-  if (!payload.data?.checkout_url) {
-    throw new Error("Wompi checkout response missing checkout URL");
-  }
-
-  return {
-    checkoutUrl: payload.data.checkout_url,
-    reference,
-  };
+  return { preferenceId: prefData.id, externalReference };
 }
 
-export async function processWompiWebhook(eventPayload: unknown) {
-  const payload = eventPayload as {
-    event: string;
-    data: {
-      transaction: {
-        id: string;
-        reference: string;
-        status: "APPROVED" | "DECLINED" | "VOIDED";
-        payment_method_type: string;
-      };
-    };
-  };
+// ── Process: Brick submits → create MP payment ─────────────────────────────
 
-  if (payload.event !== "transaction.updated") {
-    return;
-  }
-
-  const tx = payload.data.transaction;
+export async function processMercadoPagoPayment(
+  formData: MPFormData,
+  externalReference: string,
+): Promise<ProcessPaymentResult> {
   const supabase = getSupabaseAdminClient();
 
-  const { data: payment, error: paymentError } = await supabase
+  const { data: payment } = await supabase
     .from("payments")
-    .select("id, match_id, player_id, match_player_id, status, amount_cop")
-    .eq("wompi_reference", tx.reference)
+    .select("id, match_id, player_id, match_player_id, status, amount_cop, idempotency_key")
+    .eq("wompi_reference", externalReference)
     .maybeSingle();
 
-  if (paymentError) {
-    throw paymentError;
+  if (!payment) throw new Error("Pago no encontrado");
+  if (payment.status === "approved") {
+    return { status: "approved", mpPaymentId: "" };
   }
 
-  if (!payment || payment.status === "approved") {
-    return;
+  const accessToken = getMercadoPagoAccessToken();
+  const appUrl = getAppUrl();
+
+  const payBody = {
+    ...formData,
+    transaction_amount: payment.amount_cop,
+    external_reference: externalReference,
+    description: "PadelYa — cupo partido pádel",
+    notification_url: `${appUrl}/api/webhooks/mercadopago`,
+    callback_url: `${appUrl}/matches/${payment.match_id}`,
+  };
+
+  const mpResponse = await fetch(`${MP_API}/v1/payments`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": payment.idempotency_key,
+    },
+    body: JSON.stringify(payBody),
+  });
+
+  if (!mpResponse.ok) {
+    const err = await mpResponse.text();
+    throw new Error(`Error procesando el pago: ${err}`);
   }
+
+  const mpPayment = (await mpResponse.json()) as {
+    id: number;
+    status: string;
+    status_detail: string;
+    payment_method_id: string;
+    transaction_details?: { external_resource_url?: string };
+  };
 
   const mappedStatus =
-    tx.status === "APPROVED"
+    mpPayment.status === "approved"
       ? "approved"
-      : tx.status === "DECLINED"
+      : mpPayment.status === "rejected"
         ? "declined"
-        : "voided";
+        : "pending";
 
-  const { error: updatePaymentError } = await supabase
+  await supabase
     .from("payments")
     .update({
+      mp_payment_id: String(mpPayment.id),
       status: mappedStatus,
-      wompi_transaction_id: tx.id,
-      payment_method: tx.payment_method_type,
+      payment_method: mpPayment.payment_method_id,
       approved_at: mappedStatus === "approved" ? new Date().toISOString() : null,
     })
     .eq("id", payment.id);
 
-  if (updatePaymentError) {
-    throw updatePaymentError;
+  if (mappedStatus === "approved") {
+    await _handleApprovedPayment({
+      paymentId: payment.id,
+      matchId: payment.match_id,
+      playerId: payment.player_id,
+      matchPlayerId: payment.match_player_id,
+      paymentMethod: mpPayment.payment_method_id,
+      amountCop: payment.amount_cop,
+    });
+  } else if (mappedStatus === "declined") {
+    await supabase
+      .from("match_players")
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+      .eq("id", payment.match_player_id);
   }
 
-  const { error: updatePlayerError } = await supabase
-    .from("match_players")
+  return {
+    status:
+      mappedStatus === "approved"
+        ? "approved"
+        : mappedStatus === "pending"
+          ? "pending"
+          : "rejected",
+    redirectUrl: mpPayment.transaction_details?.external_resource_url,
+    mpPaymentId: String(mpPayment.id),
+  };
+}
+
+// ── Webhook: async confirmation from MP ────────────────────────────────────
+
+export async function processMercadoPagoWebhook(
+  body: Record<string, unknown>,
+  signature: string | null,
+  requestId: string | null,
+) {
+  if (body.type !== "payment") return;
+
+  const paymentId = (body.data as Record<string, unknown>)?.id;
+  if (!paymentId) return;
+
+  // Validate MP webhook signature (v2)
+  const webhookSecret = getMercadoPagoWebhookSecret();
+  if (signature) {
+    const parts = Object.fromEntries(
+      signature.split(";").map((p) => p.split("=")),
+    ) as Record<string, string>;
+    const { ts, v1 } = parts;
+    if (ts && v1) {
+      const manifest = `id:${paymentId};request-id:${requestId ?? ""};ts:${ts};`;
+      const expected = crypto.createHmac("sha256", webhookSecret).update(manifest).digest("hex");
+      if (expected !== v1) throw new Error("Invalid webhook signature");
+    }
+  }
+
+  const accessToken = getMercadoPagoAccessToken();
+  const mpRes = await fetch(`${MP_API}/v1/payments/${paymentId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!mpRes.ok) return;
+
+  const mpPayment = (await mpRes.json()) as {
+    id: number;
+    status: string;
+    external_reference: string;
+    payment_method_id: string;
+  };
+
+  const supabase = getSupabaseAdminClient();
+  const { data: payment } = await supabase
+    .from("payments")
+    .select("id, match_id, player_id, match_player_id, status, amount_cop")
+    .eq("wompi_reference", mpPayment.external_reference)
+    .maybeSingle();
+
+  if (!payment || payment.status === "approved") return;
+
+  const mappedStatus =
+    mpPayment.status === "approved"
+      ? "approved"
+      : mpPayment.status === "rejected"
+        ? "declined"
+        : "voided";
+
+  await supabase
+    .from("payments")
     .update({
-      status: mappedStatus === "approved" ? "paid" : "cancelled",
-      cancelled_at:
-        mappedStatus === "approved" ? null : new Date().toISOString(),
+      mp_payment_id: String(mpPayment.id),
+      status: mappedStatus,
+      payment_method: mpPayment.payment_method_id,
+      approved_at: mappedStatus === "approved" ? new Date().toISOString() : null,
     })
-    .eq("id", payment.match_player_id);
-
-  if (updatePlayerError) {
-    throw updatePlayerError;
-  }
+    .eq("id", payment.id);
 
   if (mappedStatus === "approved") {
-    await supabase.rpc("try_fill_match", { p_match_id: payment.match_id });
-    await supabase.from("analytics_events").insert({
-      event_name: "payment_approved",
-      user_id: payment.player_id,
-      match_id: payment.match_id,
-      properties: {
-        payment_method: tx.payment_method_type,
-      },
+    await _handleApprovedPayment({
+      paymentId: payment.id,
+      matchId: payment.match_id,
+      playerId: payment.player_id,
+      matchPlayerId: payment.match_player_id,
+      paymentMethod: mpPayment.payment_method_id,
+      amountCop: payment.amount_cop,
     });
-
-    const { data: matchStatus } = await supabase
-      .from("matches")
-      .select("status, host_player_id, venue_name, scheduled_at, max_players")
-      .eq("id", payment.match_id)
-      .maybeSingle();
-
-    const venueName = matchStatus?.venue_name ?? "Tu partido de pádel";
-    const scheduledAt = matchStatus?.scheduled_at ?? null;
-    const maxPlayers = matchStatus?.max_players ?? APP_CONFIG.maxPlayersPerMatch;
-
-    // Get the joining player's profile for WhatsApp messages
-    const { data: joiningProfile } = await supabase
-      .from("profiles")
-      .select("full_name, phone, whatsapp_phone")
-      .eq("id", payment.player_id)
-      .maybeSingle();
-    const joiningPlayerName = joiningProfile?.full_name ?? "Un jugador";
-    const joiningPlayerPhone =
-      joiningProfile?.whatsapp_phone?.trim() || joiningProfile?.phone?.trim() || null;
-
-    // Count paid players AFTER this payment (including current)
-    const { count: paidCount } = await supabase
+  } else {
+    await supabase
       .from("match_players")
-      .select("*", { count: "exact", head: true })
-      .eq("match_id", payment.match_id)
-      .eq("status", "paid");
-    const currentPaidCount = paidCount ?? 1;
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+      .eq("id", payment.match_player_id);
+    await _sendPaymentEmail(payment.player_id, payment.match_id, payment.amount_cop, mappedStatus as "declined" | "voided");
+  }
+}
 
-    // Check if this is the host joining for the first time (creates + joins)
-    const { data: matchPlayer } = await supabase
-      .from("match_players")
-      .select("is_host")
-      .eq("id", payment.match_player_id)
-      .maybeSingle();
+// ── Shared helpers ─────────────────────────────────────────────────────────
 
-    const isHost = matchPlayer?.is_host ?? false;
+async function _handleApprovedPayment({
+  matchId,
+  playerId,
+  matchPlayerId,
+  paymentMethod,
+  amountCop,
+}: {
+  paymentId: string;
+  matchId: string;
+  playerId: string;
+  matchPlayerId: string;
+  paymentMethod: string;
+  amountCop: number;
+}) {
+  const supabase = getSupabaseAdminClient();
 
-    if (isHost && currentPaidCount === 1) {
-      // Host created and joined — notify owner + notify the host themselves
-      await notifyOwnerNewGame({
-        matchId: payment.match_id,
+  await supabase
+    .from("match_players")
+    .update({ status: "paid" })
+    .eq("id", matchPlayerId);
+
+  await supabase.rpc("try_fill_match", { p_match_id: matchId });
+
+  await supabase.from("analytics_events").insert({
+    event_name: "payment_approved",
+    user_id: playerId,
+    match_id: matchId,
+    properties: { payment_method: paymentMethod, provider: "mercadopago" },
+  });
+
+  const { data: matchStatus } = await supabase
+    .from("matches")
+    .select("status, host_player_id, venue_name, scheduled_at, max_players")
+    .eq("id", matchId)
+    .maybeSingle();
+
+  const venueName = matchStatus?.venue_name ?? "Tu partido de pádel";
+  const scheduledAt = matchStatus?.scheduled_at ?? null;
+  const maxPlayers = matchStatus?.max_players ?? APP_CONFIG.maxPlayersPerMatch;
+
+  const { data: joiningProfile } = await supabase
+    .from("profiles")
+    .select("full_name, phone, whatsapp_phone")
+    .eq("id", playerId)
+    .maybeSingle();
+
+  const joiningPlayerName = joiningProfile?.full_name ?? "Un jugador";
+  const joiningPlayerPhone =
+    joiningProfile?.whatsapp_phone?.trim() || joiningProfile?.phone?.trim() || null;
+
+  const { count: paidCount } = await supabase
+    .from("match_players")
+    .select("*", { count: "exact", head: true })
+    .eq("match_id", matchId)
+    .eq("status", "paid");
+  const currentPaidCount = paidCount ?? 1;
+
+  const { data: matchPlayer } = await supabase
+    .from("match_players")
+    .select("is_host")
+    .eq("id", matchPlayerId)
+    .maybeSingle();
+  const isHost = matchPlayer?.is_host ?? false;
+
+  if (isHost && currentPaidCount === 1) {
+    await notifyOwnerNewGame({ matchId, hostName: joiningPlayerName, venueName, scheduledAt });
+    if (joiningPlayerPhone) {
+      await notifyHostMatchCreated({
+        hostPhone: joiningPlayerPhone,
         hostName: joiningPlayerName,
+        matchId,
         venueName,
         scheduledAt,
-      });
-      if (joiningPlayerPhone) {
-        await notifyHostMatchCreated({
-          hostPhone: joiningPlayerPhone,
-          hostName: joiningPlayerName,
-          matchId: payment.match_id,
-          venueName,
-          scheduledAt,
-          maxPlayers,
-        });
-      }
-    } else {
-      // A non-host player joined — notify owner + existing players
-      await notifyOnPlayerJoined({
-        matchId: payment.match_id,
-        newPlayerName: joiningPlayerName,
-        newPlayerId: payment.player_id,
-        venueName,
-        scheduledAt,
-        currentPaidCount,
         maxPlayers,
       });
     }
+  } else {
+    await notifyOnPlayerJoined({
+      matchId,
+      newPlayerName: joiningPlayerName,
+      newPlayerId: playerId,
+      venueName,
+      scheduledAt,
+      currentPaidCount,
+      maxPlayers,
+    });
+  }
 
-    if (matchStatus?.status === "full") {
-      await supabase.from("analytics_events").insert({
-        event_name: "organizer_notification_needed",
-        match_id: payment.match_id,
-      });
+  if (matchStatus?.status === "full") {
+    await supabase.from("analytics_events").insert({
+      event_name: "organizer_notification_needed",
+      match_id: matchId,
+    });
+    await notifyMatchFull({ matchId, venueName, scheduledAt, maxPlayers });
 
-      // WhatsApp: notify owner + all players that match is full
-      await notifyMatchFull({
-        matchId: payment.match_id,
-        venueName,
-        scheduledAt,
-        maxPlayers,
-      });
-
-      if (matchStatus.host_player_id) {
-        const { data: hostAuth } = await supabase.auth.admin.getUserById(
-          matchStatus.host_player_id,
-        );
-        if (hostAuth?.user?.email) {
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-          await sendMatchFilledEmail({
-            to: hostAuth.user.email,
-            hostName:
-              (hostAuth.user.user_metadata?.full_name as string | undefined) ??
-              (hostAuth.user.user_metadata?.first_name as string | undefined) ??
-              "Organizador",
-            matchVenueName: venueName,
-            matchScheduledAt: scheduledAt,
-            matchId: payment.match_id,
-            appUrl,
-          });
-        }
+    if (matchStatus.host_player_id) {
+      const { data: hostAuth } = await supabase.auth.admin.getUserById(matchStatus.host_player_id);
+      if (hostAuth?.user?.email) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+        await sendMatchFilledEmail({
+          to: hostAuth.user.email,
+          hostName:
+            (hostAuth.user.user_metadata?.full_name as string | undefined) ??
+            (hostAuth.user.user_metadata?.first_name as string | undefined) ??
+            "Organizador",
+          matchVenueName: venueName,
+          matchScheduledAt: scheduledAt,
+          matchId,
+          appUrl,
+        });
       }
     }
   }
 
+  await _sendPaymentEmail(playerId, matchId, amountCop, "approved");
+}
+
+async function _sendPaymentEmail(
+  playerId: string,
+  matchId: string,
+  amountCop: number,
+  status: "approved" | "declined" | "voided",
+) {
+  const supabase = getSupabaseAdminClient();
   const [{ data: authUser }, { data: matchInfo }] = await Promise.all([
-    supabase.auth.admin.getUserById(payment.player_id),
-    supabase
-      .from("matches")
-      .select("venue_name, scheduled_at")
-      .eq("id", payment.match_id)
-      .maybeSingle(),
+    supabase.auth.admin.getUserById(playerId),
+    supabase.from("matches").select("venue_name, scheduled_at").eq("id", matchId).maybeSingle(),
   ]);
 
   if (authUser?.user?.email) {
@@ -335,8 +543,8 @@ export async function processWompiWebhook(eventPayload: unknown) {
         "Jugador",
       matchVenueName: matchInfo?.venue_name ?? "Tu partido de pádel",
       matchScheduledAt: matchInfo?.scheduled_at ?? null,
-      amountCop: payment.amount_cop,
-      status: mappedStatus,
+      amountCop,
+      status,
     });
   }
 }

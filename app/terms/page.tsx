@@ -29,7 +29,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="3. Reserva de cupos y pagos">
-        Un cupo queda reservado únicamente cuando el pago es aprobado por Wompi (nuestro proveedor de pagos). Los pagos se procesan en pesos colombianos (COP). El valor incluye la cuota del partido más la tarifa de servicio de la plataforma. Si el pago se rechaza o se anula, el cupo vuelve a estar disponible para otros jugadores.
+        Un cupo queda reservado únicamente cuando el pago es aprobado por Mercado Pago (nuestro proveedor de pagos). Los pagos se procesan en pesos colombianos (COP). El valor incluye la cuota del partido más la tarifa de servicio de la plataforma. Si el pago se rechaza o se anula, el cupo vuelve a estar disponible para otros jugadores.
       </Section>
 
       <Section title="4. Cancelaciones y reembolsos">

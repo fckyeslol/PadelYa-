@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkoutSchema } from "@/types/contracts";
 import { createCheckoutForMatch } from "@/services/payments/service";
+import { getErrorMessage } from "@/utils/errors";
 
 export async function POST(request: Request) {
   try {
@@ -8,8 +9,8 @@ export async function POST(request: Request) {
     const checkout = await createCheckoutForMatch(payload.matchId);
     return NextResponse.json(checkout, { status: 201 });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unable to create checkout session";
+    const message = getErrorMessage(error, "No fue posible iniciar el pago con Mercado Pago");
+    console.error("[checkout]", message, error);
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

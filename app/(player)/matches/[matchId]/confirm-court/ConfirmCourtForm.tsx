@@ -21,18 +21,14 @@ export function ConfirmCourtForm({ matchId }: { matchId: string }) {
         body: JSON.stringify(body),
       });
 
-      const data = (await res.json()) as { ok?: boolean; error?: string; checkoutUrl?: string };
+      const data = (await res.json()) as { ok?: boolean; error?: string; payUrl?: string };
       if (!res.ok || !data.ok) {
         setError(data.error ?? "No se pudo publicar el partido");
         return;
       }
 
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else {
-        router.push(`/matches/${matchId}`);
-        router.refresh();
-      }
+      router.push(data.payUrl ?? `/matches/${matchId}?pay=1`);
+      router.refresh();
     });
   }
 

@@ -9,7 +9,7 @@ import { PlayerSlots } from "@/components/match/PlayerSlots";
 import { OrganizerMatchActions } from "@/components/organizer/OrganizerMatchActions";
 import { NoShowMarkControl } from "@/components/organizer/NoShowMarkControl";
 import { PaymentStatusBanner } from "@/components/payment/PaymentStatusBanner";
-import { WompiCheckoutButton } from "@/components/payment/WompiCheckoutButton";
+import { MercadoPagoCheckout } from "@/components/payment/MercadoPagoCheckout";
 import { WhatsAppShareButton } from "@/components/match/WhatsAppShareButton";
 import { getPlayersForMatch } from "@/services/matches/operations";
 import { getMatchById } from "@/services/matches/service";
@@ -24,7 +24,12 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ matchId: string }>;
-  searchParams: Promise<{ payment?: string }>;
+  searchParams: Promise<{
+    payment?: string;
+    pay?: string;
+    collection_status?: string;
+    status?: string;
+  }>;
 };
 
 const SKILL_META: Record<string, string> = {
@@ -179,6 +184,20 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const occupiedCount = players.filter(
     (p) => p.status === "paid" || p.status === "pending_payment",
   ).length;
+  const paymentBannerStatus =
+    query.payment ??
+    (query.collection_status === "approved" || query.status === "approved"
+      ? "approved"
+      : query.collection_status === "rejected" || query.status === "rejected"
+        ? "declined"
+        : query.collection_status === "pending" || query.status === "pending"
+          ? "pending"
+          : undefined);
+
+  const shouldAutoStartPayment =
+    query.pay === "1" || myPlayer?.status === "pending_payment";
+  const hasConfirmedSpot = myPlayer?.status === "paid";
+  const canJoin = isOpen && paidCount < 4 && !hasConfirmedSpot;
   const canChat =
     match!.hostPlayerId === user?.id ||
     (!!myPlayer &&
@@ -213,7 +232,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
       <div className="mx-auto max-w-3xl px-6 py-8" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
         {/* Payment status banner */}
-        <PaymentStatusBanner status={query.payment} />
+        <PaymentStatusBanner status={paymentBannerStatus} />
 
         {/* Refund status banner */}
         {myRefund && <RefundStatusBanner refund={myRefund} />}
@@ -351,10 +370,14 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
                   Ya tienes cuenta? El link te lleva directo al partido.
                 </p>
               </div>
-            ) : (
+            ) : canJoin ? (
               /* ── Auth user ──────────────────────────────── */
               <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-                <WompiCheckoutButton matchId={match!.id} orgFeeCop={match!.orgFeeCop} />
+                <MercadoPagoCheckout
+                  matchId={match!.id}
+                  orgFeeCop={match!.orgFeeCop}
+                  autoStart={shouldAutoStartPayment}
+                />
                 {isParticipant && (
                   <div style={{ marginTop: "0.25rem" }}>
                     <CancelSpotButton
@@ -364,6 +387,34 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
                     />
                   </div>
                 )}
+              </div>
+            ) : hasConfirmedSpot ? (
+              <div
+                style={{
+                  background: "rgba(22,101,52,0.07)",
+                  border: "1px solid rgba(22,101,52,0.22)",
+                  borderRadius: "14px",
+                  padding: "1.25rem",
+                  textAlign: "center",
+                }}
+              >
+                <p style={{ color: "var(--success)", fontWeight: 700, fontSize: "0.95rem" }}>
+                  Tu cupo está confirmado
+                </p>
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "12px",
+                  padding: "1.25rem",
+                  textAlign: "center",
+                  color: "var(--text-2)",
+                  fontSize: "0.9rem",
+                }}
+              >
+                Este partido ya está completo.
               </div>
             )
           ) : (

@@ -82,16 +82,14 @@ export async function POST(request: Request, { params }: Props) {
       }
     }
 
-    // Auto-create checkout for the host so they pay their own spot
-    let checkoutUrl: string | undefined;
+    // Pre-create checkout for the host so they can pay on the match page
     try {
-      const checkout = await createCheckoutForMatch(matchId, { isHost: true });
-      checkoutUrl = checkout.checkoutUrl;
+      await createCheckoutForMatch(matchId, { isHost: true });
     } catch {
       // Non-fatal — host can pay from the match page
     }
 
-    return NextResponse.json({ ok: true, ...(checkoutUrl ? { checkoutUrl } : {}) });
+    return NextResponse.json({ ok: true, payUrl: `/matches/${matchId}?pay=1` });
   } catch (error) {
     const message =
       error instanceof Error

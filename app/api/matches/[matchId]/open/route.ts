@@ -67,12 +67,16 @@ export async function POST(request: Request, { params }: Props) {
       .eq("id", matchId)
       .maybeSingle();
 
-    notifyOwnerNewGame({
-      matchId,
-      hostName: hostProfile?.full_name ?? "Un jugador",
-      venueName: matchData?.venue_name ?? "partido",
-      scheduledAt: matchData?.scheduled_at ?? null,
-    }).catch(() => {});
+    try {
+      await notifyOwnerNewGame({
+        matchId,
+        hostName: hostProfile?.full_name ?? "Un jugador",
+        venueName: matchData?.venue_name ?? "partido",
+        scheduledAt: matchData?.scheduled_at ?? null,
+      });
+    } catch (err) {
+      console.error("[WhatsApp] notifyOwnerNewGame failed", err);
+    }
 
     // Auto-create checkout for the host so they pay their own spot
     let checkoutUrl: string | undefined;

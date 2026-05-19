@@ -149,29 +149,38 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
               setError(err.message ?? "Error en el formulario de pago");
             }
           },
-          onSubmit: async ({ formData }) => {
-            if (!externalReference) return;
-            const res = await fetch("/api/payments/process", {
+          onSubmit: ({ formData }) => {
+            if (!externalReference) {
+              return Promise.reject(new Error("Referencia de pago no disponible. Intenta de nuevo."));
+            }
+
+            return fetch("/api/payments/process", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ formData, externalReference }),
-            });
-            const result = (await res.json()) as {
-              status?: string;
-              redirectUrl?: string;
-              error?: string;
-            };
-            if (!res.ok) {
-              throw new Error(result.error ?? "Error procesando el pago");
-            }
-            if (result.redirectUrl) {
-              window.location.href = result.redirectUrl;
-            } else if (result.status === "approved") {
-              controllerRef.current?.unmount();
-              setStep("success");
-            } else {
-              setStep("pending_payment");
-            }
+              body: JSON.stringify({ formData: formData ?? {}, externalReference }),
+            })
+              .then(async (res) => {
+                const result = (await res.json()) as {
+                  status?: string;
+                  redirectUrl?: string;
+                  error?: string;
+                };
+                if (!res.ok) {
+                  const message = result.error ?? "Error procesando el pago";
+                  if (!cancelled) setError(message);
+                  throw new Error(message);
+                }
+                if (result.redirectUrl) {
+                  window.location.href = result.redirectUrl;
+                  return;
+                }
+                if (result.status === "approved") {
+                  controllerRef.current?.unmount();
+                  setStep("success");
+                  return;
+                }
+                setStep("pending_payment");
+              });
           },
         },
       })

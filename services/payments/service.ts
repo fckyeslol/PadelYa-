@@ -28,22 +28,117 @@ export type ProcessPaymentResult = {
   mpPaymentId: string;
 };
 
-export type MPFormData = {
-  token?: string;
-  issuer_id?: string | number;
-  payment_method_id: string;
-  transaction_amount: number;
-  installments: number;
-  payer: {
-    email: string;
-    identification?: { type: string; number: string };
-    entity_type?: string;
-    first_name?: string;
-    last_name?: string;
+export type MPBrickFormData = Record<string, unknown>;
+
+function parseMercadoPagoApiError(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw) as {
+      message?: string;
+      cause?: Array<{ description?: string; code?: string }>;
+    };
+    const detail = parsed.cause?.[0]?.description ?? parsed.message;
+    if (detail) return `Mercado Pago: ${detail}`;
+  } catch {
+    // keep raw text
+  }
+  return `Mercado Pago: ${raw.slice(0, 280)}`;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+/** Builds a clean /v1/payments body from Payment Brick formData (avoids invalid extra fields). */
+function buildMercadoPagoPaymentBody(
+  raw: MPBrickFormData,
+  payment: { amount_cop: number; match_id: string },
+  externalReference: string,
+  appUrl: string,
+): Record<string, unknown> {
+  const paymentMethodId = String(raw.payment_method_id ?? "").trim();
+  if (!paymentMethodId) {
+    throw new Error("Selecciona un método de pago válido.");
+  }
+
+  const payerRaw = asRecord(raw.payer);
+  const identificationRaw = payerRaw ? asRecord(payerRaw.identification) : null;
+  const transactionDetailsRaw = asRecord(raw.transaction_details);
+  const additionalInfoRaw = asRecord(raw.additional_info);
+
+  const body: Record<string, unknown> = {
+    transaction_amount: payment.amount_cop,
+    payment_method_id: paymentMethodId,
+    description: "PadelYa — cupo partido pádel",
+    external_reference: externalReference,
+    notification_url: `${appUrl}/api/webhooks/mercadopago`,
+    callback_url: `${appUrl}/matches/${payment.match_id}`,
+    installments: Number(raw.installments ?? 1) || 1,
   };
-  callback_url?: string;
-  [key: string]: unknown;
-};
+
+  if (raw.token) {
+    body.token = String(raw.token);
+  }
+
+  if (raw.issuer_id != null && raw.issuer_id !== "") {
+    body.issuer_id =
+      typeof raw.issuer_id === "number" ? raw.issuer_id : String(raw.issuer_id);
+  }
+
+  const payer: Record<string, unknown> = {};
+  if (payerRaw?.email) payer.email = String(payerRaw.email);
+
+  const isPse = paymentMethodId === "pse";
+  if (isPse) {
+    payer.entity_type = payerRaw?.entity_type ? String(payerRaw.entity_type) : "individual";
+  } else if (payerRaw?.entity_type) {
+    payer.entity_type = String(payerRaw.entity_type);
+  }
+
+  if (identificationRaw?.type && identificationRaw?.number != null) {
+    payer.identification = {
+      type: String(identificationRaw.type),
+      number: String(identificationRaw.number),
+    };
+  }
+
+  if (payerRaw?.first_name) payer.first_name = String(payerRaw.first_name);
+  if (payerRaw?.last_name) payer.last_name = String(payerRaw.last_name);
+  if (payerRaw?.address) payer.address = payerRaw.address;
+  if (payerRaw?.phone) payer.phone = payerRaw.phone;
+
+  if (Object.keys(payer).length > 0) {
+    body.payer = payer;
+  }
+
+  if (transactionDetailsRaw?.financial_institution != null) {
+    body.transaction_details = {
+      financial_institution: String(transactionDetailsRaw.financial_institution),
+    };
+  }
+
+  if (isPse && !body.transaction_details) {
+    throw new Error("Selecciona el banco para continuar con PSE.");
+  }
+
+  if (isPse && !payer.email) {
+    throw new Error("Ingresa un correo electrónico para PSE.");
+  }
+
+  if (isPse && !payer.identification) {
+    throw new Error("Ingresa tu tipo y número de documento para PSE.");
+  }
+
+  if (additionalInfoRaw?.ip_address) {
+    body.additional_info = { ip_address: String(additionalInfoRaw.ip_address) };
+  } else if (isPse) {
+    body.additional_info = { ip_address: "127.0.0.1" };
+  }
+
+  return body;
+}
 
 // ── Checkout: create DB records + MP preference ────────────────────────────
 
@@ -224,7 +319,7 @@ export async function createCheckoutForMatch(
 // ── Process: Brick submits → create MP payment ─────────────────────────────
 
 export async function processMercadoPagoPayment(
-  formData: MPFormData,
+  formData: MPBrickFormData,
   externalReference: string,
 ): Promise<ProcessPaymentResult> {
   const supabase = getSupabaseAdminClient();
@@ -243,14 +338,7 @@ export async function processMercadoPagoPayment(
   const accessToken = getMercadoPagoAccessToken();
   const appUrl = getAppUrl();
 
-  const payBody = {
-    ...formData,
-    transaction_amount: payment.amount_cop,
-    external_reference: externalReference,
-    description: "PadelYa — cupo partido pádel",
-    notification_url: `${appUrl}/api/webhooks/mercadopago`,
-    callback_url: `${appUrl}/matches/${payment.match_id}`,
-  };
+  const payBody = buildMercadoPagoPaymentBody(formData, payment, externalReference, appUrl);
 
   const mpResponse = await fetch(`${MP_API}/v1/payments`, {
     method: "POST",
@@ -264,7 +352,7 @@ export async function processMercadoPagoPayment(
 
   if (!mpResponse.ok) {
     const err = await mpResponse.text();
-    throw new Error(`Error procesando el pago: ${err}`);
+    throw new Error(parseMercadoPagoApiError(err));
   }
 
   const mpPayment = (await mpResponse.json()) as {

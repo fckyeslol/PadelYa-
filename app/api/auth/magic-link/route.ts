@@ -53,8 +53,7 @@ export async function POST(request: Request) {
       console.error("[auth/magic-link] auth.users lookup", lookupError);
     }
 
-    const requiresSignup = !existingUser || !existingUser.email_confirmed_at;
-    const linkType: "magiclink" | "signup" = requiresSignup ? "signup" : "magiclink";
+    let linkType: "magiclink" | "signup" = existingUser ? "magiclink" : "signup";
     const linkPayload = {
       email: normalizedEmail,
       options: {
@@ -65,13 +64,24 @@ export async function POST(request: Request) {
         },
       },
     };
-    const { data, error } = await (linkType === "signup"
+    let { data, error } = await (linkType === "signup"
       ? admin.auth.admin.generateLink({
           type: "signup",
           password: `${crypto.randomUUID()}Aa1!`,
           ...linkPayload,
         })
       : admin.auth.admin.generateLink({ type: "magiclink", ...linkPayload }));
+
+    if (error && linkType === "signup") {
+      const msg = error.message?.toLowerCase() ?? "";
+      if (msg.includes("already been registered") || msg.includes("email_exists")) {
+        linkType = "magiclink";
+        ({ data, error } = await admin.auth.admin.generateLink({
+          type: "magiclink",
+          ...linkPayload,
+        }));
+      }
+    }
 
     if (error) {
       console.error("[auth/magic-link] generateLink", error);

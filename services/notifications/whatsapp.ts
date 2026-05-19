@@ -45,11 +45,11 @@ function formatMatchDate(scheduledAt: string | null): string {
   }
 }
 
-/** Paid whatsapp phones of all OTHER players in a match (excluding excludePlayerId). */
+/** Paid players in a match with a whatsapp_phone, excluding excludePlayerId. */
 async function getPaidPlayerPhones(
   matchId: string,
   excludePlayerId: string,
-): Promise<{ playerId: string; phone: string; name: string }[]> {
+): Promise<{ phone: string; name: string }[]> {
   const supabase = getSupabaseAdminClient();
 
   const { data, error } = await supabase
@@ -65,7 +65,6 @@ async function getPaidPlayerPhones(
     .map((row) => {
       const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
       return {
-        playerId: row.player_id as string,
         phone: (profile as { whatsapp_phone?: string | null } | null)?.whatsapp_phone ?? "",
         name: (profile as { full_name?: string | null } | null)?.full_name ?? "Jugador",
       };
@@ -73,9 +72,7 @@ async function getPaidPlayerPhones(
     .filter((p) => p.phone.trim() !== "");
 }
 
-/**
- * Notifies the owner when a new game is created and the host joins (first paid slot).
- */
+/** Notifies the owner when the host creates a game and joins (1st paid slot). */
 export async function notifyOwnerNewGame(params: {
   matchId: string;
   hostName: string;
@@ -100,9 +97,7 @@ export async function notifyOwnerNewGame(params: {
   await safeSend(ownerPhone, body);
 }
 
-/**
- * Notifies the owner (and all existing players) each time a new player joins.
- */
+/** Notifies the owner + all existing players each time a new player joins. */
 export async function notifyOnPlayerJoined(params: {
   matchId: string;
   newPlayerName: string;
@@ -116,7 +111,6 @@ export async function notifyOnPlayerJoined(params: {
   const matchLink = `${appUrl}/matches/${params.matchId}`;
   const roster = `${params.currentPaidCount}/${params.maxPlayers} jugadores`;
 
-  // Message to the owner
   const ownerPhone = getOwnerPhone();
   if (ownerPhone) {
     const ownerMsg = [
@@ -131,7 +125,6 @@ export async function notifyOnPlayerJoined(params: {
     await safeSend(ownerPhone, ownerMsg);
   }
 
-  // Message to the other existing players in the match
   const others = await getPaidPlayerPhones(params.matchId, params.newPlayerId);
   if (others.length === 0) return;
 
@@ -148,9 +141,7 @@ export async function notifyOnPlayerJoined(params: {
   await Promise.all(others.map((p) => safeSend(p.phone, playerMsg)));
 }
 
-/**
- * Notifies the owner and all players when a match becomes full.
- */
+/** Notifies the owner + all players when a match becomes full (4/4). */
 export async function notifyMatchFull(params: {
   matchId: string;
   venueName: string;
@@ -161,7 +152,6 @@ export async function notifyMatchFull(params: {
   const matchLink = `${appUrl}/matches/${params.matchId}`;
   const roster = `${params.maxPlayers}/${params.maxPlayers}`;
 
-  // Notify owner
   const ownerPhone = getOwnerPhone();
   if (ownerPhone) {
     const ownerMsg = [
@@ -176,22 +166,21 @@ export async function notifyMatchFull(params: {
     await safeSend(ownerPhone, ownerMsg);
   }
 
-  // Notify all players in the match
   const supabase = getSupabaseAdminClient();
   const { data } = await supabase
     .from("match_players")
-    .select("player_id, profiles(full_name, whatsapp_phone)")
+    .select("player_id, profiles(whatsapp_phone)")
     .eq("match_id", params.matchId)
     .eq("status", "paid");
 
-  const players = (data ?? [])
+  const phones = (data ?? [])
     .map((row) => {
       const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
       return (profile as { whatsapp_phone?: string | null } | null)?.whatsapp_phone ?? "";
     })
     .filter((p) => p.trim() !== "");
 
-  if (players.length === 0) return;
+  if (phones.length === 0) return;
 
   const playerMsg = [
     `✅ *¡Tu partido está lleno!*`,
@@ -203,5 +192,5 @@ export async function notifyMatchFull(params: {
     `🔗 ${matchLink}`,
   ].join("\n");
 
-  await Promise.all(players.map((phone) => safeSend(phone, playerMsg)));
+  await Promise.all(phones.map((phone) => safeSend(phone, playerMsg)));
 }

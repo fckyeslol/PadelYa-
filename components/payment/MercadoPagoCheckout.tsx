@@ -58,9 +58,10 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
-  const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [externalReference, setExternalReference] = useState<string | null>(null);
+  const [brickReady, setBrickReady] = useState(false);
   const controllerRef = useRef<MPBrickController | null>(null);
+  const brickReadyRef = useRef(false);
   const autoStartedRef = useRef(false);
   const checkoutInFlightRef = useRef(false);
 
@@ -84,11 +85,11 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
         externalReference?: string;
         error?: string;
       };
-      if (!res.ok || !data.preferenceId) {
+      if (!res.ok || !data.externalReference) {
         throw new Error(data.error ?? "No fue posible iniciar el pago");
       }
-      setPreferenceId(data.preferenceId);
-      setExternalReference(data.externalReference ?? null);
+      setExternalReference(data.externalReference);
+      setBrickReady(false);
       setStep("paying");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error iniciando el pago");
@@ -111,7 +112,15 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
   }, [step]);
 
   useEffect(() => {
-    if (step !== "paying" || !scriptLoaded || !preferenceId) return;
+    if (step !== "paying") {
+      brickReadyRef.current = false;
+      setBrickReady(false);
+      return;
+    }
+    if (!scriptLoaded || !externalReference) return;
+
+    brickReadyRef.current = false;
+    setBrickReady(false);
 
     const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY?.trim() ?? "";
     if (!publicKey) {
@@ -139,17 +148,22 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
             debitCard: "all",
             ticket: "all",
             bankTransfer: "pse",
-            mercadoPago: "none",
-            atm: "none",
           },
         },
         callbacks: {
           onReady: () => {
-            if (!cancelled) setError(null);
+            if (!cancelled) {
+              brickReadyRef.current = true;
+              setBrickReady(true);
+              setError(null);
+            }
           },
           onError: (err) => {
             if (!cancelled) {
+              brickReadyRef.current = false;
+              setBrickReady(false);
               setError(err.message ?? "Error en el formulario de pago");
+              setStep("confirm");
             }
           },
           onSubmit: (submitPayload) => {
@@ -221,17 +235,29 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
       })
       .catch((err: Error) => {
         if (!cancelled) {
-          setError(err.message);
+          brickReadyRef.current = false;
+          setBrickReady(false);
+          setError(err.message || "No se pudo cargar el formulario de Mercado Pago");
           setStep("confirm");
         }
       });
 
+    const loadTimeout = window.setTimeout(() => {
+      if (!cancelled && !brickReadyRef.current) {
+        brickReadyRef.current = false;
+        setBrickReady(false);
+        setError("Mercado Pago tardó demasiado en cargar. Intenta de nuevo.");
+        setStep("confirm");
+      }
+    }, 20000);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(loadTimeout);
       controllerRef.current?.unmount();
       controllerRef.current = null;
     };
-  }, [step, scriptLoaded, preferenceId, totalCop, externalReference]);
+  }, [step, scriptLoaded, externalReference, totalCop]);
 
   return (
     <>
@@ -303,9 +329,9 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
 
       {step === "paying" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          {!scriptLoaded && (
+          {(!scriptLoaded || !brickReady) && (
             <p style={{ color: "var(--text-2)", fontSize: "0.875rem", textAlign: "center" }}>
-              Cargando Mercado Pago...
+              Cargando formulario de pago...
             </p>
           )}
           <div id={BRICK_CONTAINER_ID} />

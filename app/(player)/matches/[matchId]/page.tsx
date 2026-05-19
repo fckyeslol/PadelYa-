@@ -273,7 +273,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
                 >
                   {match!.venueName}
                 </h1>
-                <p style={{ color: "var(--text-2)", fontSize: "0.9rem" }}>
+                <p style={{ color: "var(--text-2)", fontSize: "0.9rem" }} suppressHydrationWarning>
                   {formatDateTime(match!.scheduledAt)}
                 </p>
               </div>

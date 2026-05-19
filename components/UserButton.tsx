@@ -52,8 +52,7 @@ export function UserButton({ fullName, avatarUrl }: UserButtonProps) {
     startTransition(async () => {
       const supabase = getSupabaseBrowserClient();
       await supabase.auth.signOut();
-      router.refresh();
-      router.push("/");
+      window.location.href = "/";
     });
   }
 

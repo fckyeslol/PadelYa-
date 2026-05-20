@@ -80,6 +80,7 @@ export function VenueScheduleBoard({ venueName }: Props) {
     courtName: string,
     time: string,
     status: string,
+    blockId?: string,
   ) {
     if (status === "booked") {
       setSelected({ courtId, courtName, date, time, status });
@@ -87,14 +88,14 @@ export function VenueScheduleBoard({ venueName }: Props) {
     }
 
     if (status === "available") {
-      if (!confirm(`¿Bloquear las ${time} del ${date}?\n\nNingún jugador podrá reservar a esa hora en toda la sede.`)) {
+      if (!confirm(`¿Bloquear ${courtName} a las ${time}?\n\nEsa cancha específica quedará bloqueada. Si todas las canchas a esa hora están bloqueadas o reservadas, los jugadores no podrán reservar.`)) {
         return;
       }
       startTransition(async () => {
         const res = await fetch("/api/cancha/blocks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date, time }),
+          body: JSON.stringify({ courtId, date, time }),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -106,13 +107,13 @@ export function VenueScheduleBoard({ venueName }: Props) {
       return;
     }
 
-    if (status === "blocked") {
-      if (!confirm(`¿Quitar bloqueo de las ${time} del ${date}?\n\nLos jugadores podrán volver a reservar a esa hora.`)) return;
+    if (status === "blocked" && blockId) {
+      if (!confirm(`¿Quitar bloqueo de ${courtName} a las ${time}?`)) return;
       startTransition(async () => {
         const res = await fetch("/api/cancha/blocks", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date, time }),
+          body: JSON.stringify({ blockId }),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));

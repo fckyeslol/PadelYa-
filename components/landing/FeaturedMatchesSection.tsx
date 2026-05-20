@@ -3,7 +3,7 @@ import { VenuePhoto } from "@/components/venue/VenuePhoto";
 import { listOpenMatches } from "@/services/matches/service";
 import { formatDateTime } from "@/utils/dates";
 import { formatCop } from "@/utils/currency";
-import { APP_CONFIG } from "@/config/business";
+import { resolveDisplayFeeCop } from "@/config/pricing";
 
 const SKILL_LABEL: Record<string, string> = {
   beginner: "Principiante",
@@ -46,8 +46,7 @@ export async function FeaturedMatchesSection() {
           {featured.map((match) => {
             const spotsLeft = (match.maxPlayers ?? 4) - match.paidCount;
             const fee =
-              (match.orgFeeCop ?? APP_CONFIG.defaultFeeCop) +
-              APP_CONFIG.platformFeeCop;
+              resolveDisplayFeeCop(match.venueName, match.scheduledAt);
 
             return (
               <Link
@@ -93,7 +92,7 @@ export async function FeaturedMatchesSection() {
                     marginTop: "auto",
                   }}
                 >
-                  Unirme · {formatCop(fee)}
+                  Unirme · {fee != null ? formatCop(fee) : "Ver tarifa"}
                 </span>
               </Link>
             );

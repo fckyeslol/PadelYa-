@@ -4,6 +4,7 @@ import { MatchStatusBadge } from "@/components/match/MatchStatusBadge";
 import { VenuePhoto } from "@/components/venue/VenuePhoto";
 import { getVenueImage } from "@/config/venues";
 import type { MatchPreview } from "@/types/domain";
+import { resolveDisplayFeeCop } from "@/config/pricing";
 import { formatCop } from "@/utils/currency";
 import { formatDateTime } from "@/utils/dates";
 
@@ -34,6 +35,7 @@ const AVATAR_COLORS = [
 ];
 
 export function MatchCard({ match }: { match: MatchPreview }) {
+  const csvFee = resolveDisplayFeeCop(match.venueName, match.scheduledAt);
   const { paidCount, playerNames, playerAvatars, maxPlayers = 4 } = match;
   const spotsLeft = maxPlayers - paidCount;
   const isOpen = match.status === "open";
@@ -146,7 +148,7 @@ export function MatchCard({ match }: { match: MatchPreview }) {
             }}
           >
             <CopIcon />
-            {formatCop(match.orgFeeCop)} / jugador
+            {csvFee != null ? `${formatCop(csvFee)} / jugador` : "Tarifa según horario"}
           </span>
         </div>
 

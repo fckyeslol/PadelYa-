@@ -1,8 +1,10 @@
 export const APP_CONFIG = {
   appName: "Padel BAQ",
   city: "Barranquilla",
-  defaultFeeCop: 6000,
-  platformFeeCop: 5000,
+  /** @deprecated Usar resolveOrgFeeCopForMatch; solo fallback legacy en DB. */
+  defaultFeeCop: 0,
+  /** Incluido en tarifa CSV (+$20k cancha); no se suma al checkout. */
+  platformFeeCop: 0,
   maxPlayersPerMatch: 4,
   organizerResponseHours: 24,
   refundWindowHours: 3,

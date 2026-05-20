@@ -31,6 +31,7 @@ export async function proxy(request: NextRequest) {
     console.error("[proxy] Supabase session refresh failed", error);
   }
 
+  supabaseResponse.headers.set("x-pathname", request.nextUrl.pathname);
   return supabaseResponse;
 }
 

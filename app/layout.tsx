@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Syne, DM_Sans, Montserrat } from "next/font/google";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { getCurrentProfile } from "@/services/profiles/service";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
@@ -43,25 +44,32 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const profile = await getCurrentProfile().catch(() => null);
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? "";
+  const isVenuePortal = pathname.startsWith("/cancha");
+
+  const profile = isVenuePortal ? null : await getCurrentProfile().catch(() => null);
 
   return (
     <html lang="es" className={`${syne.variable} ${dmSans.variable} ${montserrat.variable} h-full`}>
       <body className="min-h-full flex flex-col">
-        <SiteHeader
-          profile={
-            profile
-              ? {
-                  fullName: profile.fullName,
-                  avatarUrl: profile.avatarUrl ?? null,
-                  role: profile.role,
-                }
-              : null
-          }
-        />
+        {!isVenuePortal && (
+          <SiteHeader
+            profile={
+              profile
+                ? {
+                    fullName: profile.fullName,
+                    avatarUrl: profile.avatarUrl ?? null,
+                    role: profile.role,
+                  }
+                : null
+            }
+          />
+        )}
 
         <main className="flex-1 flex flex-col">{children}</main>
 
+        {!isVenuePortal && (
         <footer
           style={{ borderTop: "1px solid var(--border)", color: "var(--text-3)" }}
           className="py-6 text-center text-xs"
@@ -89,6 +97,7 @@ export default async function RootLayout({
             </Link>
           </div>
         </footer>
+        )}
       </body>
     </html>
   );

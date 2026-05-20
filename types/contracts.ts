@@ -6,6 +6,7 @@ export const createMatchSchema = z.object({
   joinDeadline: z.string().datetime(),
   skillLevel: z.enum(["beginner", "intermediate", "advanced"]),
   notes: z.string().max(500).optional(),
+  orgFeeCop: z.number().int().positive().optional(),
 }).refine(
   (value) => new Date(value.joinDeadline).getTime() < new Date(value.scheduledAt).getTime(),
   { message: "joinDeadline must be before scheduledAt", path: ["joinDeadline"] },

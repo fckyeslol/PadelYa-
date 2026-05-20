@@ -17,6 +17,7 @@ import { getPlayersForMatch } from "@/services/matches/operations";
 import { getMatchById } from "@/services/matches/service";
 import { getCurrentProfile } from "@/services/profiles/service";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveDisplayFeeCop } from "@/config/pricing";
 import { formatCop } from "@/utils/currency";
 import { formatDateTime } from "@/utils/dates";
 import { MatchChat } from "@/components/match/MatchChat";
@@ -47,8 +48,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const date = new Date(match.scheduledAt).toLocaleDateString("es-CO", { dateStyle: "medium" });
   const skill = SKILL_META[match.skillLevel] ?? match.skillLevel;
-  const total = match.orgFeeCop + 5000;
-  const description = `Partido de pádel en ${match.venueName} el ${date}. Nivel ${skill}. Únete por $${total.toLocaleString("es-CO")} COP en PadelYa!`;
+  const metaFee = resolveDisplayFeeCop(match.venueName, match.scheduledAt);
+  const feeLine =
+    metaFee != null
+      ? `Únete por $${metaFee.toLocaleString("es-CO")} COP`
+      : "Consulta la tarifa en el partido";
+  const description = `Partido de pádel en ${match.venueName} el ${date}. Nivel ${skill}. ${feeLine} en PadelYa!`;
 
   return {
     title: `${match.venueName} · ${date} — PadelYa!`,
@@ -182,6 +187,8 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const isOpen = match!.status === "open";
   const isCompleted = match!.status === "completed";
   const isConfirmed = match!.status === "confirmed";
+  const displayFee = resolveDisplayFeeCop(match!.venueName, match!.scheduledAt);
+  const hasCsvFee = displayFee != null;
   const paidCount = players.filter((p) => p.status === "paid").length;
   const occupiedCount = players.filter(
     (p) => p.status === "paid" || p.status === "pending_payment",
@@ -199,7 +206,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const shouldAutoStartPayment =
     query.pay === "1" || myPlayer?.status === "pending_payment";
   const hasConfirmedSpot = myPlayer?.status === "paid";
-  const canJoin = isOpen && paidCount < 4 && !hasConfirmedSpot;
+  const canJoin = isOpen && paidCount < 4 && !hasConfirmedSpot && hasCsvFee;
   const canChat =
     match!.hostPlayerId === user?.id ||
     (!!myPlayer &&
@@ -298,7 +305,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33" />
                 </svg>
-                Cuota base: {formatCop(match!.orgFeeCop)}
+                {hasCsvFee ? `${formatCop(displayFee!)} / jugador` : "Tarifa no disponible"}
               </Chip>
               <Chip>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -377,7 +384,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
                 <MatchPaymentCheckout
                   matchId={match!.id}
-                  orgFeeCop={match!.orgFeeCop}
+                  orgFeeCop={displayFee}
                   autoStart={shouldAutoStartPayment}
                 />
                 {isParticipant && (
@@ -466,7 +473,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
             matchId={match!.id}
             venueName={match!.venueName}
             scheduledAt={match!.scheduledAt}
-            orgFeeCop={match!.orgFeeCop}
+            orgFeeCop={displayFee ?? match!.orgFeeCop}
             spotsLeft={(match!.maxPlayers ?? 4) - occupiedCount}
             isParticipant={isParticipant}
           />

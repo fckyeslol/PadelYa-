@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { APP_CONFIG } from "@/config/business";
+import { resolveOrgFeeCopForMatch } from "@/config/pricing";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { sendPaymentStatusEmail, sendMatchFilledEmail } from "@/services/notifications/email";
@@ -438,8 +439,16 @@ export async function createCheckoutForMatch(
   if (!match) throw new Error("Partido no encontrado");
   if (match.status !== "open") throw new Error("Este partido ya no acepta jugadores.");
 
-  const totalAmountCop =
-    (match.org_fee_cop ?? APP_CONFIG.defaultFeeCop) + APP_CONFIG.platformFeeCop;
+  let totalAmountCop: number;
+  try {
+    totalAmountCop = resolveOrgFeeCopForMatch(match.venue_name, match.scheduled_at);
+  } catch {
+    throw new Error("Este partido no tiene una tarifa válida. Contacta al organizador.");
+  }
+
+  if (totalAmountCop !== match.org_fee_cop) {
+    await supabase.from("matches").update({ org_fee_cop: totalAmountCop }).eq("id", matchId);
+  }
 
   const { count: paidCount, error: paidCountError } = await supabase
     .from("match_players")

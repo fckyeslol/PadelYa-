@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getMatchById } from "@/services/matches/service";
 import { formatDateTime } from "@/utils/dates";
+import { resolveDisplayFeeCop } from "@/config/pricing";
+import { formatCop } from "@/utils/currency";
 import { ConfirmCourtForm } from "./ConfirmCourtForm";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +66,7 @@ export default async function ConfirmCourtPage({ params }: Props) {
   if (match.status !== "pending_court") redirect(`/matches/${matchId}`);
 
   const bookingLinks = getBookingLinks(match.venueName);
+  const displayFee = resolveDisplayFeeCop(match.venueName, match.scheduledAt);
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
@@ -133,6 +136,17 @@ export default async function ConfirmCourtPage({ params }: Props) {
           </p>
           <p style={{ color: "var(--text-2)", fontSize: "0.875rem" }}>
             {formatDateTime(match.scheduledAt)}
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-montserrat)",
+              fontWeight: 700,
+              fontSize: "1rem",
+              color: "var(--primary)",
+              marginTop: "0.25rem",
+            }}
+          >
+            {displayFee != null ? `${formatCop(displayFee)} / jugador` : "Tarifa no disponible para este horario"}
           </p>
         </div>
 

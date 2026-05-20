@@ -113,7 +113,12 @@ function normalizeVenueKey(name: string): string {
 
 const VENUE_LOOKUP: { keys: string[]; venue: VenueInfo }[] = [
   {
-    keys: ["padel zenter del rio", "padel zenter del rio barranquilla"],
+    keys: [
+      "del rio",
+      "padel del rio",
+      "padel zenter del rio",
+      "padel zenter del rio barranquilla",
+    ],
     venue: BARRANQUILLA_VENUES[0],
   },
   {
@@ -122,6 +127,8 @@ const VENUE_LOOKUP: { keys: string[]; venue: VenueInfo }[] = [
   },
   {
     keys: [
+      "la arenosa",
+      "padel la arenosa",
       "padel zenter la arenosa",
       "padel zenter arenosa",
       "padel zenter la arenoza",
@@ -156,7 +163,9 @@ export function getVenueInfo(venueName: string): VenueInfo | null {
     }
   }
 
-  // Del Rio antes que "zenter" genérico
+  if (normalized === "padel zenter" || normalized === "padel zenter barranquilla") {
+    return null;
+  }
   if (normalized.includes("del rio")) {
     return BARRANQUILLA_VENUES[0];
   }
@@ -165,6 +174,9 @@ export function getVenueInfo(venueName: string): VenueInfo | null {
   }
   if (normalized.includes("arenosa")) {
     return BARRANQUILLA_VENUES[2];
+  }
+  if (normalized.includes("zenter") && !normalized.includes("del rio") && !normalized.includes("arenosa")) {
+    return null;
   }
   if (normalized.includes("la jaula")) {
     return BARRANQUILLA_VENUES[3];

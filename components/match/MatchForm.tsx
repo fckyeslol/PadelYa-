@@ -1,33 +1,45 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
+import {
+  getAvailableTimeSlotsByVenueName,
+  getPlayerFeeByVenueName,
+  getPricingCalendarDates,
+  hasCsvPricingForVenueName,
+  PRICED_VENUE_NAMES,
+} from "@/config/pricing";
+import { formatCop } from "@/utils/currency";
 
 const DAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MONTH_NAMES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
-function buildDays(count = 14) {
-  const days = [];
-  const base = new Date();
-  base.setHours(0, 0, 0, 0);
-  for (let i = 0; i < count; i++) {
-    const d = new Date(base);
-    d.setDate(base.getDate() + i);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    days.push({
-      value: `${yyyy}-${mm}-${dd}`,
-      dayName: i === 0 ? "Hoy" : i === 1 ? "Mañana" : DAY_NAMES[d.getDay()],
-      dayNum: d.getDate(),
-      monthName: MONTH_NAMES[d.getMonth()],
-      isToday: i === 0,
-    });
-  }
-  return days;
+function buildDaysFromCsv() {
+  const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "America/Bogota" }).slice(0, 10);
+  const csvDates = getPricingCalendarDates().filter((d) => d >= todayStr);
+  const today = new Date(`${todayStr}T12:00:00`);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  return csvDates.map((value) => {
+    const [y, m, d] = value.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const isToday = value === todayStr;
+    const isTomorrow =
+      dateObj.getFullYear() === tomorrow.getFullYear() &&
+      dateObj.getMonth() === tomorrow.getMonth() &&
+      dateObj.getDate() === tomorrow.getDate();
+    return {
+      value,
+      dayName: isToday ? "Hoy" : isTomorrow ? "Mañana" : DAY_NAMES[dateObj.getDay()],
+      dayNum: d,
+      monthName: MONTH_NAMES[m - 1],
+      isToday,
+    };
+  });
 }
 
-const DAYS = buildDays(14);
+const DAYS = buildDaysFromCsv();
 
 const TIME_SLOTS = Array.from({ length: 35 }, (_, i) => {
   const totalMinutes = 6 * 60 + i * 30;
@@ -56,27 +68,47 @@ function formatSelectedDay(dateValue: string) {
 }
 
 function slotsForDate(dateValue: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const dd = String(today.getDate()).padStart(2, "0");
-  const isToday = dateValue === `${yyyy}-${mm}-${dd}`;
+  const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "America/Bogota" }).slice(0, 10);
+  const isToday = dateValue === todayStr;
 
   if (!isToday) return TIME_SLOTS;
 
-  const now = new Date();
+  const nowBogota = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Bogota" }),
+  );
   return TIME_SLOTS.filter((slot) => {
     const [h, m] = slot.value.split(":").map(Number);
-    const slotAt = new Date();
+    const slotAt = new Date(nowBogota);
     slotAt.setHours(h, m, 0, 0);
-    return slotAt > now;
+    return slotAt > nowBogota;
   });
 }
 
-import { ALL_VENUE_NAMES } from "@/config/venues";
+const BAQ_VENUES = PRICED_VENUE_NAMES;
 
-const BAQ_VENUES = ALL_VENUE_NAMES;
+function playerFeeForSlot(venueName: string, date: string, time: string): number | null {
+  if (!venueName.trim()) return null;
+  return getPlayerFeeByVenueName(venueName.trim(), date, time);
+}
+
+function slotsForVenueAndDate(
+  venueName: string,
+  dateValue: string,
+  bookableTimes: Set<string> | null,
+) {
+  const priced = getAvailableTimeSlotsByVenueName(venueName, dateValue);
+  if (!priced.length) return [];
+
+  const allowed = new Set(priced);
+  let base = slotsForDate(dateValue).filter((s) => allowed.has(s.value));
+  if (bookableTimes === null) return [];
+  base = base.filter((s) => bookableTimes.has(s.value));
+  return base.map((s) => ({
+    ...s,
+    label: s.label,
+    value: s.value,
+  }));
+}
 
 export function MatchForm() {
   const [venueName, setVenueName] = useState("");
@@ -88,12 +120,51 @@ export function MatchForm() {
   const [notes, setNotes] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [bookableTimes, setBookableTimes] = useState<Set<string> | null>(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
-  const canSubmit = venueName.trim() && matchDate && matchTime && !pending;
+  useEffect(() => {
+    if (!venueName.trim() || !matchDate) {
+      setBookableTimes(null);
+      return;
+    }
+    let cancelled = false;
+    setAvailabilityLoading(true);
+    fetch(
+      `/api/venues/slot-availability?venueName=${encodeURIComponent(venueName.trim())}&date=${encodeURIComponent(matchDate)}`,
+    )
+      .then((res) => res.json())
+      .then((data: { bookableTimes?: string[] }) => {
+        if (!cancelled) {
+          setBookableTimes(new Set(data.bookableTimes ?? []));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setBookableTimes(new Set());
+      })
+      .finally(() => {
+        if (!cancelled) setAvailabilityLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [venueName, matchDate]);
+
+  const hasPricedVenue = hasCsvPricingForVenueName(venueName);
+  const availableSlots =
+    venueName.trim() && matchDate
+      ? slotsForVenueAndDate(venueName, matchDate, bookableTimes)
+      : [];
+  const selectedPlayerFee =
+    matchDate && matchTime && hasPricedVenue
+      ? playerFeeForSlot(venueName, matchDate, matchTime)
+      : null;
+  const canSubmit =
+    hasPricedVenue && matchDate && matchTime && selectedPlayerFee != null && !pending;
 
   function submit() {
     startTransition(async () => {
-      const scheduledAt = new Date(`${matchDate}T${matchTime}:00`).toISOString();
+      const scheduledAt = new Date(`${matchDate}T${matchTime}:00-05:00`).toISOString();
       const joinDeadline = new Date(
         new Date(scheduledAt).getTime() - deadlineHours * 3_600_000
       ).toISOString();
@@ -155,7 +226,10 @@ export function MatchForm() {
                 <button
                   key={v}
                   type="button"
-                  onClick={() => setVenueName(selected ? "" : v)}
+                  onClick={() => {
+                    setVenueName(selected ? "" : v);
+                    setMatchTime("");
+                  }}
                   style={{
                     borderRadius: "999px",
                     padding: "0.25rem 0.75rem",
@@ -174,13 +248,16 @@ export function MatchForm() {
               );
             })}
           </div>
-          <input
-            id="venue"
-            className="input-base"
-            placeholder="O escribe otro club..."
-            value={venueName}
-            onChange={(e) => setVenueName(e.target.value)}
-          />
+          <p
+            style={{
+              fontSize: "0.78rem",
+              color: "var(--text-3)",
+              fontFamily: "var(--font-dm-sans)",
+              margin: 0,
+            }}
+          >
+            Tarifas EasyCancha (6 clubes) y Casa Padel ($90.000 cancha, $22.500 por jugador, cualquier hora).
+          </p>
         </div>
 
         {/* Date strip */}
@@ -270,7 +347,13 @@ export function MatchForm() {
           ) : null}
         </div>
 
-        {matchDate ? (
+        {matchDate && venueName.trim() && !hasPricedVenue ? (
+          <div className="banner-danger">
+            Elige uno de los clubes de la lista para ver horarios y precios del CSV.
+          </div>
+        ) : null}
+
+        {matchDate && hasPricedVenue ? (
           <div>
             <div
               style={{
@@ -329,16 +412,18 @@ export function MatchForm() {
             </p>
             <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
               {POPULAR_HOURS.map((t) => {
-                const available = slotsForDate(matchDate).some((s) => s.value === t);
+                const available = availableSlots.some((s) => s.value === t);
                 if (!available) return null;
                 const selected = matchTime === t;
+                const slotFee = playerFeeForSlot(venueName, matchDate, t);
+                if (slotFee == null) return null;
                 return (
                   <button
                     key={t}
                     type="button"
                     onClick={() => setMatchTime(selected ? "" : t)}
                     style={{
-                      padding: "0.45rem 0.9rem",
+                      padding: "0.5rem 0.85rem",
                       borderRadius: "8px",
                       border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
                       background: selected ? "var(--primary-muted)" : "var(--card)",
@@ -347,9 +432,23 @@ export function MatchForm() {
                       fontWeight: selected ? 700 : 500,
                       fontFamily: "var(--font-dm-sans)",
                       cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "2px",
+                      minWidth: "4.5rem",
                     }}
                   >
-                    {t}
+                    <span>{t}</span>
+                    <span
+                      style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 600,
+                        color: selected ? "var(--primary)" : "var(--text-3)",
+                      }}
+                    >
+                      {formatCop(slotFee)}
+                    </span>
                   </button>
                 );
               })}
@@ -376,8 +475,10 @@ export function MatchForm() {
                     scrollbarWidth: "thin",
                   }}
                 >
-                  {slotsForDate(matchDate).map((s) => {
+                  {availableSlots.map((s) => {
                     const selected = matchTime === s.value;
+                    const slotFee = playerFeeForSlot(venueName, matchDate, s.value);
+                    if (slotFee == null) return null;
                     return (
                       <button
                         key={s.value}
@@ -385,7 +486,7 @@ export function MatchForm() {
                         onClick={() => setMatchTime(s.value)}
                         style={{
                           flexShrink: 0,
-                          padding: "0.45rem 0.75rem",
+                          padding: "0.45rem 0.65rem",
                           borderRadius: "8px",
                           border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
                           background: selected ? "var(--primary-muted)" : "var(--card)",
@@ -394,9 +495,23 @@ export function MatchForm() {
                           fontWeight: selected ? 700 : 400,
                           fontFamily: "var(--font-dm-sans)",
                           cursor: "pointer",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: "2px",
+                          minWidth: "3.5rem",
                         }}
                       >
-                        {s.label}
+                        <span>{s.label}</span>
+                        <span
+                          style={{
+                            fontSize: "0.65rem",
+                            fontWeight: 600,
+                            color: selected ? "var(--primary)" : "var(--text-3)",
+                          }}
+                        >
+                          {formatCop(slotFee)}
+                        </span>
                       </button>
                     );
                   })}
@@ -419,7 +534,9 @@ export function MatchForm() {
                   Ocultar horarios
                 </button>
               </>
-            ) : (
+            ) : availableSlots.length > POPULAR_HOURS.filter((t) =>
+                availableSlots.some((s) => s.value === t),
+              ).length ? (
               <button
                 type="button"
                 onClick={() => setShowAllTimes(true)}
@@ -435,9 +552,24 @@ export function MatchForm() {
                   width: "100%",
                 }}
               >
-                Ver más horarios
+                Ver más horarios ({availableSlots.length})
               </button>
-            )}
+            ) : null}
+            {availableSlots.length === 0 ? (
+              <p
+                style={{
+                  fontSize: "0.8rem",
+                  color: "var(--text-3)",
+                  fontFamily: "var(--font-dm-sans)",
+                }}
+              >
+                {availabilityLoading
+                  ? "Comprobando disponibilidad de canchas…"
+                  : bookableTimes !== null && bookableTimes.size === 0
+                    ? "No hay cancha libre en ese día. Prueba otro horario o día."
+                    : "No hay horarios con tarifa en el CSV para este club y día. Prueba otro día o club."}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -515,6 +647,56 @@ export function MatchForm() {
           />
         </div>
 
+        {selectedPlayerFee != null && venueName.trim() ? (
+          <div
+            style={{
+              padding: "1rem 1.1rem",
+              borderRadius: "12px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.35rem",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 600,
+                color: "var(--text-3)",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                fontFamily: "var(--font-dm-sans)",
+                margin: 0,
+              }}
+            >
+              Precio por jugador
+            </p>
+            <p
+              style={{
+                margin: 0,
+                fontFamily: "var(--font-montserrat)",
+                fontWeight: 800,
+                fontSize: "1.35rem",
+                color: "var(--text)",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {formatCop(selectedPlayerFee)}
+            </p>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "0.78rem",
+                color: "var(--text-2)",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              Cada jugador paga este valor al unirse al partido.
+            </p>
+          </div>
+        ) : null}
+
         {/* Error */}
         {message && (
           <div className="banner-danger">
@@ -539,22 +721,19 @@ export function MatchForm() {
               "Publicar Partido Gratis"
             )}
           </Button>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.4rem",
-              fontSize: "0.78rem",
-              color: "var(--text-2)",
-              fontFamily: "var(--font-dm-sans)",
-            }}
-          >
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="var(--success)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-            </svg>
-            Sin comisión hasta que se llene el grupo
-          </div>
+          {selectedPlayerFee != null ? (
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: "0.78rem",
+                color: "var(--text-2)",
+                fontFamily: "var(--font-dm-sans)",
+                margin: 0,
+              }}
+            >
+              Publicar es gratis · Los jugadores pagan {formatCop(selectedPlayerFee)} al unirse
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

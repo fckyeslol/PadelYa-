@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
-import { APP_CONFIG } from "@/config/business";
 import { formatCop } from "@/utils/currency";
 import {
   BrickLoadingOverlay,
@@ -86,8 +85,15 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
   const autoStartedRef = useRef(false);
   const checkoutInFlightRef = useRef(false);
 
-  const serviceFee = APP_CONFIG.platformFeeCop;
-  const totalCop = (orgFeeCop ?? 0) + serviceFee;
+  if (orgFeeCop == null || orgFeeCop <= 0) {
+    return (
+      <div className="banner-danger" style={{ margin: "1rem 0" }}>
+        Este partido no tiene tarifa válida para el horario reservado. El organizador debe
+        actualizar la fecha u hora según EasyCancha.
+      </div>
+    );
+  }
+  const totalCop = orgFeeCop;
   const totalLabel = formatCop(totalCop);
   const activeFunnelStep = funnelStep(step);
   const brickLoading = step === "paying" && (!scriptLoaded || !brickReady);
@@ -309,7 +315,7 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
 
         {step === "initiating" && (
           <>
-            <OrderSummary orgFeeCop={orgFeeCop} serviceFee={serviceFee} totalLabel={totalLabel} />
+            <OrderSummary totalLabel={totalLabel} />
             <div className={styles.brickWrap}>
               <BrickLoadingOverlay label="Preparando checkout seguro…" />
             </div>
@@ -318,7 +324,7 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
 
         {step === "paying" && (
           <>
-            <OrderSummary orgFeeCop={orgFeeCop} serviceFee={serviceFee} totalLabel={totalLabel} />
+            <OrderSummary totalLabel={totalLabel} />
             <div className={styles.brickWrap}>
               {brickLoading && <BrickLoadingOverlay label="Cargando métodos de pago…" />}
               <div className={styles.brickHost}>
@@ -342,7 +348,7 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
 
         {step === "confirm" && (
           <>
-            <OrderSummary orgFeeCop={orgFeeCop} serviceFee={serviceFee} totalLabel={totalLabel} />
+            <OrderSummary totalLabel={totalLabel} />
             {error && <PaymentError message={error} />}
             <PrimaryButton onClick={() => void startCheckout()}>
               <LockIcon />
@@ -358,7 +364,7 @@ export function MercadoPagoCheckout({ matchId, orgFeeCop, autoStart = false }: P
         {step === "idle" && (
           <>
             <IdlePriceHero totalLabel={totalLabel} />
-            <OrderSummary orgFeeCop={orgFeeCop} serviceFee={serviceFee} totalLabel={totalLabel} />
+            <OrderSummary totalLabel={totalLabel} />
             {error && <PaymentError message={error} />}
             <PrimaryButton
               onClick={() => {

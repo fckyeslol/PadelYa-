@@ -94,9 +94,6 @@ export function EditMatchForm({ match }: { match: Match }) {
             min={0}
             step={1000}
           />
-          <p style={{ fontSize: "0.72rem", color: "var(--text-3)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
-            Se sumará la tarifa de plataforma de $5.000 COP al total del jugador.
-          </p>
         </Field>
       )}
 

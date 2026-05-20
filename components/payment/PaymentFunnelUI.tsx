@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { formatCop } from "@/utils/currency";
 import styles from "./payment-funnel.module.css";
 
 export type FunnelStepKey = "summary" | "payment" | "done";
@@ -76,30 +75,10 @@ export function PaymentFunnelShell({
   );
 }
 
-export function OrderSummary({
-  orgFeeCop,
-  serviceFee,
-  totalLabel,
-}: {
-  orgFeeCop?: number;
-  serviceFee: number;
-  totalLabel: string;
-}) {
+export function OrderSummary({ totalLabel }: { totalLabel: string }) {
   return (
     <section className={styles.summary} aria-label="Resumen del pedido">
-      <div className={styles.summaryHead}>Tu pedido</div>
-      <div className={styles.summaryRows}>
-        {orgFeeCop != null && (
-          <div className={styles.summaryRow}>
-            <span className={styles.summaryRowLabel}>Cupo del partido</span>
-            <span className={styles.summaryRowValue}>{formatCop(orgFeeCop)}</span>
-          </div>
-        )}
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryRowLabel}>Servicio PadelYa</span>
-          <span className={styles.summaryRowValue}>{formatCop(serviceFee)}</span>
-        </div>
-      </div>
+      <div className={styles.summaryHead}>Tu cupo</div>
       <div className={styles.summaryTotal}>
         <span className={styles.summaryTotalLabel}>Total a pagar</span>
         <span className={styles.summaryTotalValue}>{totalLabel}</span>

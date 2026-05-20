@@ -121,6 +121,27 @@ export async function getPlayerMatchHistory(
     }));
 }
 
+export async function getCommunityStats(): Promise<{ totalPlayers: number; matchesToday: number }> {
+  const supabase = getSupabaseAdminClient();
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const [{ count: totalPlayers }, { count: matchesToday }] = await Promise.all([
+    supabase.from("profiles").select("id", { head: true, count: "exact" }),
+    supabase
+      .from("matches")
+      .select("id", { head: true, count: "exact" })
+      .gte("scheduled_at", todayStart.toISOString())
+      .lte("scheduled_at", todayEnd.toISOString())
+      .not("status", "in", "(cancelled_unfilled,cancelled_by_organizer)"),
+  ]);
+
+  return { totalPlayers: totalPlayers ?? 0, matchesToday: matchesToday ?? 0 };
+}
+
 export async function listCommunityPlayers(limit = 30, skillLevel?: string): Promise<CommunityPlayerCard[]> {
   const supabase = getSupabaseAdminClient();
   const fetchLimit = skillLevel ? limit * 6 : limit * 3;

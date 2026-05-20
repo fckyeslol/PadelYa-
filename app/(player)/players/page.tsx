@@ -1,16 +1,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { listCommunityPlayers } from "@/services/players/service";
+import { getCommunityStats, listCommunityPlayers } from "@/services/players/service";
 import { formatDateTime } from "@/utils/dates";
 
-function IconFlame({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-    </svg>
-  );
-}
 
 function IconTrophy({ size = 20 }: { size?: number }) {
   return (
@@ -65,7 +58,10 @@ type Props = {
 
 export default async function PlayersPage({ searchParams }: Props) {
   const { skillLevel } = await searchParams;
-  const players = await listCommunityPlayers(36, skillLevel).catch(() => []);
+  const [players, stats] = await Promise.all([
+    listCommunityPlayers(36, skillLevel).catch(() => []),
+    getCommunityStats().catch(() => ({ totalPlayers: 0, matchesToday: 0 })),
+  ]);
 
   return (
     <div className="app-page-shell">
@@ -95,24 +91,18 @@ export default async function PlayersPage({ searchParams }: Props) {
           </div>
 
           {/* Community stats */}
-          <div className="grid sm:grid-cols-3 gap-4 mb-6">
+          <div className="grid sm:grid-cols-2 gap-4 mb-6">
             <StatCard
-              icon={<span style={{ color: "var(--primary)" }}><IconFlame /></span>}
+              icon={<span style={{ color: "var(--primary)" }}><IconUsers /></span>}
               iconBg="var(--primary-muted)"
-              value="127"
-              label="Jugadores online ahora"
+              value={stats.totalPlayers.toLocaleString("es-CO")}
+              label="Jugadores registrados"
             />
             <StatCard
               icon={<span style={{ color: "var(--gold)" }}><IconTrophy /></span>}
               iconBg="var(--gold-muted)"
-              value="1,834"
-              label="Partidos jugados hoy"
-            />
-            <StatCard
-              icon={<span style={{ color: "var(--success)" }}><IconUsers /></span>}
-              iconBg="rgba(22,101,52,0.08)"
-              value="92%"
-              label="Encuentran compañero en 24h"
+              value={stats.matchesToday.toLocaleString("es-CO")}
+              label="Partidos programados hoy"
             />
           </div>
 

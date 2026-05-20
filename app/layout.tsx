@@ -27,7 +27,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "PadelYa! — El pádel de Barranquilla",
+  title: "PadelYa!",
   description: "Encuentra partidos de pádel abiertos en Barranquilla. Únete, paga y juega.",
   manifest: "/manifest.json",
   themeColor: "#10B981",

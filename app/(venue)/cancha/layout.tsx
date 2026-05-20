@@ -1,3 +1,7 @@
 export default function VenuePortalLayout({ children }: { children: React.ReactNode }) {
-  return <div style={{ background: "var(--bg)", minHeight: "100vh" }}>{children}</div>;
+  return (
+    <div className="venue-portal" style={{ minHeight: "100vh", background: "var(--bg)" }}>
+      {children}
+    </div>
+  );
 }

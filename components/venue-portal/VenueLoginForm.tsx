@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { VP, vpInputStyle, vpLabelStyle } from "@/components/venue-portal/theme";
 
 export function VenueLoginForm() {
   const router = useRouter();
@@ -38,11 +39,10 @@ export function VenueLoginForm() {
         flexDirection: "column",
         gap: "1rem",
         width: "100%",
-        maxWidth: "360px",
       }}
     >
       <div>
-        <label htmlFor="venue-user" style={{ display: "block", fontSize: "0.85rem", color: "var(--text-2)", marginBottom: "0.35rem" }}>
+        <label htmlFor="venue-user" style={vpLabelStyle}>
           Usuario
         </label>
         <input
@@ -53,18 +53,11 @@ export function VenueLoginForm() {
           onChange={(e) => setUsername(e.target.value)}
           placeholder="Ej: LaJaula"
           required
-          style={{
-            width: "100%",
-            padding: "0.65rem 0.85rem",
-            borderRadius: "10px",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            color: "var(--text)",
-          }}
+          style={vpInputStyle}
         />
       </div>
       <div>
-        <label htmlFor="venue-pass" style={{ display: "block", fontSize: "0.85rem", color: "var(--text-2)", marginBottom: "0.35rem" }}>
+        <label htmlFor="venue-pass" style={vpLabelStyle}>
           Contraseña
         </label>
         <input
@@ -75,20 +68,13 @@ export function VenueLoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={{
-            width: "100%",
-            padding: "0.65rem 0.85rem",
-            borderRadius: "10px",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            color: "var(--text)",
-          }}
+          style={vpInputStyle}
         />
       </div>
       {error && (
-        <p style={{ color: "var(--danger)", fontSize: "0.85rem", margin: 0 }}>{error}</p>
+        <p style={{ color: VP.danger, fontSize: "0.85rem", margin: 0 }}>{error}</p>
       )}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending} style={{ width: "100%" }}>
         {pending ? "Entrando…" : "Entrar al portal"}
       </Button>
     </form>

@@ -80,7 +80,6 @@ export function VenueScheduleBoard({ venueName }: Props) {
     courtName: string,
     time: string,
     status: string,
-    blockId?: string,
   ) {
     if (status === "booked") {
       setSelected({ courtId, courtName, date, time, status });
@@ -88,14 +87,14 @@ export function VenueScheduleBoard({ venueName }: Props) {
     }
 
     if (status === "available") {
-      if (!confirm(`¿Bloquear ${courtName} el ${time}? Los jugadores no podrán reservar ese horario en esa cancha.`)) {
+      if (!confirm(`¿Bloquear las ${time} del ${date}?\n\nNingún jugador podrá reservar a esa hora en toda la sede.`)) {
         return;
       }
       startTransition(async () => {
         const res = await fetch("/api/cancha/blocks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ courtId, date, time }),
+          body: JSON.stringify({ date, time }),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -107,13 +106,13 @@ export function VenueScheduleBoard({ venueName }: Props) {
       return;
     }
 
-    if (status === "blocked" && blockId) {
-      if (!confirm(`¿Quitar bloqueo de ${courtName} a las ${time}?`)) return;
+    if (status === "blocked") {
+      if (!confirm(`¿Quitar bloqueo de las ${time} del ${date}?\n\nLos jugadores podrán volver a reservar a esa hora.`)) return;
       startTransition(async () => {
         const res = await fetch("/api/cancha/blocks", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ blockId }),
+          body: JSON.stringify({ date, time }),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -254,7 +253,6 @@ export function VenueScheduleBoard({ venueName }: Props) {
                               court.courtName,
                               slot.time,
                               slot.status,
-                              slot.blockId,
                             )
                           }
                           style={{

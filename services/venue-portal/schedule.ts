@@ -93,48 +93,49 @@ async function loadBlockIds(courtIds: string[], date: string) {
   return map;
 }
 
-export async function blockCourtSlot(params: {
-  courtId: string;
+/** Bloquea el horario en TODAS las canchas del venue para que ningún jugador pueda reservar. */
+export async function blockVenueSlot(params: {
   venueId: string;
   date: string;
   time: string;
   note?: string;
 }) {
-  const admin = getSupabaseAdminClient();
-  const { data, error } = await admin
-    .from("venue_slot_blocks")
-    .insert({
-      venue_court_id: params.courtId,
-      slot_date: params.date,
-      slot_time: params.time,
-      note: params.note ?? null,
-    })
-    .select("id")
-    .single();
+  const courts = await listVenueCourts(params.venueId);
+  if (!courts.length) throw new Error("No hay canchas registradas para esta sede.");
 
-  if (error) {
-    if (error.code === "23505") {
-      throw new Error("Ese horario ya está bloqueado.");
-    }
-    throw error;
-  }
-  return data;
+  const admin = getSupabaseAdminClient();
+  const rows = courts.map((c) => ({
+    venue_court_id: c.id,
+    slot_date: params.date,
+    slot_time: params.time,
+    note: params.note ?? null,
+  }));
+
+  const { error } = await admin
+    .from("venue_slot_blocks")
+    .upsert(rows, { onConflict: "venue_court_id,slot_date,slot_time", ignoreDuplicates: true });
+
+  if (error) throw error;
 }
 
-export async function unblockCourtSlot(blockId: string, venueId: string) {
+/** Desbloquea el horario en TODAS las canchas del venue a esa hora. */
+export async function unblockVenueSlot(params: {
+  venueId: string;
+  date: string;
+  time: string;
+}) {
+  const courts = await listVenueCourts(params.venueId);
+  if (!courts.length) return;
+
   const admin = getSupabaseAdminClient();
-  const { data: block, error: fetchError } = await admin
+  const courtIds = courts.map((c) => c.id);
+
+  const { error } = await admin
     .from("venue_slot_blocks")
-    .select("id, venue_court_id")
-    .eq("id", blockId)
-    .maybeSingle();
+    .delete()
+    .in("venue_court_id", courtIds)
+    .eq("slot_date", params.date)
+    .eq("slot_time", params.time);
 
-  if (fetchError) throw fetchError;
-  if (!block) throw new Error("Bloqueo no encontrado.");
-
-  const court = await getCourtOwnedByVenue(block.venue_court_id, venueId);
-  if (!court) throw new Error("No autorizado.");
-
-  const { error } = await admin.from("venue_slot_blocks").delete().eq("id", blockId);
   if (error) throw error;
 }

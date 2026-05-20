@@ -148,7 +148,7 @@ export function MatchCard({ match }: { match: MatchPreview }) {
             }}
           >
             <CopIcon />
-            {csvFee != null ? `${formatCop(csvFee)} / jugador` : "Tarifa según horario"}
+            {formatCop(csvFee ?? match.orgFeeCop)} / jugador
           </span>
         </div>
 

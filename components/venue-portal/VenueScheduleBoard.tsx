@@ -254,6 +254,7 @@ export function VenueScheduleBoard({ venueName }: Props) {
                               court.courtName,
                               slot.time,
                               slot.status,
+                              slot.blockId,
                             )
                           }
                           style={{

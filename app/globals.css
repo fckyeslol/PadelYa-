@@ -169,8 +169,7 @@ input[type="time"].input-base {
 }
 .form-card {
   background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 1.75rem;
 }
 

@@ -185,7 +185,12 @@ export function MatchForm() {
 
         {/* Date strip */}
         <div>
-          <label className="form-label">Fecha del partido</label>
+          <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+            Fecha del partido
+          </label>
           <div
             style={{
               display: "flex",
@@ -438,7 +443,12 @@ export function MatchForm() {
 
         {/* Deadline chips */}
         <div>
-          <label className="form-label">Límite para unirse</label>
+          <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Límite para unirse
+          </label>
           <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
             {DEADLINE_OPTIONS.map((o) => {
               const selected = deadlineHours === o.hours;
@@ -470,7 +480,10 @@ export function MatchForm() {
 
         {/* Skill level */}
         <div>
-          <label className="form-label" htmlFor="skillLevel">
+          <label className="form-label" htmlFor="skillLevel" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+            </svg>
             Nivel de juego
           </label>
           <select
@@ -510,21 +523,39 @@ export function MatchForm() {
         )}
 
         {/* Submit */}
-        <Button
-          disabled={!canSubmit}
-          onClick={submit}
-          size="lg"
-          style={{ width: "100%", marginTop: "0.25rem" }}
-        >
-          {pending ? (
-            <>
-              <SpinnerIcon />
-              Creando partido...
-            </>
-          ) : (
-            "Crear partido"
-          )}
-        </Button>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.25rem" }}>
+          <Button
+            disabled={!canSubmit}
+            onClick={submit}
+            size="lg"
+            style={{ width: "100%" }}
+          >
+            {pending ? (
+              <>
+                <SpinnerIcon />
+                Creando partido...
+              </>
+            ) : (
+              "Publicar Partido Gratis"
+            )}
+          </Button>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.4rem",
+              fontSize: "0.78rem",
+              color: "var(--text-2)",
+              fontFamily: "var(--font-dm-sans)",
+            }}
+          >
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="var(--success)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+            Sin comisión hasta que se llene el grupo
+          </div>
+        </div>
       </div>
     </div>
   );

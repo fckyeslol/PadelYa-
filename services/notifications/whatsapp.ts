@@ -64,7 +64,7 @@ async function getPaidPlayerPhones(
     .from("match_players")
     .select("player_id")
     .eq("match_id", matchId)
-    .eq("status", "paid")
+    .in("status", ["paid", "pending_payment"])
     .neq("player_id", excludePlayerId);
 
   if (error || !players?.length) return [];

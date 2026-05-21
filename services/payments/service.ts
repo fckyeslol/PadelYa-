@@ -439,16 +439,10 @@ export async function createCheckoutForMatch(
   if (!match) throw new Error("Partido no encontrado");
   if (match.status !== "open") throw new Error("Este partido ya no acepta jugadores.");
 
-  let totalAmountCop: number;
-  try {
-    totalAmountCop = resolveOrgFeeCopForMatch(match.venue_name, match.scheduled_at);
-  } catch {
+  if (!match.org_fee_cop) {
     throw new Error("Este partido no tiene una tarifa válida. Contacta al organizador.");
   }
-
-  if (totalAmountCop !== match.org_fee_cop) {
-    await supabase.from("matches").update({ org_fee_cop: totalAmountCop }).eq("id", matchId);
-  }
+  const totalAmountCop = match.org_fee_cop;
 
   const { count: paidCount, error: paidCountError } = await supabase
     .from("match_players")
@@ -660,7 +654,7 @@ export async function processMercadoPagoPayment(
         ? "declined"
         : "pending";
 
-  await supabase
+  const { data: claimed } = await supabase
     .from("payments")
     .update({
       mp_payment_id: String(mpPayment.id),
@@ -668,7 +662,13 @@ export async function processMercadoPagoPayment(
       payment_method: mpPayment.payment_method_id,
       approved_at: mappedStatus === "approved" ? new Date().toISOString() : null,
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id)
+    .neq("status", "approved")
+    .select("id");
+
+  if (!claimed?.length) {
+    return { status: "approved", mpPaymentId: String(mpPayment.id) };
+  }
 
   if (mappedStatus === "approved") {
     await _handleApprovedPayment({
@@ -680,10 +680,17 @@ export async function processMercadoPagoPayment(
       amountCop: payment.amount_cop,
     });
   } else if (mappedStatus === "declined") {
-    await supabase
+    const { data: mp } = await supabase
       .from("match_players")
-      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
-      .eq("id", payment.match_player_id);
+      .select("status")
+      .eq("id", payment.match_player_id)
+      .maybeSingle();
+    if (mp?.status !== "paid") {
+      await supabase
+        .from("match_players")
+        .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+        .eq("id", payment.match_player_id);
+    }
   }
 
   return {
@@ -753,7 +760,8 @@ export async function processMercadoPagoWebhook(
         ? "declined"
         : "voided";
 
-  await supabase
+  // Atomic update: only proceeds if another concurrent webhook hasn't already set it to 'approved'.
+  const { data: claimed } = await supabase
     .from("payments")
     .update({
       mp_payment_id: String(mpPayment.id),
@@ -761,7 +769,11 @@ export async function processMercadoPagoWebhook(
       payment_method: mpPayment.payment_method_id,
       approved_at: mappedStatus === "approved" ? new Date().toISOString() : null,
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id)
+    .neq("status", "approved")
+    .select("id");
+
+  if (!claimed?.length) return;
 
   if (mappedStatus === "approved") {
     await _handleApprovedPayment({
@@ -773,11 +785,19 @@ export async function processMercadoPagoWebhook(
       amountCop: payment.amount_cop,
     });
   } else {
-    await supabase
+    // Guard: a later retry may have already set this match_player to 'paid' — never downgrade it.
+    const { data: mp } = await supabase
       .from("match_players")
-      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
-      .eq("id", payment.match_player_id);
-    await _sendPaymentEmail(payment.player_id, payment.match_id, payment.amount_cop, mappedStatus as "declined" | "voided");
+      .select("status")
+      .eq("id", payment.match_player_id)
+      .maybeSingle();
+    if (mp?.status !== "paid") {
+      await supabase
+        .from("match_players")
+        .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+        .eq("id", payment.match_player_id);
+      await _sendPaymentEmail(payment.player_id, payment.match_id, payment.amount_cop, mappedStatus as "declined" | "voided");
+    }
   }
 }
 
@@ -804,7 +824,8 @@ async function _handleApprovedPayment({
     .update({ status: "paid" })
     .eq("id", matchPlayerId);
 
-  await supabase.rpc("try_fill_match", { p_match_id: matchId });
+  const { data: fillResult } = await supabase.rpc("try_fill_match", { p_match_id: matchId });
+  const justFilled = fillResult === "filled";
 
   await supabase.from("analytics_events").insert({
     event_name: "payment_approved",
@@ -875,14 +896,14 @@ async function _handleApprovedPayment({
     console.error("[WhatsApp] notification failed after payment", err);
   }
 
-  if (matchStatus?.status === "full") {
+  if (justFilled) {
     await supabase.from("analytics_events").insert({
       event_name: "organizer_notification_needed",
       match_id: matchId,
     });
     await notifyMatchFull({ matchId, venueName, scheduledAt, maxPlayers });
 
-    if (matchStatus.host_player_id) {
+    if (matchStatus?.host_player_id) {
       const { data: hostAuth } = await supabase.auth.admin.getUserById(matchStatus.host_player_id);
       if (hostAuth?.user?.email) {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -911,15 +932,17 @@ async function _sendPaymentEmail(
   status: "approved" | "declined" | "voided",
 ) {
   const supabase = getSupabaseAdminClient();
-  const [{ data: authUser }, { data: matchInfo }] = await Promise.all([
+  const [{ data: authUser }, { data: matchInfo }, { data: profile }] = await Promise.all([
     supabase.auth.admin.getUserById(playerId),
     supabase.from("matches").select("venue_name, scheduled_at").eq("id", matchId).maybeSingle(),
+    supabase.from("profiles").select("full_name").eq("id", playerId).maybeSingle(),
   ]);
 
   if (authUser?.user?.email) {
     await sendPaymentStatusEmail({
       to: authUser.user.email,
       playerName:
+        profile?.full_name ??
         (authUser.user.user_metadata?.full_name as string | undefined) ??
         (authUser.user.user_metadata?.first_name as string | undefined) ??
         "Jugador",

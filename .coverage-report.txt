@@ -1,0 +1,31 @@
+﻿======================================================================
+COBERTURA DEL SCRAPE (barranquilla_padel_prices.csv)
+======================================================================
+Fechas: 8 dφas (2026-05-20 .. 2026-05-27)
+Dφas de la semana con al menos 1 fila: ['Lunes', 'Martes', 'MiΘrcoles', 'Jueves', 'Viernes', 'Sßbado', 'Domingo']
+Los 7 dφas de la semana estßn representados (1 fecha por dφa).
+
+
+## Ace Padel Club
+   Canchas: 1 ù 
+   Horarios que aparecen en alg·n dφa: 05:00û21:30 (34 slots)
+   Huecos (cancha ╫ dφa ╫ hora esperada): 22
+
+## La Jaula Padel Barranquilla
+   Canchas: 2 ù , Cancha 1 / La Morada
+python : Traceback (most recent call last):
+At C:\Users\mateo\AppData\Local\Temp\ps-script-21657eff-4157-4b2b-a033-0746a8f1ab2b.ps1:78 char:39
++ ... ojects\padel-baq; python scripts/analyze-csv-coverage.py 2>&1 | Out-F ...
++                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   Horarios que aparecen en alg·n dφa: 05:00û22:00 (30 slots)
+  File "C:\Users\mateo\projects\padel-baq\scripts\analyze-csv-coverage.py", line 82, in <module>
+    print(f"   \u26a0 Sin datos ning·n dφa para: {WEEKDAY_ES[wd]}")
+  File "C:\Program 
+Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 
+19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u26a0' in position 3: character maps to <undefined>

@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "liveViewUrl": "https://liveview.firecrawl.dev/d3NzOi8vYnJvd3Nlci5maXJlY3Jhd2wuZGV2L3NjcmVlbmNhc3QvMDJmZjhjMDdkMzMyMDliOT90b2tlbj1mODEzOGMzOTY1NzBmZjk4ZjZjZmIyYzIyN2QzNGMyMTQ0NmVjNmJjOWU5NTJkOWFhNTAyOGE3YWVjNWIwZWY2",
+  "interactiveLiveViewUrl": "https://liveview.firecrawl.dev/aHR0cHM6Ly9icm93c2VyLmZpcmVjcmF3bC5kZXYvdmlldy8wMmZmOGMwN2QzMzIwOWI5Lz90b2tlbj01OTFkYzc1MTM2MDI4MjlkMTFiZjc2ZTAxZjRjNGE3ZDE3YzkxMTAwNmRhNmJjZmVkODUzY2M2NWE4YjVmYTA2",
+  "stdout": "",
+  "result": "[object Promise]",
+  "stderr": "",
+  "exitCode": 0,
+  "killed": false
+}

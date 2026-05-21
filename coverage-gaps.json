@@ -1,0 +1,1574 @@
+{
+  "dates": [
+    "2026-05-20",
+    "2026-05-21",
+    "2026-05-22",
+    "2026-05-23",
+    "2026-05-24",
+    "2026-05-25",
+    "2026-05-26",
+    "2026-05-27"
+  ],
+  "weekdaysRepresented": [
+    "Lunes",
+    "Martes",
+    "Miercoles",
+    "Jueves",
+    "Viernes",
+    "Sabado",
+    "Domingo"
+  ],
+  "allSevenWeekdays": true,
+  "note": "Solo hay 1 fecha por dia de la semana. Huecos = sin fila en EasyCancha (no disponible o no scrapeado).",
+  "clubs": {
+    "Ace Padel Club": {
+      "courts": [
+        "(sin nombre)"
+      ],
+      "timeRange": [
+        "05:00",
+        "21:30"
+      ],
+      "distinctTimeSlots": 34,
+      "gapsByCourtWeekday": [
+        {
+          "court": "(sin nombre)",
+          "weekday": "Lunes",
+          "date": "2026-05-25",
+          "missingCount": 5,
+          "missingTimes": [
+            "05:00",
+            "05:30",
+            "06:00",
+            "06:30",
+            "07:00"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 7,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 4,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 6,
+          "missingTimes": [
+            "05:00",
+            "05:30",
+            "06:00",
+            "06:30",
+            "21:00",
+            "21:30"
+          ]
+        }
+      ],
+      "totalGaps": 22,
+      "slotsPerWeekday": {
+        "Lunes": {
+          "date": "2026-05-25",
+          "distinctSlots": 29
+        },
+        "Martes": {
+          "date": "2026-05-26",
+          "distinctSlots": 34
+        },
+        "Miercoles": {
+          "date": "2026-05-27",
+          "distinctSlots": 34
+        },
+        "Jueves": {
+          "date": "2026-05-21",
+          "distinctSlots": 27
+        },
+        "Viernes": {
+          "date": "2026-05-22",
+          "distinctSlots": 34
+        },
+        "Sabado": {
+          "date": "2026-05-23",
+          "distinctSlots": 30
+        },
+        "Domingo": {
+          "date": "2026-05-24",
+          "distinctSlots": 28
+        }
+      }
+    },
+    "La Jaula Padel Barranquilla": {
+      "courts": [
+        "(sin nombre)",
+        "Cancha 1 / La Morada"
+      ],
+      "timeRange": [
+        "05:00",
+        "22:00"
+      ],
+      "distinctTimeSlots": 30,
+      "gapsByCourtWeekday": [
+        {
+          "court": "(sin nombre)",
+          "weekday": "Lunes",
+          "date": "2026-05-25",
+          "missingCount": 19,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "18:00",
+            "18:30",
+            "19:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Martes",
+          "date": "2026-05-26",
+          "missingCount": 30,
+          "missingTimes": [
+            "05:00",
+            "05:30",
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30",
+            "20:30",
+            "22:00"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Miercoles",
+          "date": "2026-05-27",
+          "missingCount": 25,
+          "missingTimes": [
+            "05:00",
+            "05:30",
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "18:00",
+            "18:30",
+            "19:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 20,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "18:00",
+            "18:30",
+            "19:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Viernes",
+          "date": "2026-05-22",
+          "missingCount": 15,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "18:00",
+            "18:30",
+            "19:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 2,
+          "missingTimes": [
+            "20:30",
+            "22:00"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 2,
+          "missingTimes": [
+            "20:30",
+            "22:00"
+          ]
+        },
+        {
+          "court": "Cancha 1 / La Morada",
+          "weekday": "Lunes",
+          "date": "2026-05-25",
+          "missingCount": 19,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "18:00",
+            "18:30",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha 1 / La Morada",
+          "weekday": "Martes",
+          "date": "2026-05-26",
+          "missingCount": 30,
+          "missingTimes": [
+            "05:00",
+            "05:30",
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30",
+            "20:30",
+            "22:00"
+          ]
+        },
+        {
+          "court": "Cancha 1 / La Morada",
+          "weekday": "Miercoles",
+          "date": "2026-05-27",
+          "missingCount": 27,
+          "missingTimes": [
+            "05:00",
+            "05:30",
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha 1 / La Morada",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 17,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "16:30",
+            "17:00",
+            "18:00",
+            "18:30",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha 1 / La Morada",
+          "weekday": "Viernes",
+          "date": "2026-05-22",
+          "missingCount": 20,
+          "missingTimes": [
+            "05:00",
+            "05:30",
+            "06:00",
+            "06:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "18:00",
+            "18:30",
+            "19:30",
+            "20:30"
+          ]
+        },
+        {
+          "court": "Cancha 1 / La Morada",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 7,
+          "missingTimes": [
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "20:30",
+            "22:00"
+          ]
+        },
+        {
+          "court": "Cancha 1 / La Morada",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 2,
+          "missingTimes": [
+            "20:30",
+            "22:00"
+          ]
+        }
+      ],
+      "totalGaps": 235,
+      "slotsPerWeekday": {
+        "Lunes": {
+          "date": "2026-05-25",
+          "distinctSlots": 11
+        },
+        "Martes": {
+          "date": "2026-05-26",
+          "distinctSlots": 0
+        },
+        "Miercoles": {
+          "date": "2026-05-27",
+          "distinctSlots": 5
+        },
+        "Jueves": {
+          "date": "2026-05-21",
+          "distinctSlots": 13
+        },
+        "Viernes": {
+          "date": "2026-05-22",
+          "distinctSlots": 15
+        },
+        "Sabado": {
+          "date": "2026-05-23",
+          "distinctSlots": 28
+        },
+        "Domingo": {
+          "date": "2026-05-24",
+          "distinctSlots": 28
+        }
+      }
+    },
+    "PADEL ZENTER DEL RIO": {
+      "courts": [
+        "Cancha # 3",
+        "Cancha #1",
+        "Cancha #2"
+      ],
+      "timeRange": [
+        "06:00",
+        "21:30"
+      ],
+      "distinctTimeSlots": 30,
+      "gapsByCourtWeekday": [
+        {
+          "court": "Cancha # 3",
+          "weekday": "Lunes",
+          "date": "2026-05-25",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha # 3",
+          "weekday": "Martes",
+          "date": "2026-05-26",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha # 3",
+          "weekday": "Miercoles",
+          "date": "2026-05-27",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha # 3",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 7,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha # 3",
+          "weekday": "Viernes",
+          "date": "2026-05-22",
+          "missingCount": 8,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha # 3",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 9,
+          "missingTimes": [
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha # 3",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 5,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Lunes",
+          "date": "2026-05-25",
+          "missingCount": 8,
+          "missingTimes": [
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Martes",
+          "date": "2026-05-26",
+          "missingCount": 12,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Miercoles",
+          "date": "2026-05-27",
+          "missingCount": 7,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 21,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "11:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30",
+            "20:00"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Viernes",
+          "date": "2026-05-22",
+          "missingCount": 20,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 17,
+          "missingTimes": [
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 10,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Lunes",
+          "date": "2026-05-25",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Martes",
+          "date": "2026-05-26",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Miercoles",
+          "date": "2026-05-27",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 8,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Viernes",
+          "date": "2026-05-22",
+          "missingCount": 11,
+          "missingTimes": [
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 9,
+          "missingTimes": [
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 5,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "21:30"
+          ]
+        }
+      ],
+      "totalGaps": 193,
+      "slotsPerWeekday": {
+        "Lunes": {
+          "date": "2026-05-25",
+          "distinctSlots": 24
+        },
+        "Martes": {
+          "date": "2026-05-26",
+          "distinctSlots": 24
+        },
+        "Miercoles": {
+          "date": "2026-05-27",
+          "distinctSlots": 24
+        },
+        "Jueves": {
+          "date": "2026-05-21",
+          "distinctSlots": 23
+        },
+        "Viernes": {
+          "date": "2026-05-22",
+          "distinctSlots": 22
+        },
+        "Sabado": {
+          "date": "2026-05-23",
+          "distinctSlots": 21
+        },
+        "Domingo": {
+          "date": "2026-05-24",
+          "distinctSlots": 25
+        }
+      }
+    },
+    "PADEL ZENTER LA ARENOSA": {
+      "courts": [
+        "Cancha #1",
+        "Cancha #2",
+        "Cancha #4"
+      ],
+      "timeRange": [
+        "06:00",
+        "21:30"
+      ],
+      "distinctTimeSlots": 30,
+      "gapsByCourtWeekday": [
+        {
+          "court": "Cancha #1",
+          "weekday": "Lunes",
+          "date": "2026-05-25",
+          "missingCount": 15,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Martes",
+          "date": "2026-05-26",
+          "missingCount": 10,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Miercoles",
+          "date": "2026-05-27",
+          "missingCount": 8,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 26,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30",
+            "20:00"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Viernes",
+          "date": "2026-05-22",
+          "missingCount": 20,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "11:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 23,
+          "missingTimes": [
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #1",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 13,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "11:30",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Lunes",
+          "date": "2026-05-25",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Martes",
+          "date": "2026-05-26",
+          "missingCount": 7,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Miercoles",
+          "date": "2026-05-27",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 12,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30",
+            "20:00"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Viernes",
+          "date": "2026-05-22",
+          "missingCount": 13,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 21,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #2",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 5,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #4",
+          "weekday": "Lunes",
+          "date": "2026-05-25",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #4",
+          "weekday": "Martes",
+          "date": "2026-05-26",
+          "missingCount": 11,
+          "missingTimes": [
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #4",
+          "weekday": "Miercoles",
+          "date": "2026-05-27",
+          "missingCount": 6,
+          "missingTimes": [
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #4",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 16,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "16:00",
+            "16:30",
+            "17:30",
+            "18:00",
+            "18:30",
+            "19:00",
+            "19:30",
+            "20:00"
+          ]
+        },
+        {
+          "court": "Cancha #4",
+          "weekday": "Viernes",
+          "date": "2026-05-22",
+          "missingCount": 14,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "18:00",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "Cancha #4",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 21,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "11:30",
+            "12:00",
+            "12:30",
+            "13:00",
+            "13:30",
+            "14:00",
+            "14:30",
+            "15:00",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "21:30"
+          ]
+        },
+        {
+          "court": "Cancha #4",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 10,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "21:30"
+          ]
+        }
+      ],
+      "totalGaps": 269,
+      "slotsPerWeekday": {
+        "Lunes": {
+          "date": "2026-05-25",
+          "distinctSlots": 24
+        },
+        "Martes": {
+          "date": "2026-05-26",
+          "distinctSlots": 24
+        },
+        "Miercoles": {
+          "date": "2026-05-27",
+          "distinctSlots": 24
+        },
+        "Jueves": {
+          "date": "2026-05-21",
+          "distinctSlots": 19
+        },
+        "Viernes": {
+          "date": "2026-05-22",
+          "distinctSlots": 21
+        },
+        "Sabado": {
+          "date": "2026-05-23",
+          "distinctSlots": 9
+        },
+        "Domingo": {
+          "date": "2026-05-24",
+          "distinctSlots": 25
+        }
+      }
+    },
+    "Pádel Park Barranquilla": {
+      "courts": [
+        "(sin nombre)"
+      ],
+      "timeRange": [
+        "05:00",
+        "22:00"
+      ],
+      "distinctTimeSlots": 35,
+      "gapsByCourtWeekday": [
+        {
+          "court": "(sin nombre)",
+          "weekday": "Jueves",
+          "date": "2026-05-21",
+          "missingCount": 4,
+          "missingTimes": [
+            "06:00",
+            "06:30",
+            "19:00",
+            "19:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Viernes",
+          "date": "2026-05-22",
+          "missingCount": 3,
+          "missingTimes": [
+            "05:30",
+            "06:00",
+            "06:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 5,
+          "missingTimes": [
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 11,
+          "missingTimes": [
+            "05:00",
+            "05:30",
+            "06:00",
+            "06:30",
+            "15:30",
+            "16:00",
+            "16:30",
+            "17:00",
+            "17:30",
+            "21:30",
+            "22:00"
+          ]
+        }
+      ],
+      "totalGaps": 23,
+      "slotsPerWeekday": {
+        "Lunes": {
+          "date": "2026-05-25",
+          "distinctSlots": 35
+        },
+        "Martes": {
+          "date": "2026-05-26",
+          "distinctSlots": 35
+        },
+        "Miercoles": {
+          "date": "2026-05-27",
+          "distinctSlots": 35
+        },
+        "Jueves": {
+          "date": "2026-05-21",
+          "distinctSlots": 31
+        },
+        "Viernes": {
+          "date": "2026-05-22",
+          "distinctSlots": 32
+        },
+        "Sabado": {
+          "date": "2026-05-23",
+          "distinctSlots": 30
+        },
+        "Domingo": {
+          "date": "2026-05-24",
+          "distinctSlots": 24
+        }
+      }
+    },
+    "X3 Padel Club": {
+      "courts": [
+        "(sin nombre)"
+      ],
+      "timeRange": [
+        "05:30",
+        "21:30"
+      ],
+      "distinctTimeSlots": 26,
+      "gapsByCourtWeekday": [
+        {
+          "court": "(sin nombre)",
+          "weekday": "Sabado",
+          "date": "2026-05-23",
+          "missingCount": 7,
+          "missingTimes": [
+            "08:00",
+            "08:30",
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "16:30"
+          ]
+        },
+        {
+          "court": "(sin nombre)",
+          "weekday": "Domingo",
+          "date": "2026-05-24",
+          "missingCount": 8,
+          "missingTimes": [
+            "05:30",
+            "06:00",
+            "06:30",
+            "07:00",
+            "07:30",
+            "16:30",
+            "20:00",
+            "21:30"
+          ]
+        }
+      ],
+      "totalGaps": 15,
+      "slotsPerWeekday": {
+        "Lunes": {
+          "date": "2026-05-25",
+          "distinctSlots": 26
+        },
+        "Martes": {
+          "date": "2026-05-26",
+          "distinctSlots": 26
+        },
+        "Miercoles": {
+          "date": "2026-05-27",
+          "distinctSlots": 26
+        },
+        "Jueves": {
+          "date": "2026-05-21",
+          "distinctSlots": 26
+        },
+        "Viernes": {
+          "date": "2026-05-22",
+          "distinctSlots": 26
+        },
+        "Sabado": {
+          "date": "2026-05-23",
+          "distinctSlots": 19
+        },
+        "Domingo": {
+          "date": "2026-05-24",
+          "distinctSlots": 18
+        }
+      }
+    }
+  },
+  "totalGapsCourtWeekdayTime": 757
+}

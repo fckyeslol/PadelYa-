@@ -1,0 +1,21 @@
+You are extracting padel court booking prices from EasyCancha (Colombia, Barranquilla).
+
+1. Go to https://www.easycancha.com/login
+2. Set country to Colombia (CO) if prompted.
+3. Log in with the credentials provided in the task (email + password fields).
+4. After login, for EACH club below, open the padel booking page (sportId=7), navigate the date picker for the next 28 calendar days from today, and collect EVERY available time slot with court name and price in COP.
+
+Clubs (club_id):
+- 1125 PADEL ZENTER DEL RIO (90 min sessions)
+- 1475 PADEL ZENTER LA ARENOSA (90 min)
+- 1442 Padel Park Barranquilla (60 min)
+- 1526 La Jaula Padel Barranquilla (90 min)
+- 1675 X3 Padel Club (90 min)
+- 1866 Ace Padel Club (90 min)
+
+Booking URLs pattern: https://www.easycancha.com/book/clubs/{id}/sports?sportId=7&lang=es-CO&country=CO
+
+For each slot record: club_name, club_id, court_name, date (YYYY-MM-DD), time_slot (HH:mm), price_cop (integer), price_display.
+Skip slots that are already booked/unavailable without a price.
+Return auth_token from cookies (authtoken) if you can read it.
+List any clubs or dates you could not complete in errors[].

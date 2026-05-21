@@ -1,0 +1,47 @@
+{
+  "markdown": "Volver\n\n\n[![](https://www.easycancha.com/images/easycancha-top-brand.svg)](https://www.easycancha.com/book/search)\n\nVolver\n\n[![](https://www.easycancha.com/images/easycancha-top-brand.svg)](https://www.easycancha.com/book/search)\n\n### Selecciona el país que deseas utilizar\n\n- [Argentina](https://www.easycancha.com/#)\n- [Brasil](https://www.easycancha.com/#)\n- [Chile](https://www.easycancha.com/#)\n- [Colombia](https://www.easycancha.com/#)\n- [Ecuador](https://www.easycancha.com/#)\n- [México](https://www.easycancha.com/#)\n- [Panamá](https://www.easycancha.com/#)\n- [Perú](https://www.easycancha.com/#)\n- [Estados unidos](https://www.easycancha.com/#)\n- [Uruguay](https://www.easycancha.com/#)\n- [Venezuela](https://www.easycancha.com/#)\n\n[![](https://www.easycancha.com/images/icono_inicio_negro.svg)Inicio](https://www.easycancha.com/book) [![](https://www.easycancha.com/images/icono_reservas_negro.svg)Reservas](https://www.easycancha.com/bookings) [![](https://www.easycancha.com/images/icono_perfil_negro.svg)Perfil](https://www.easycancha.com/profile)",
+  "screenshot": "https://storage.googleapis.com/firecrawl-scrape-media/screenshot-083e8b02-7f82-4b76-a024-a40d844b6e93.png?GoogleAccessId=scrape-bucket-accessor%40firecrawl.iam.gserviceaccount.com&Expires=1779885689&Signature=gRDDp10BwLJMmAeoPac6oLGnnyfUq09%2F7XyZfPA40cU21Njb8w0Cm%2F2AxOx%2FfoWWI7m4JtZNjHSeQpMtk9P39mSnoG9CKP2awE0FzIyI3A6FIOEC9lDB7r31HDWtOiG%2FfMBXZq0izb%2FfnCQLexaO22NocO1L%2BWbpKBT6%2BdklC9wNFh4Y8x7CRk%2FyMGXrIT0ojxXUzfxhVQHvSqlUqm7T4cKlwqt2NeDpA6DAq9RZH1q%2B%2BOpp6KKfjlCyt0sCiMjUDwp0wfx%2BQd0Tlg63l4eyc0ii47oaIvUeG80qYhf%2BDym8R9VimRdUntTiz2ojQOm6LDOaRIb5RgRzSptMnrIYaw%3D%3D",
+  "actions": {
+    "screenshots": [
+      "https://storage.googleapis.com/firecrawl-scrape-media/screenshot-27c370c3-412b-4eef-940f-93700cc2bf96.png?GoogleAccessId=scrape-bucket-accessor%40firecrawl.iam.gserviceaccount.com&Expires=1779885688&Signature=fYNAA25mVU94oZMxJVyxorOiBYum8amCjUximzOstWk1rM04RgaBfaX7ZUT3vyLDgHMSaUawx8K4ftVCPsXga1KIPKDevBnI0%2F9OTk8l8SpaHOXpsMZKPPGJE5XTLbObnlcDgg%2BagrqjGY0MTerU%2FMmOezE%2BrK3QwsqW%2B4GNAUd6rpE9kDFGIbuwf7fUf%2F%2BYqiKKNt35rq4VTtXoCbVr6XTGyGjYAok6t6VEQnnFGWi2398LTH6%2FaF6ya6nPVlv1tRkm31FBoJOpX2%2FN%2FchTQdXBGYk3qZmcrFRdGE6E3m65ljlQzo6kwIgpLbME3A98ajO%2FVxIBYO0EZy8M0cjI6Q%3D%3D"
+    ],
+    "scrapes": [],
+    "javascriptReturns": [],
+    "pdfs": []
+  },
+  "metadata": {
+    "ogDescription": "Reserva tu cancha aquí en solo unos pasos. Simple, Rápido y Seguro",
+    "title": "Arriendo de canchas | easycancha",
+    "theme-color": "#ffffff",
+    "og:title": "easycancha",
+    "ogImage": "https://www.easycancha.com/images/logo-1200-new.png",
+    "keywords": "arriendo, cancha, tenis, futbol, futbolito, padel, easycancha",
+    "msapplication-TileColor": "#da532c",
+    "ogUrl": "https://www.easycancha.com",
+    "ogTitle": "easycancha",
+    "description": "",
+    "og:type": "website",
+    "fb:app_id": "1841691959385271",
+    "author": "",
+    "application-name": "easycancha",
+    "fragment": "!",
+    "og:image": "https://www.easycancha.com/images/logo-1200-new.png",
+    "apple-mobile-web-app-title": "easycancha",
+    "language": "es",
+    "og:url": "https://www.easycancha.com",
+    "og:description": "Reserva tu cancha aquí en solo unos pasos. Simple, Rápido y Seguro",
+    "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+    "apple-itunes-app": "app-id=1160989897",
+    "favicon": "https://www.easycancha.com/favicon-32x32.png",
+    "scrapeId": "019e4567-8a57-7115-85ae-f68552a95611",
+    "sourceURL": "https://www.easycancha.com/book/sports/7/filter",
+    "url": "https://www.easycancha.com/profile/countries",
+    "statusCode": 200,
+    "contentType": "text/html",
+    "timezone": "America/New_York",
+    "proxyUsed": "basic",
+    "creditsUsed": 1,
+    "concurrencyLimited": false
+  },
+  "warning": "You're using the actions parameter. For a more reliable and flexible experience, try the /interact endpoint instead."
+}

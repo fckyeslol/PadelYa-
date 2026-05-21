@@ -1,0 +1,194 @@
+<!DOCTYPE html><!--[if lt IE 7]>      <html lang="es" ng-app="myApp" class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]--><!--[if IE 7]>         <html lang="es" ng-app="myApp" class="no-js lt-ie9 lt-ie8"> <![endif]--><!--[if IE 8]>         <html lang="es" ng-app="myApp" class="no-js lt-ie9"> <![endif]--><!--[if gt IE 8]><!--><html lang="es" ng-app="myApp" class="no-js ng-scope"><!--<![endif]-->
+        <body>
+          <div class="loadingOverlay loadingOverlayWhite" data-loading="" style="display: none;">
+            <div class="loadingOverlayModal" data-loading="" style="display: none;">
+                <!-- <img src="/images/spinner.gif" alt="loading bounce"/> -->
+                <generic-loader color="#91cc2d" appid="settings.appId" class="ng-isolate-scope"><svg width="60" height="60" viewBox="0 0 60 60">
+    <path fill="#91cc2d" id="loader" d="M25,5A20.14,20.14,0,0,1,45,22.88a2.51,2.51,0,0,0,2.49,2.26h0A2.52,2.52,0,0,0,50,22.33a25.14,25.14,0,0,0-50,0,2.52,2.52,0,0,0,2.5,2.81h0A2.51,2.51,0,0,0,5,22.88,20.14,20.14,0,0,1,25,5Z">
+        <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.5s" repeatCount="indefinite"></animateTransform>
+    </path>
+    <!-- ngIf: appId == 'easycancha' --><g ng-if="appId == 'easycancha'" class="ng-scope">
+        <image width="30" height="30" xlink:href="/images/v2/icono.svg" clip:path="url(#loader)" alignment:baseline="" x="10" y="10"></image>
+    </g><!-- end ngIf: appId == 'easycancha' -->
+</svg></generic-loader></div>
+          </div>
+          <!-- ngIf: !onlineStatus -->
+          <div id="fb-root" class=" fb_reset"><div style="position: absolute; top: -10000px; width: 0px; height: 0px;"><div></div></div></div>
+
+          <!-- New Main Header -->
+          <nav id="main-header" ng-hide="$state.current.name == 'webpay_redirect'" class="d-flex justify-content-space-between align-items-center navbar navbar-default navbar-fixed-top" style="height: 65px;">
+            <div class="left-action" style="min-width: 60px;">
+              <!-- ngIf: settings && settings.env != 'production' -->
+              <!-- ngIf: isMobile && !backButtonHiddenStates[$state.current.name] && previousSteps.length > 0 -->
+              <!-- ngIf: !isMobile && !backButtonHiddenStates[$state.current.name] && previousSteps.length > 0 --><button style="outline: none;" class="btn btn-link ng-binding ng-scope" ng-if="!isMobile &amp;&amp; !backButtonHiddenStates[$state.current.name] &amp;&amp; previousSteps.length > 0" ng-click="goBack()">
+                <span class="glyphicon glyphicon-menu-left"></span> Volver
+              </button><!-- end ngIf: !isMobile && !backButtonHiddenStates[$state.current.name] && previousSteps.length > 0 -->
+            </div>
+            <div class="logo flex-fill text-center" style="height:50px;">
+              <a ui-sref="book.search" ui-sref-opts="{reload: true, notify: true}" class="d-block gotohome" style="height:100%" href="https://www.easycancha.com/book/search">
+                <!-- ngIf: settings.appId == 'easycancha' --><div ng-if="settings.appId == 'easycancha'" class="pageHeader ng-scope" style="height: 100%"><img style="height: 100%" src="https://www.easycancha.com/images/easycancha-top-brand.svg" ng-src="/images/easycancha-top-brand.svg" width="300" height="50"></div><!-- end ngIf: settings.appId == 'easycancha' -->
+                <!-- ngIf: settings.appId != 'easycancha' -->
+              </a>
+            </div>
+            <div class="right-action" style="min-width: 60px;">
+              <!-- ngIf: $state.current.name == 'bookings' && isCourtTeacher == 1 -->
+                <!-- ngIf: $state.current.name == 'bookings' && isTeacher == 1 -->
+                <!-- ngIf: settings.appId == 'easycancha' && globals.data && globals.data.id -->
+            </div>
+          </nav>
+          <!-- End New Main Header -->
+          <nav id="main-header" ng-hide="$state.current.name == 'webpay_redirect'" class="navbar navbar-default navbar-fixed-top hide">
+            <div class="container-fluid">
+              <!-- ngIf: isMobile && !backButtonHiddenStates[$state.current.name] && previousSteps.length > 0 -->
+              <!-- ngIf: !isMobile && !backButtonHiddenStates[$state.current.name] && previousSteps.length > 0 --><p ng-if="!isMobile &amp;&amp; !backButtonHiddenStates[$state.current.name] &amp;&amp; previousSteps.length > 0" ng-click="goBack()" class="navbar-text pull-left pointer goBackNonMobile ng-binding ng-scope" style=""><span class="glyphicon glyphicon-menu-left"></span> Volver </p><!-- end ngIf: !isMobile && !backButtonHiddenStates[$state.current.name] && previousSteps.length > 0 -->
+                <!-- ngIf: settings && settings.env != 'production' -->
+                <div class="navbar-header">
+                  <a ui-sref="book.search" ui-sref-opts="{reload: true, notify: true}" class="navbar-brand" href="https://www.easycancha.com/book/search">
+                    <!-- ngIf: settings.appId == 'easycancha' --><div ng-if="settings.appId == 'easycancha'" class="pageHeader ng-scope"><img style="width: 200px" src="https://www.easycancha.com/images/easycancha-top-brand.svg" ng-src="/images/easycancha-top-brand.svg" width="200" height="150"></div><!-- end ngIf: settings.appId == 'easycancha' -->
+                    <!-- ngIf: settings.appId != 'easycancha' -->
+                  </a>
+                </div>
+                <!-- ngIf: $state.current.name == 'bookings' && isTeacher == 1 -->
+            </div>
+          </nav>
+
+
+          <!-- ngIf: snackBar.visible -->
+          <!-- uiView:  --><div ui-view="" style="height: 100%; overflow: hidden scroll;" id="scrollContainer" class="ng-scope"><!-- uiView:  --><div id="profile-views" ui-view="" class="ng-scope">
+<main role="main" class="container ng-scope" style="text-align: left">
+  <section class="page_title col-md-6 col-md-offset-3">
+    <h3 class="ng-binding">Selecciona el país que deseas utilizar</h3>
+    <!-- ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true --><!-- ngIf: settings.country --><!-- end ngRepeat: country in settings.countries | filter: {isoCode: settings.country}: true -->
+  </section>
+
+  <section class="col-md-6 col-md-offset-3 text-left">
+    <ul class="list_micta">
+      <!-- ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-ar" alt="Argentina"></i> Argentina
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-br" alt="Brasil"></i> Brasil
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-cl" alt="Chile"></i> Chile
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-co" alt="Colombia"></i> Colombia
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-ec" alt="Ecuador"></i> Ecuador
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-mx" alt="México"></i> México
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-pa" alt="Panamá"></i> Panamá
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-pe" alt="Perú"></i> Perú
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-us" alt="Estados unidos"></i> Estados unidos
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-uy" alt="Uruguay"></i> Uruguay
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries --><li ng-repeat="country in settings.countries" class="ng-scope">
+        <a href="https://www.easycancha.com/#" ng-click="chooseCountry(country.isoCode)" class="ng-binding">
+          <i class="fi fi-ve" alt="Venezuela"></i> Venezuela
+        </a>
+      </li><!-- end ngRepeat: country in settings.countries -->
+    </ul>
+  </section>
+</main>
+
+</div>
+</div>
+          <nav id="main-footer" class="navbar navbar-default navbar-fixed-bottom bg-transparent b-0" ng-hide="$state.current.name == 'webpay_redirect' || $state.current.name == 'helpTerms'" style="box-sizing: border-box">
+            <!-- ngIf: payment.showCheckout && 0 -->          
+            <div class="container-fluid barra text-center bottom-bar bt-1">
+              <a class="menu-icon" href="https://www.easycancha.com/book">
+                <img src="https://www.easycancha.com/images/icono_inicio_negro.svg" alt="" width="300" height="150">
+                <span style="text-transform: uppercase;" class="ng-binding">Inicio</span>
+              </a>
+              <a class="menu-icon" href="https://www.easycancha.com/bookings">
+                <img src="https://www.easycancha.com/images/icono_reservas_negro.svg" alt="" width="300" height="150">
+                <!-- <span ng-if="windowWidth >= 400" style="text-transform: uppercase;">{{'My bookings' | translate}}</span> -->
+                <!-- <span ng-if="windowWidth < 400" style="text-transform: uppercase;">{{'Bookings' | translate}}</span> -->
+                <span style="text-transform: uppercase;" class="ng-binding">Reservas</span>
+              </a>
+              <!-- ngIf: settings.appId == 'easycancha' && settings.config && settings.config[settings.country] && settings.config[settings.country].matchActive && (globals.profile && globals.profile.subscription.hasActiveSubscriptions && globals.profile.subscription.isEnabledInActiveCountry && globals.profile.entity.id && globals.profile.entity.features.includes('MATCH_CORPORATIVO')) -->
+              <!-- ngIf: settings.appId == 'easycancha' && settings.config && settings.config[settings.country] && settings.config[settings.country].matchActive && !(globals.profile && globals.profile.subscription.hasActiveSubscriptions && globals.profile.subscription.isEnabledInActiveCountry && globals.profile.entity.id && globals.profile.entity.features.includes('MATCH_CORPORATIVO')) -->
+              <a class="menu-icon" href="https://www.easycancha.com/profile">
+                <img src="https://www.easycancha.com/images/icono_perfil_negro.svg" alt="" width="300" height="150">
+                <span style="text-transform: uppercase;" class="ng-binding">Perfil</span>
+              </a>
+              <!-- ngIf: settings.appId == 'easycancha' && globals.profile.subscription.isEnabledInActiveCountry -->
+            </div>
+          </nav>
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <!-- <script src="https://use.fontawesome.com/ef47c370b9.js"></script> -->
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <!-- inject:js -->
+          
+          <!-- endinject -->
+        
+        
+</body></html>

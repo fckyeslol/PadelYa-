@@ -1,0 +1,16 @@
+Job ID: 019e469e-41f5-76fc-94e0-7d848e217543
+Status: completed
+Credits Used: 2239
+Expires: May 21, 2026, 01:26 PM
+
+Result:
+{
+  "authenticated": false,
+  "slots": [],
+  "errors": [
+    "Authentication failed: The provided credentials (matteotaofr@gmail.com / Familiapirela123) were rejected by the system.",
+    "Error message from site: 'No hemos encontrado tu email o tu contraseña es incorrecta' (Email not found or incorrect password)",
+    "Unable to access any club booking data without valid authentication.",
+    "Please verify the credentials are correct and the account is active on EasyCancha."
+  ]
+}

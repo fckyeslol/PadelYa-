@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "slots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "club_name":  { "type": "string" },
+          "court_name": { "type": "string" },
+          "date":       { "type": "string" },
+          "time_slot":  { "type": "string" },
+          "price":      { "type": "string" }
+        },
+        "required": ["club_name", "time_slot", "price"]
+      }
+    }
+  },
+  "required": ["slots"]
+}

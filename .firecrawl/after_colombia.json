@@ -1,0 +1,47 @@
+{
+  "markdown": "### País cambiado\n\nSi quieres cambiar a otro país más adelante, ingresa a Mi cuenta y selecciona un nuevo país\n\nOk\n\nVolver\n\n\n[![](https://www.easycancha.com/images/easycancha-top-brand.svg)](https://www.easycancha.com/book/search)\n\nVolver\n\n[![](https://www.easycancha.com/images/easycancha-top-brand.svg)](https://www.easycancha.com/book/search)\n\nIngresa tu email y clave\n\n\nSi tienes problemas para ingresar, contáctanos a [contacto@easycancha.com](https://www.easycancha.com/#)\n\nIngresar\n\nOlvidé mi contraseña\n\n¿Aún no tienes cuenta?\n\n\nRegístrate aquí\n\n[![](https://www.easycancha.com/images/icono_inicio_negro.svg)Inicio](https://www.easycancha.com/book) [![](https://www.easycancha.com/images/icono_reservas_negro.svg)Reservas](https://www.easycancha.com/bookings) [![](https://www.easycancha.com/images/icono_perfil_negro.svg)Perfil](https://www.easycancha.com/profile)",
+  "screenshot": "https://storage.googleapis.com/firecrawl-scrape-media/screenshot-2552716f-0bf2-4e3a-906c-cb4e13f40cc4.png?GoogleAccessId=scrape-bucket-accessor%40firecrawl.iam.gserviceaccount.com&Expires=1779885756&Signature=n2%2BPcLyUg6GnFsLVodvxD24MzvbXPlVC8omMI3%2F6bCoExYc3lmm8CsJ7CuVRq%2FqqHmmx5ecZLyKGuK%2FXEsUDJq%2BKl0N5w%2F9UCJTPAtdyJV5kwMQHjTj%2F0NH0oj3UbbOsasZbO%2BUOb8%2FOonwWsRGt8rdLbn0Aji2JC%2BisPsyco14s0hGwIjeXZVmenV8zPeR%2FwFWqjSzqPGkHtDaQyISiEsN%2F2pXut6%2Fv7ssK8UdUKf7QV%2F5C11%2BDLFlD%2B2saVNP459hJZBA%2FGFDtLiUHZgTXBH%2FKE8ihavm7w%2FBhs6zdTgSUJGOMnxpb1aZA2XnyNt4Ul%2FN6ifewwkaefcCklfeffw%3D%3D",
+  "actions": {
+    "screenshots": [
+      "https://storage.googleapis.com/firecrawl-scrape-media/screenshot-cd95ebc3-46cc-42ab-a8b7-e1343e324b1a.png?GoogleAccessId=scrape-bucket-accessor%40firecrawl.iam.gserviceaccount.com&Expires=1779885755&Signature=VKKMHlpou6MmrhaSmdgNMnWMZOlcOxbqnO7alpLy4Fq9l03PxaGNSsHWy9DaI%2FgNiV5ltItyi4p1ywKTu6nzDmhcv%2Bjj%2FL8a3CK9SjyixcTcG2bMig1i2UdUVd%2BsEKLtATQ3TJR8g6GaRclRMVYfuFhAx8wl42gEABon2log4aEPYL4cbCKstEejExlftDXwU6FP78fht18GgvClj7IwDAaP8q8eucYKPqceuMVyjq%2Fw9CRtDLHZTNPqMzf%2Fxqytd%2B%2BuNMdioVqpj2JtIDI4lcx5MsJdjy98khjBgv6woqhgURbqAn2DtRDqQ0tLbTallc3BRygldm1AM%2Fif7qwZfQ%3D%3D"
+    ],
+    "scrapes": [],
+    "javascriptReturns": [],
+    "pdfs": []
+  },
+  "metadata": {
+    "application-name": "easycancha",
+    "fb:app_id": "1841691959385271",
+    "theme-color": "#ffffff",
+    "ogTitle": "easycancha",
+    "keywords": "arriendo, cancha, tenis, futbol, futbolito, padel, easycancha",
+    "description": "",
+    "og:image": "https://www.easycancha.com/images/logo-1200-new.png",
+    "ogImage": "https://www.easycancha.com/images/logo-1200-new.png",
+    "fragment": "!",
+    "msapplication-TileColor": "#da532c",
+    "og:url": "https://www.easycancha.com",
+    "title": "Arriendo de canchas | easycancha",
+    "language": "es",
+    "og:title": "easycancha",
+    "og:type": "website",
+    "ogUrl": "https://www.easycancha.com",
+    "apple-itunes-app": "app-id=1160989897",
+    "og:description": "Reserva tu cancha aquí en solo unos pasos. Simple, Rápido y Seguro",
+    "apple-mobile-web-app-title": "easycancha",
+    "ogDescription": "Reserva tu cancha aquí en solo unos pasos. Simple, Rápido y Seguro",
+    "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+    "author": "",
+    "favicon": "https://www.easycancha.com/favicon-32x32.png",
+    "scrapeId": "019e4568-2f67-7555-b8f2-ddbe7b2e8702",
+    "sourceURL": "https://www.easycancha.com/book/sports/7/filter",
+    "url": "https://www.easycancha.com/login",
+    "statusCode": 200,
+    "contentType": "text/html",
+    "timezone": "America/New_York",
+    "proxyUsed": "basic",
+    "creditsUsed": 1,
+    "concurrencyLimited": false
+  },
+  "warning": "You're using the actions parameter. For a more reliable and flexible experience, try the /interact endpoint instead."
+}

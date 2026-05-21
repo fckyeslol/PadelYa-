@@ -1,0 +1,6 @@
+[
+  { "type": "wait", "milliseconds": 2000 },
+  { "type": "click", "selector": "a[href='#']", "nth": 3 },
+  { "type": "wait", "milliseconds": 3000 },
+  { "type": "screenshot" }
+]

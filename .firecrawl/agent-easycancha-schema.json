@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "properties": {
+    "authenticated": { "type": "boolean" },
+    "auth_token": { "type": "string" },
+    "slots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "club_name": { "type": "string" },
+          "club_id": { "type": "number" },
+          "court_name": { "type": "string" },
+          "date": { "type": "string", "description": "YYYY-MM-DD" },
+          "time_slot": { "type": "string", "description": "HH:mm" },
+          "price_cop": { "type": "number" },
+          "price_display": { "type": "string" }
+        },
+        "required": ["club_name", "date", "time_slot", "price_cop"]
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["authenticated", "slots"]
+}

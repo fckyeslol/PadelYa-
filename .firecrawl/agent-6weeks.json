@@ -1,0 +1,16 @@
+Job ID: 019e4679-7913-74de-8df0-a1ed53d2a3e0
+Status: completed
+Credits Used: 0
+Expires: May 21, 2026, 12:43 PM
+
+Result:
+{
+  "authenticated": false,
+  "slots": [],
+  "errors": [
+    "Authentication failed: The provided credentials (matteotaofr@gmail.com / Familiapirela123) are invalid",
+    "EasyCancha returned error: 'No hemos encontrado tu email o tu contraseña es incorrecta' (Email not found or password incorrect)",
+    "Unable to extract booking slots - all clubs require valid authentication to access booking pages",
+    "Clubs affected: PADEL ZENTER DEL RIO, PADEL ZENTER LA ARENOSA, Padel Park Barranquilla, La Jaula Padel Barranquilla, X3 Padel Club, Ace Padel Club"
+  ]
+}

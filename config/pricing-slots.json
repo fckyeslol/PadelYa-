@@ -6357,7 +6357,15 @@
     "casa-padel": {
       "courtCop": 90000,
       "playerCop": 22500,
-      "note": "ReservaDeportes flat rate, any time"
+      "note": "ReservaDeportes flat rate, any time",
+      "slotOverrides": {
+        "2026-05-21": {
+          "11:00": {
+            "courtCop": 35000,
+            "playerCop": 8750
+          }
+        }
+      }
     }
   }
 }

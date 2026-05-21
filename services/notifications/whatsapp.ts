@@ -60,23 +60,27 @@ async function getPaidPlayerPhones(
 ): Promise<{ phone: string; name: string }[]> {
   const supabase = getSupabaseAdminClient();
 
-  const { data, error } = await supabase
+  const { data: players, error } = await supabase
     .from("match_players")
-    .select("player_id, profiles(full_name, phone, whatsapp_phone)")
+    .select("player_id")
     .eq("match_id", matchId)
     .eq("status", "paid")
     .neq("player_id", excludePlayerId);
 
-  if (error || !data) return [];
+  if (error || !players?.length) return [];
 
-  return data
-    .map((row) => {
-      const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as ProfilePhoneRow | null;
-      return {
-        phone: bestPhone(profile),
-        name: profile?.full_name ?? "Jugador",
-      };
-    })
+  const playerIds = players.map((p) => p.player_id).filter(Boolean) as string[];
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, phone, whatsapp_phone")
+    .in("id", playerIds);
+
+  return (profiles ?? [])
+    .map((p) => ({
+      phone: bestPhone(p as ProfilePhoneRow),
+      name: p.full_name ?? "Jugador",
+    }))
     .filter((p) => p.phone !== "");
 }
 

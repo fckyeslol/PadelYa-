@@ -847,28 +847,32 @@ async function _handleApprovedPayment({
     .maybeSingle();
   const isHost = matchPlayer?.is_host ?? false;
 
-  if (isHost && currentPaidCount === 1) {
-    await notifyOwnerNewGame({ matchId, hostName: joiningPlayerName, venueName, scheduledAt });
-    if (joiningPlayerPhone) {
-      await notifyHostMatchCreated({
-        hostPhone: joiningPlayerPhone,
-        hostName: joiningPlayerName,
+  try {
+    if (isHost && currentPaidCount === 1) {
+      await notifyOwnerNewGame({ matchId, hostName: joiningPlayerName, venueName, scheduledAt });
+      if (joiningPlayerPhone) {
+        await notifyHostMatchCreated({
+          hostPhone: joiningPlayerPhone,
+          hostName: joiningPlayerName,
+          matchId,
+          venueName,
+          scheduledAt,
+          maxPlayers,
+        });
+      }
+    } else {
+      await notifyOnPlayerJoined({
         matchId,
+        newPlayerName: joiningPlayerName,
+        newPlayerId: playerId,
         venueName,
         scheduledAt,
+        currentPaidCount,
         maxPlayers,
       });
     }
-  } else {
-    await notifyOnPlayerJoined({
-      matchId,
-      newPlayerName: joiningPlayerName,
-      newPlayerId: playerId,
-      venueName,
-      scheduledAt,
-      currentPaidCount,
-      maxPlayers,
-    });
+  } catch (err) {
+    console.error("[WhatsApp] notification failed after payment", err);
   }
 
   if (matchStatus?.status === "full") {

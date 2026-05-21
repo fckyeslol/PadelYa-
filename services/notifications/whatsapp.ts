@@ -70,11 +70,14 @@ async function getPaidPlayerPhones(
   if (error || !players?.length) return [];
 
   const playerIds = players.map((p) => p.player_id).filter(Boolean) as string[];
+  if (!playerIds.length) return [];
 
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select("id, full_name, phone, whatsapp_phone")
     .in("id", playerIds);
+
+  if (profilesError) return [];
 
   return (profiles ?? [])
     .map((p) => ({

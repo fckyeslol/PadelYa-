@@ -187,8 +187,8 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const isOpen = match!.status === "open";
   const isCompleted = match!.status === "completed";
   const isConfirmed = match!.status === "confirmed";
-  const displayFee = resolveDisplayFeeCop(match!.venueName, match!.scheduledAt);
-  const hasCsvFee = displayFee != null;
+  const displayFee = resolveDisplayFeeCop(match!.venueName, match!.scheduledAt) ?? match!.orgFeeCop ?? null;
+  const hasCsvFee = displayFee != null && displayFee > 0;
   const paidCount = players.filter((p) => p.status === "paid").length;
   const occupiedCount = players.filter(
     (p) => p.status === "paid" || p.status === "pending_payment",

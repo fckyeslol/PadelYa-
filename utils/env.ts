@@ -55,7 +55,7 @@ export function getResendEnv() {
   }
 
   const from =
-    process.env.RESEND_FROM_EMAIL?.trim() || "PadelYa <noreply@padelya.uk>";
+    process.env.RESEND_FROM_EMAIL?.trim() || "PadelYa <noreply@padelya.co>";
 
   return {
     apiKey,

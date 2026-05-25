@@ -3,10 +3,10 @@
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import {
-  getAvailableTimeSlotsByVenueName,
-  getPlayerFeeByVenueName,
-  getPricingCalendarDates,
-  hasCsvPricingForVenueName,
+  getAvailableTimeSlotsWithDuration,
+  getPlayerFeeByVenueNameWithDuration,
+  hasPricingForVenueName,
+  isRuleBasedVenueName,
   PRICED_VENUE_NAMES,
 } from "@/config/pricing";
 import { formatCop } from "@/utils/currency";
@@ -14,32 +14,32 @@ import { formatCop } from "@/utils/currency";
 const DAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MONTH_NAMES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
-function buildDaysFromCsv() {
+function buildDays(count = 30) {
   const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "America/Bogota" }).slice(0, 10);
-  const csvDates = getPricingCalendarDates().filter((d) => d >= todayStr);
   const today = new Date(`${todayStr}T12:00:00`);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  return csvDates.map((value) => {
-    const [y, m, d] = value.split("-").map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    const isToday = value === todayStr;
-    const isTomorrow =
-      dateObj.getFullYear() === tomorrow.getFullYear() &&
-      dateObj.getMonth() === tomorrow.getMonth() &&
-      dateObj.getDate() === tomorrow.getDate();
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const value = `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const isToday = i === 0;
+    const isTomorrow = i === 1;
     return {
       value,
-      dayName: isToday ? "Hoy" : isTomorrow ? "Mañana" : DAY_NAMES[dateObj.getDay()],
-      dayNum: d,
+      dayName: isToday ? "Hoy" : isTomorrow ? "Mañana" : DAY_NAMES[d.getDay()],
+      dayNum: day,
       monthName: MONTH_NAMES[m - 1],
       isToday,
     };
   });
 }
 
-const DAYS = buildDaysFromCsv();
+const DAYS = buildDays();
 
 const TIME_SLOTS = Array.from({ length: 35 }, (_, i) => {
   const totalMinutes = 6 * 60 + i * 30;
@@ -84,34 +84,44 @@ function slotsForDate(dateValue: string) {
   });
 }
 
-const BAQ_VENUES = PRICED_VENUE_NAMES;
+const SHOWN_VENUES = new Set(["Casa Padel", "X3 Pádel Club", "La Jaula"]);
+const BAQ_VENUES = PRICED_VENUE_NAMES.filter((v) => SHOWN_VENUES.has(v));
 
-function playerFeeForSlot(venueName: string, date: string, time: string): number | null {
+function playerFeeForSlot(
+  venueName: string,
+  date: string,
+  time: string,
+  durationMinutes: 60 | 90,
+): number | null {
   if (!venueName.trim()) return null;
-  return getPlayerFeeByVenueName(venueName.trim(), date, time);
+  return getPlayerFeeByVenueNameWithDuration(venueName.trim(), date, time, durationMinutes);
 }
 
 function slotsForVenueAndDate(
   venueName: string,
   dateValue: string,
   bookableTimes: Set<string> | null,
+  durationMinutes: 60 | 90,
+  isRuleBased: boolean,
 ) {
-  const priced = getAvailableTimeSlotsByVenueName(venueName, dateValue);
+  const priced = getAvailableTimeSlotsWithDuration(venueName, dateValue, durationMinutes);
   if (!priced.length) return [];
 
   const allowed = new Set(priced);
   let base = slotsForDate(dateValue).filter((s) => allowed.has(s.value));
-  if (bookableTimes === null) return [];
-  base = base.filter((s) => bookableTimes.has(s.value));
-  return base.map((s) => ({
-    ...s,
-    label: s.label,
-    value: s.value,
-  }));
+
+  // Rule-based venues (Ace, X3) don't use the EasyCancha availability API
+  if (!isRuleBased) {
+    if (bookableTimes === null) return [];
+    base = base.filter((s) => bookableTimes.has(s.value));
+  }
+
+  return base;
 }
 
 export function MatchForm() {
   const [venueName, setVenueName] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState<60 | 90>(90);
   const [matchDate, setMatchDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
   const [showAllTimes, setShowAllTimes] = useState(false);
@@ -123,8 +133,11 @@ export function MatchForm() {
   const [bookableTimes, setBookableTimes] = useState<Set<string> | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
+  const isRuleBased = isRuleBasedVenueName(venueName);
+
   useEffect(() => {
-    if (!venueName.trim() || !matchDate) {
+    // Rule-based venues don't use the EasyCancha availability API
+    if (!venueName.trim() || !matchDate || isRuleBased) {
       setBookableTimes(null);
       return;
     }
@@ -148,16 +161,16 @@ export function MatchForm() {
     return () => {
       cancelled = true;
     };
-  }, [venueName, matchDate]);
+  }, [venueName, matchDate, isRuleBased]);
 
-  const hasPricedVenue = hasCsvPricingForVenueName(venueName);
+  const hasPricedVenue = hasPricingForVenueName(venueName);
   const availableSlots =
     venueName.trim() && matchDate
-      ? slotsForVenueAndDate(venueName, matchDate, bookableTimes)
+      ? slotsForVenueAndDate(venueName, matchDate, bookableTimes, durationMinutes, isRuleBased)
       : [];
   const selectedPlayerFee =
     matchDate && matchTime && hasPricedVenue
-      ? playerFeeForSlot(venueName, matchDate, matchTime)
+      ? playerFeeForSlot(venueName, matchDate, matchTime, durationMinutes)
       : null;
   const canSubmit =
     hasPricedVenue && matchDate && matchTime && selectedPlayerFee != null && !pending;
@@ -178,6 +191,7 @@ export function MatchForm() {
           joinDeadline,
           skillLevel,
           notes,
+          durationMinutes,
         }),
       });
 
@@ -228,7 +242,9 @@ export function MatchForm() {
                   type="button"
                   onClick={() => {
                     setVenueName(selected ? "" : v);
+                    setMatchDate("");
                     setMatchTime("");
+                    setDurationMinutes(90);
                   }}
                   style={{
                     borderRadius: "999px",
@@ -256,9 +272,45 @@ export function MatchForm() {
               margin: 0,
             }}
           >
-            Tarifas EasyCancha (6 clubes) y Casa Padel ($90.000 cancha, $22.500 por jugador, cualquier hora).
+            Tarifas EasyCancha, Casa Padel, Ace Padel Club y X3 Pádel Club.
           </p>
         </div>
+
+        {/* Duration selector — only for rule-based venues (Ace, X3) */}
+        {isRuleBased ? (
+          <div>
+            <label className="form-label">Duración del partido</label>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              {([60, 90] as const).map((dur) => {
+                const selected = durationMinutes === dur;
+                return (
+                  <button
+                    key={dur}
+                    type="button"
+                    onClick={() => {
+                      setDurationMinutes(dur);
+                      setMatchTime("");
+                    }}
+                    style={{
+                      padding: "0.4rem 1.1rem",
+                      borderRadius: "999px",
+                      border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
+                      background: selected ? "var(--primary-muted)" : "var(--card)",
+                      color: selected ? "var(--primary)" : "var(--text-2)",
+                      fontSize: "0.85rem",
+                      fontWeight: selected ? 600 : 400,
+                      fontFamily: "var(--font-dm-sans)",
+                      cursor: "pointer",
+                      transition: "border-color 0.1s, background 0.1s, color 0.1s",
+                    }}
+                  >
+                    {dur === 60 ? "1 hora" : "1.5 horas"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         {/* Date strip */}
         <div>
@@ -349,7 +401,7 @@ export function MatchForm() {
 
         {matchDate && venueName.trim() && !hasPricedVenue ? (
           <div className="banner-danger">
-            Elige uno de los clubes de la lista para ver horarios y precios del CSV.
+            Elige uno de los clubes de la lista para ver horarios y precios.
           </div>
         ) : null}
 
@@ -415,7 +467,7 @@ export function MatchForm() {
                 const available = availableSlots.some((s) => s.value === t);
                 if (!available) return null;
                 const selected = matchTime === t;
-                const slotFee = playerFeeForSlot(venueName, matchDate, t);
+                const slotFee = playerFeeForSlot(venueName, matchDate, t, durationMinutes);
                 if (slotFee == null) return null;
                 return (
                   <button
@@ -477,7 +529,7 @@ export function MatchForm() {
                 >
                   {availableSlots.map((s) => {
                     const selected = matchTime === s.value;
-                    const slotFee = playerFeeForSlot(venueName, matchDate, s.value);
+                    const slotFee = playerFeeForSlot(venueName, matchDate, s.value, durationMinutes);
                     if (slotFee == null) return null;
                     return (
                       <button
@@ -567,7 +619,7 @@ export function MatchForm() {
                   ? "Comprobando disponibilidad de canchas…"
                   : bookableTimes !== null && bookableTimes.size === 0
                     ? "No hay cancha libre en ese día. Prueba otro horario o día."
-                    : "No hay horarios con tarifa en el CSV para este club y día. Prueba otro día o club."}
+                    : "No hay horarios disponibles para este club y día. Prueba otro día o club."}
               </p>
             ) : null}
           </div>

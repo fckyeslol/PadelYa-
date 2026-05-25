@@ -8,6 +8,9 @@ import { getClientAuthCallbackUrl } from "@/utils/auth-url";
 
 function mapAuthError(message: string): string {
   const lower = message.toLowerCase();
+  if (lower.includes("security purposes") || lower.includes("after") && lower.includes("second")) {
+    return "Espera al menos 1 minuto antes de solicitar otro enlace de acceso.";
+  }
   if (lower.includes("rate limit") || lower.includes("too many")) {
     return "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.";
   }

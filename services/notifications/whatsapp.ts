@@ -96,7 +96,7 @@ export async function notifyHostMatchCreated(params: {
   scheduledAt: string | null;
   maxPlayers: number;
 }): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padel-ya.uk";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
   const body = [
     `*PadelYa!*`,
     ``,
@@ -123,7 +123,7 @@ export async function notifyOwnerNewGame(params: {
   const ownerPhone = getOwnerPhone();
   if (!ownerPhone) return;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padel-ya.uk";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
   const body = [
     `*PadelYa! — Nuevo partido*`,
     ``,
@@ -149,7 +149,7 @@ export async function notifyOnPlayerJoined(params: {
   currentPaidCount: number;
   maxPlayers: number;
 }): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padel-ya.uk";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
   const matchLink = `${appUrl}/matches/${params.matchId}`;
   const roster = `${params.currentPaidCount}/${params.maxPlayers}`;
 
@@ -194,7 +194,7 @@ export async function notifyMatchFull(params: {
   scheduledAt: string | null;
   maxPlayers: number;
 }): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padel-ya.uk";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
   const matchLink = `${appUrl}/matches/${params.matchId}`;
   const roster = `${params.maxPlayers}/${params.maxPlayers}`;
 

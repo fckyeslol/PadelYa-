@@ -1,5 +1,5 @@
 /** Canonical production domain (custom domain on Vercel). */
-export const PRODUCTION_APP_URL = "https://padelya.uk";
+export const PRODUCTION_APP_URL = "https://padelya.co";
 
 const DEPRECATED_APP_HOSTS = new Set(["padel-ya.vercel.app"]);
 
@@ -61,7 +61,7 @@ export function isAllowedAuthOrigin(origin: string): boolean {
       return true;
     }
 
-    if (host === "padelya.uk" || host === "www.padelya.uk") {
+    if (host === "padelya.co" || host === "www.padelya.co") {
       return true;
     }
 

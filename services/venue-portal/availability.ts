@@ -1,4 +1,4 @@
-import { bogotaDateAndTime, getAvailableTimeSlots } from "@/config/pricing";
+import { bogotaDateAndTime, getAvailableTimeSlots, isRuleBasedVenueId } from "@/config/pricing";
 import { getVenueInfo } from "@/config/venues";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -156,10 +156,15 @@ export async function assertVenueHasCourtForSlot(
     throw new Error("Sede no reconocida.");
   }
   const { date, time } = bogotaDateAndTime(scheduledAt);
-  const slots = getBookableTimeSlotsForVenue(info.id, date);
-  if (!slots.includes(time)) {
-    throw new Error("Ese horario no está disponible para reservar.");
+
+  // Rule-based venues (Ace, X3) don't use CSV-derived time slots
+  if (!isRuleBasedVenueId(info.id)) {
+    const slots = getBookableTimeSlotsForVenue(info.id, date);
+    if (!slots.includes(time)) {
+      throw new Error("Ese horario no está disponible para reservar.");
+    }
   }
+
   const courtId = await pickAvailableCourt(info.id, date, time);
   if (!courtId) {
     throw new Error("No hay cancha disponible en ese horario.");

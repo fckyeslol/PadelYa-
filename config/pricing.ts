@@ -1,5 +1,6 @@
 import pricingData from "@/config/pricing-slots.json";
 import { BARRANQUILLA_VENUES, getVenueInfo } from "@/config/venues";
+import { RULE_BASED_VENUE_IDS, getPlayerFeeFromRules } from "@/config/venue-pricing-rules";
 
 type SlotOverride = { courtCop: number; playerCop: number };
 
@@ -37,8 +38,9 @@ const STANDARD_SLOT_TIMES = Array.from({ length: 35 }, (_, i) => {
   return `${String(h).padStart(2, "0")}:${m === 0 ? "00" : "30"}`;
 });
 
-export const PRICED_VENUE_IDS = [...CSV_VENUE_IDS, CASA_PADEL_VENUE_ID];
+export const PRICED_VENUE_IDS = [...CSV_VENUE_IDS, CASA_PADEL_VENUE_ID, ...RULE_BASED_VENUE_IDS];
 const PRICED_VENUE_ID_SET = new Set<string>(PRICED_VENUE_IDS);
+const RULE_BASED_VENUE_ID_SET = new Set<string>(RULE_BASED_VENUE_IDS);
 
 export const PRICED_VENUE_NAMES = BARRANQUILLA_VENUES.filter((v) =>
   PRICED_VENUE_ID_SET.has(v.id),
@@ -140,4 +142,46 @@ export function resolveOrgFeeCopForMatch(venueName: string, scheduledAt: string)
 export function resolveDisplayFeeCop(venueName: string, scheduledAt: string): number | null {
   const { date, time } = bogotaDateAndTime(scheduledAt);
   return getPlayerFeeByVenueName(venueName, date, time);
+}
+
+export function isRuleBasedVenueId(venueId: string): boolean {
+  return RULE_BASED_VENUE_ID_SET.has(venueId);
+}
+
+export function isRuleBasedVenueName(venueName: string): boolean {
+  const info = getVenueInfo(venueName);
+  return info != null && isRuleBasedVenueId(info.id);
+}
+
+export function hasPricingForVenueName(venueName: string): boolean {
+  return hasCsvPricingForVenueName(venueName) || isRuleBasedVenueName(venueName);
+}
+
+export function getAvailableTimeSlotsWithDuration(
+  venueName: string,
+  date: string,
+  durationMinutes: 60 | 90,
+): string[] {
+  const info = getVenueInfo(venueName);
+  if (!info) return [];
+  if (isRuleBasedVenueId(info.id)) {
+    return STANDARD_SLOT_TIMES.filter(
+      (time) => getPlayerFeeFromRules(info.id, date, time, durationMinutes) !== null,
+    );
+  }
+  return getAvailableTimeSlots(info.id, date);
+}
+
+export function getPlayerFeeByVenueNameWithDuration(
+  venueName: string,
+  date: string,
+  time: string,
+  durationMinutes: 60 | 90,
+): number | null {
+  const info = getVenueInfo(venueName);
+  if (!info) return null;
+  if (isRuleBasedVenueId(info.id)) {
+    return getPlayerFeeFromRules(info.id, date, time, durationMinutes);
+  }
+  return getPlayerFeeCop(info.id, date, time);
 }

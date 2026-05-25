@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "@/config/business";
-import { resolveDisplayFeeCop } from "@/config/pricing";
+import { bogotaDateAndTime, getPlayerFeeByVenueNameWithDuration } from "@/config/pricing";
 import { assertVenueHasCourtForSlot } from "@/services/venue-portal/availability";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -135,6 +135,12 @@ export async function createMatch(input: CreateMatchInput): Promise<Match> {
 
   const venueCourtId = await assertVenueHasCourtForSlot(input.venueName, input.scheduledAt);
 
+  const durationMinutes = input.durationMinutes ?? 90;
+  const { date, time } = bogotaDateAndTime(input.scheduledAt);
+  const orgFeeCop =
+    getPlayerFeeByVenueNameWithDuration(input.venueName, date, time, durationMinutes) ??
+    APP_CONFIG.defaultFeeCop;
+
   const { data, error } = await supabase
     .from("matches")
     .insert({
@@ -145,7 +151,8 @@ export async function createMatch(input: CreateMatchInput): Promise<Match> {
       join_deadline: input.joinDeadline,
       skill_level: input.skillLevel,
       max_players: APP_CONFIG.maxPlayersPerMatch,
-      org_fee_cop: resolveDisplayFeeCop(input.venueName, input.scheduledAt) ?? APP_CONFIG.defaultFeeCop,
+      org_fee_cop: orgFeeCop,
+      duration_minutes: durationMinutes,
       status: "pending_court",
       notes: input.notes ?? null,
     })

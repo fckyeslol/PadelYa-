@@ -42,18 +42,10 @@ export async function POST(request: Request) {
 
   try {
     const admin = getSupabaseAdminClient();
-    const { data: existingUser, error: lookupError } = await admin
-      .schema("auth")
-      .from("users")
-      .select("id, email_confirmed_at")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
 
-    if (lookupError) {
-      console.error("[auth/magic-link] auth.users lookup", lookupError);
-    }
-
-    let linkType: "magiclink" | "signup" = existingUser ? "magiclink" : "signup";
+    // Always attempt signup first; if the user already exists Supabase returns
+    // an email_exists error and we retry as a magiclink below.
+    let linkType: "magiclink" | "signup" = "signup";
     const linkPayload = {
       email: normalizedEmail,
       options: {
@@ -108,8 +100,11 @@ export async function POST(request: Request) {
         actionLink,
       });
     } catch (emailErr) {
-      console.error("[auth/magic-link] Resend failed, falling back to Supabase", emailErr);
-      return NextResponse.json({ fallback: true }, { status: 502 });
+      console.error("[auth/magic-link] Resend failed", emailErr);
+      return NextResponse.json(
+        { error: "No pudimos enviar el correo. Revisa tu bandeja en unos minutos o intenta de nuevo." },
+        { status: 502 },
+      );
     }
 
     return NextResponse.json({ ok: true });

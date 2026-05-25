@@ -2,6 +2,8 @@ import Link from "next/link";
 import { BARRANQUILLA_VENUES } from "@/config/venues";
 import { VenuePhoto } from "@/components/venue/VenuePhoto";
 
+const SHOWN_VENUE_IDS = new Set(["casa-padel", "x3-padel-club", "la-jaula"]);
+
 export function VenuesSection() {
   return (
     <section style={{ background: "#ffffff" }} className="px-6 py-16 lg:py-20">
@@ -12,7 +14,7 @@ export function VenuesSection() {
         </p>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {BARRANQUILLA_VENUES.map((venue) => (
+          {BARRANQUILLA_VENUES.filter((v) => SHOWN_VENUE_IDS.has(v.id)).map((venue) => (
             <Link
               key={venue.id}
               href={`/matches?venue=${encodeURIComponent(venue.name)}`}

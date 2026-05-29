@@ -5,7 +5,7 @@ const ABOUT_IMAGE = "/about-padel.jpg";
 
 export function AboutSection() {
   return (
-    <section style={{ background: "#ffffff" }} className="px-6 py-16 lg:py-24">
+    <section style={{ background: "var(--bg)" }} className="px-6 py-16 lg:py-24">
       <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div className="landing-about-visual mx-auto w-full max-w-sm lg:max-w-none">
           <Image

@@ -24,15 +24,44 @@ export default function Home() {
 
 function FinalCta() {
   return (
-    <section style={{ background: "#ffffff" }} className="px-6 py-16 lg:py-20">
-      <div className="mx-auto max-w-2xl text-center">
-        <h2 className="landing-section-title mb-4">¿Listo para jugar?</h2>
-        <p className="landing-section-sub mb-8">
-          Los mejores cupos se llenan rápido. Encuentra tu partido y reserva hoy.
-        </p>
-        <Link href="/matches" className="landing-cta-btn">
-          Ver partidos disponibles →
-        </Link>
+    <section className="landing-final-cta px-6 py-16 lg:py-24">
+      <div className="mx-auto max-w-6xl flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8">
+        <div>
+          <p
+            style={{
+              fontFamily: "var(--font-dm-mono, 'DM Mono', monospace)",
+              fontSize: "0.7rem",
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: "rgba(12,11,8,0.5)",
+              marginBottom: "1rem",
+            }}
+          >
+            Barranquilla · Pádel
+          </p>
+          <h2 className="landing-final-cta-title">
+            ¿Cuándo<br />juegas?
+          </h2>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", alignItems: "flex-start" }}>
+          <Link href="/matches" className="landing-final-cta-btn">
+            Ver partidos disponibles →
+          </Link>
+          <Link
+            href="/matches/new"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              color: "rgba(12,11,8,0.6)",
+              textDecoration: "none",
+              borderBottom: "1px solid rgba(12,11,8,0.25)",
+              paddingBottom: "2px",
+            }}
+          >
+            Crear un partido
+          </Link>
+        </div>
       </div>
     </section>
   );

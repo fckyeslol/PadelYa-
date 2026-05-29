@@ -9,7 +9,7 @@ export default function NewMatchPage() {
       <div
         className="px-6 py-7"
         style={{
-          background: "#ffffff",
+          background: "var(--surface)",
           borderBottom: "1px solid var(--border)",
         }}
       >
@@ -38,8 +38,7 @@ export default function NewMatchPage() {
             <div
               style={{
                 width: "3px",
-                height: "2rem",
-                borderRadius: "2px",
+                height: "2.25rem",
                 background: "var(--primary)",
                 flexShrink: 0,
               }}
@@ -48,24 +47,25 @@ export default function NewMatchPage() {
               <p
                 style={{
                   color: "var(--primary)",
-                  fontSize: "0.7rem",
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
+                  fontSize: "0.68rem",
+                  fontWeight: 400,
+                  letterSpacing: "0.18em",
                   textTransform: "uppercase",
-                  fontFamily: "var(--font-montserrat)",
-                  marginBottom: "0.15rem",
+                  fontFamily: "var(--font-mono-ui, 'DM Mono', monospace)",
+                  marginBottom: "0.2rem",
                 }}
               >
                 Nuevo partido
               </p>
               <h1
                 style={{
-                  fontFamily: "var(--font-montserrat)",
-                  fontWeight: 800,
-                  fontSize: "clamp(1.35rem, 3vw, 1.75rem)",
-                  letterSpacing: "-0.025em",
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 900,
+                  fontSize: "clamp(1.75rem, 4vw, 2.5rem)",
+                  letterSpacing: "-0.02em",
+                  textTransform: "uppercase",
                   color: "var(--text)",
-                  lineHeight: 1.15,
+                  lineHeight: 0.95,
                 }}
               >
                 Crear partido
@@ -79,7 +79,7 @@ export default function NewMatchPage() {
       <div
         className="px-6 py-3"
         style={{
-          background: "#ffffff",
+          background: "var(--surface)",
           borderBottom: "1px solid var(--border)",
         }}
       >
@@ -107,7 +107,8 @@ export default function NewMatchPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.468 5.99 5.99 0 00-1.925 3.547 5.975 5.975 0 01-2.133-1.001A3.75 3.75 0 0012 18z" />
             </svg>
             <span>
-              <span style={{ fontWeight: 700, color: "var(--gold)" }}>247</span> partidos creados esta semana
+              <span style={{ fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-mono-ui, 'DM Mono', monospace)" }}>247</span>{" "}
+              partidos creados esta semana
             </span>
           </div>
           <div
@@ -124,32 +125,20 @@ export default function NewMatchPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
             </svg>
             <span>
-              Se llenan en <span style={{ fontWeight: 700, color: "var(--primary)" }}>18h</span> promedio
+              Se llenan en{" "}
+              <span style={{ fontWeight: 700, color: "var(--primary)", fontFamily: "var(--font-mono-ui, 'DM Mono', monospace)" }}>18h</span>{" "}
+              promedio
             </span>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div
-        className="mx-auto max-w-3xl px-6 py-8"
-        style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
-      >
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "16px",
-            borderLeft: "4px solid var(--primary)",
-            border: "1px solid var(--border)",
-            borderLeftWidth: "4px",
-            borderLeftColor: "var(--primary)",
-            boxShadow: "0 4px 24px rgba(15,22,41,0.07), 0 1px 4px rgba(15,22,41,0.04)",
-            overflow: "hidden",
-          }}
-        >
-          <MatchForm />
+      <div className="mx-auto max-w-3xl px-6 py-6">
+        <MatchForm />
+        <div style={{ marginTop: "1.5rem" }}>
+          <CancellationPolicyNotice />
         </div>
-        <CancellationPolicyNotice />
       </div>
     </div>
   );

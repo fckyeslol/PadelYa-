@@ -6,7 +6,7 @@ const SHOWN_VENUE_IDS = new Set(["casa-padel", "x3-padel-club", "la-jaula"]);
 
 export function VenuesSection() {
   return (
-    <section style={{ background: "#ffffff" }} className="px-6 py-16 lg:py-20">
+    <section style={{ background: "var(--surface)" }} className="px-6 py-16 lg:py-20">
       <div className="mx-auto max-w-6xl">
         <h2 className="landing-section-title mb-2">Clubes en Barranquilla</h2>
         <p className="landing-section-sub mb-10 max-w-xl">
@@ -35,7 +35,7 @@ export function VenuesSection() {
                   style={{
                     fontWeight: 700,
                     fontSize: "0.85rem",
-                    color: "#1a4fd6",
+                    color: "var(--primary)",
                   }}
                 >
                   Explorar partidos →

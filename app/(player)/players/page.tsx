@@ -36,12 +36,12 @@ const SKILL_LABEL: Record<string, string> = {
 };
 
 const SKILL_STYLE: Record<string, { bg: string; color: string; border: string }> = {
-  beginner:     { bg: "rgba(29,78,216,0.08)",  color: "#1D4ED8", border: "rgba(29,78,216,0.2)" },
-  intermediate: { bg: "rgba(22,101,52,0.08)",  color: "#166534", border: "rgba(22,101,52,0.2)" },
-  advanced:     { bg: "rgba(212,137,26,0.08)", color: "#D4891A", border: "rgba(212,137,26,0.2)" },
+  beginner:     { bg: "rgba(0,201,167,0.1)",   color: "var(--success)", border: "rgba(0,201,167,0.22)" },
+  intermediate: { bg: "rgba(233,255,71,0.08)", color: "var(--primary)", border: "rgba(233,255,71,0.2)" },
+  advanced:     { bg: "rgba(255,68,68,0.1)",   color: "var(--danger)",  border: "rgba(255,68,68,0.22)" },
 };
 
-const AVAILABILITY_COLOR = { high: "#166534", medium: "#D4891A", low: "#64748B" };
+const AVAILABILITY_COLOR = { high: "var(--success)", medium: "var(--gold)", low: "var(--text-3)" };
 
 function getAvailability(lastSeenAt: string): "high" | "medium" | "low" {
   const hours = (Date.now() - new Date(lastSeenAt).getTime()) / 3_600_000;
@@ -70,15 +70,17 @@ export default async function PlayersPage({ searchParams }: Props) {
 
           {/* Title with accent bar */}
           <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", marginBottom: "1.75rem" }}>
-            <div style={{ width: 4, height: 52, background: "var(--primary)", borderRadius: 999, flexShrink: 0 }} />
+            <div style={{ width: 3, height: 52, background: "var(--primary)", flexShrink: 0 }} />
             <div>
               <h1
                 style={{
-                  fontFamily: "var(--font-montserrat)",
-                  fontWeight: 800,
-                  fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
-                  letterSpacing: "-0.025em",
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 900,
+                  fontSize: "clamp(1.75rem, 4vw, 2.75rem)",
+                  letterSpacing: "-0.02em",
+                  textTransform: "uppercase",
                   color: "var(--text)",
+                  lineHeight: 0.95,
                 }}
               >
                 Jugadores de la comunidad
@@ -135,7 +137,7 @@ export default async function PlayersPage({ searchParams }: Props) {
                   style={{
                     background: "var(--card)",
                     border: "1px solid var(--border)",
-                    borderRadius: 16,
+                    borderRadius: 4,
                     padding: "1.5rem",
                     display: "flex",
                     flexDirection: "column",
@@ -156,7 +158,7 @@ export default async function PlayersPage({ searchParams }: Props) {
                           height: 14,
                           borderRadius: "50%",
                           background: AVAILABILITY_COLOR[availability],
-                          border: "2.5px solid #ffffff",
+                          border: "2.5px solid var(--card)",
                         }}
                       />
                     </div>
@@ -180,7 +182,7 @@ export default async function PlayersPage({ searchParams }: Props) {
                           display: "inline-flex",
                           alignItems: "center",
                           padding: "0.2rem 0.6rem",
-                          borderRadius: 6,
+                          borderRadius: 2,
                           border: `1px solid ${skill.border}`,
                           background: skill.bg,
                           color: skill.color,
@@ -202,8 +204,8 @@ export default async function PlayersPage({ searchParams }: Props) {
                   <div
                     style={{
                       background: "var(--primary)",
-                      color: "#ffffff",
-                      borderRadius: 10,
+                      color: "var(--primary-fg)",
+                      borderRadius: 4,
                       padding: "0.65rem 1rem",
                       fontWeight: 600,
                       fontSize: "0.85rem",
@@ -243,12 +245,11 @@ function StatCard({
       style={{
         background: "var(--card)",
         border: "1px solid var(--border)",
-        borderRadius: 12,
+        borderRadius: 4,
         padding: "1rem",
         display: "flex",
         alignItems: "center",
         gap: "0.75rem",
-        boxShadow: "0 1px 3px rgba(15,22,41,0.05)",
       }}
     >
       <div
@@ -281,7 +282,7 @@ function SkillPill({ value, current, label }: { value: string; current: string; 
       name="skillLevel"
       value={value}
       style={{
-        borderRadius: 8,
+        borderRadius: 4,
         padding: "0.45rem 1.1rem",
         fontSize: "0.85rem",
         fontWeight: isActive ? 600 : 400,
@@ -290,7 +291,7 @@ function SkillPill({ value, current, label }: { value: string; current: string; 
         transition: "all 0.15s ease",
         border: isActive ? "1px solid var(--primary)" : "1px solid var(--border)",
         background: isActive ? "var(--primary)" : "var(--surface)",
-        color: isActive ? "#ffffff" : "var(--text-2)",
+        color: isActive ? "var(--primary-fg)" : "var(--text-2)",
       }}
     >
       {label}

@@ -6,7 +6,7 @@ export function CancellationPolicyNotice() {
       style={{
         background: "var(--gold-muted)",
         border: "1px solid rgba(212,137,26,0.22)",
-        borderRadius: "14px",
+        borderRadius: "4px",
         padding: "1rem 1.25rem",
         display: "flex",
         gap: "0.75rem",

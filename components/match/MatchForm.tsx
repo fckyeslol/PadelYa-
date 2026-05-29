@@ -119,6 +119,23 @@ function slotsForVenueAndDate(
   return base;
 }
 
+const ROW: React.CSSProperties = {
+  paddingTop: "1.25rem",
+  paddingBottom: "1.25rem",
+  borderBottom: "1px solid var(--border)",
+};
+
+const LABEL: React.CSSProperties = {
+  display: "block",
+  fontSize: "0.68rem",
+  fontWeight: 400,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: "var(--text-3)",
+  marginBottom: "0.65rem",
+  fontFamily: "var(--font-mono-ui, 'DM Mono', monospace)",
+};
+
 export function MatchForm() {
   const [venueName, setVenueName] = useState("");
   const [durationMinutes, setDurationMinutes] = useState<60 | 90>(90);
@@ -206,564 +223,410 @@ export function MatchForm() {
   }
 
   return (
-    <div className="form-card">
-      {/* Header */}
-      <div style={{ marginBottom: "1.5rem" }}>
-        <h1
-          style={{
-            fontFamily: "var(--font-montserrat)",
-            fontWeight: 800,
-            fontSize: "1.5rem",
-            letterSpacing: "-0.025em",
-            color: "var(--text)",
-            marginBottom: "0.3rem",
-          }}
-        >
-          Abrir partido
-        </h1>
-        <p style={{ color: "var(--text-2)", fontSize: "0.875rem" }}>
-          Completa los datos, confirma tu reserva de cancha y luego publica el partido.
+    <div>
+      {/* ── Club ─────────────────────────────────────── */}
+      <div style={ROW}>
+        <p style={LABEL}>Club o cancha</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.6rem" }}>
+          {BAQ_VENUES.map((v) => {
+            const selected = venueName === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => {
+                  setVenueName(selected ? "" : v);
+                  setMatchDate("");
+                  setMatchTime("");
+                  setDurationMinutes(90);
+                }}
+                style={{
+                  borderRadius: "4px",
+                  padding: "0.3rem 0.85rem",
+                  fontSize: "0.82rem",
+                  fontWeight: selected ? 600 : 400,
+                  fontFamily: "var(--font-dm-sans)",
+                  cursor: "pointer",
+                  transition: "all 0.12s",
+                  border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
+                  background: selected ? "var(--primary)" : "transparent",
+                  color: selected ? "var(--primary-fg)" : "var(--text-2)",
+                }}
+              >
+                {v}
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ fontSize: "0.75rem", color: "var(--text-3)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+          Tarifas EasyCancha, Casa Padel, Ace Padel Club y X3 Pádel Club.
         </p>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
-        {/* Venue */}
-        <div>
-          <label className="form-label" htmlFor="venue">
-            Club o cancha
-          </label>
-          {/* Quick-select chips */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.6rem" }}>
-            {BAQ_VENUES.map((v) => {
-              const selected = venueName === v;
+      {/* ── Duración (rule-based) ────────────────────── */}
+      {isRuleBased ? (
+        <div style={ROW}>
+          <p style={LABEL}>Duración del partido</p>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            {([60, 90] as const).map((dur) => {
+              const selected = durationMinutes === dur;
               return (
                 <button
-                  key={v}
+                  key={dur}
                   type="button"
                   onClick={() => {
-                    setVenueName(selected ? "" : v);
-                    setMatchDate("");
+                    setDurationMinutes(dur);
                     setMatchTime("");
-                    setDurationMinutes(90);
                   }}
                   style={{
-                    borderRadius: "999px",
-                    padding: "0.25rem 0.75rem",
-                    fontSize: "0.78rem",
-                    fontWeight: selected ? 600 : 400,
-                    fontFamily: "var(--font-dm-sans)",
-                    cursor: "pointer",
-                    transition: "all 0.12s",
+                    padding: "0.3rem 0.85rem",
+                    borderRadius: "4px",
                     border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
-                    background: selected ? "var(--primary-muted)" : "var(--surface)",
-                    color: selected ? "var(--primary)" : "var(--text-2)",
-                  }}
-                >
-                  {v}
-                </button>
-              );
-            })}
-          </div>
-          <p
-            style={{
-              fontSize: "0.78rem",
-              color: "var(--text-3)",
-              fontFamily: "var(--font-dm-sans)",
-              margin: 0,
-            }}
-          >
-            Tarifas EasyCancha, Casa Padel, Ace Padel Club y X3 Pádel Club.
-          </p>
-        </div>
-
-        {/* Duration selector — only for rule-based venues (Ace, X3) */}
-        {isRuleBased ? (
-          <div>
-            <label className="form-label">Duración del partido</label>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              {([60, 90] as const).map((dur) => {
-                const selected = durationMinutes === dur;
-                return (
-                  <button
-                    key={dur}
-                    type="button"
-                    onClick={() => {
-                      setDurationMinutes(dur);
-                      setMatchTime("");
-                    }}
-                    style={{
-                      padding: "0.4rem 1.1rem",
-                      borderRadius: "999px",
-                      border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
-                      background: selected ? "var(--primary-muted)" : "var(--card)",
-                      color: selected ? "var(--primary)" : "var(--text-2)",
-                      fontSize: "0.85rem",
-                      fontWeight: selected ? 600 : 400,
-                      fontFamily: "var(--font-dm-sans)",
-                      cursor: "pointer",
-                      transition: "border-color 0.1s, background 0.1s, color 0.1s",
-                    }}
-                  >
-                    {dur === 60 ? "1 hora" : "1.5 horas"}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Date strip */}
-        <div>
-          <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0 }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-            </svg>
-            Fecha del partido
-          </label>
-          <div
-            style={{
-              display: "flex",
-              gap: "0.5rem",
-              overflowX: "auto",
-              paddingBottom: "4px",
-              scrollbarWidth: "none",
-            }}
-          >
-            {DAYS.map((d) => {
-              const selected = matchDate === d.value;
-              return (
-                <button
-                  key={d.value}
-                  type="button"
-                  onClick={() => {
-                    setMatchDate(d.value);
-                    setMatchTime("");
-                    setShowAllTimes(false);
-                  }}
-                  style={{
-                    flexShrink: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "2px",
-                    padding: "0.6rem 0.75rem",
-                    borderRadius: "12px",
-                    border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
-                    background: selected ? "var(--primary-muted)" : "var(--card)",
-                    cursor: "pointer",
-                    transition: "border-color 0.12s, background 0.12s",
-                    minWidth: "52px",
-                  }}
-                >
-                  <span style={{
-                    fontSize: "0.68rem",
-                    fontWeight: 600,
-                    color: selected ? "var(--primary)" : "var(--text-3)",
-                    fontFamily: "var(--font-dm-sans)",
-                    letterSpacing: "0.03em",
-                    textTransform: "uppercase",
-                  }}>
-                    {d.dayName}
-                  </span>
-                  <span style={{
-                    fontSize: "1.15rem",
-                    fontWeight: 800,
-                    color: selected ? "var(--primary)" : "var(--text)",
-                    fontFamily: "var(--font-montserrat)",
-                    lineHeight: 1,
-                  }}>
-                    {d.dayNum}
-                  </span>
-                  <span style={{
-                    fontSize: "0.65rem",
-                    color: selected ? "var(--primary)" : "var(--text-3)",
-                    fontFamily: "var(--font-dm-sans)",
-                  }}>
-                    {d.monthName}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          {!matchDate ? (
-            <p
-              style={{
-                marginTop: "0.5rem",
-                fontSize: "0.78rem",
-                color: "var(--text-3)",
-                fontFamily: "var(--font-dm-sans)",
-              }}
-            >
-              Elige un día para ver los horarios disponibles.
-            </p>
-          ) : null}
-        </div>
-
-        {matchDate && venueName.trim() && !hasPricedVenue ? (
-          <div className="banner-danger">
-            Elige uno de los clubes de la lista para ver horarios y precios.
-          </div>
-        ) : null}
-
-        {matchDate && hasPricedVenue ? (
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                justifyContent: "space-between",
-                gap: "0.75rem",
-                marginBottom: "0.65rem",
-              }}
-            >
-              <label className="form-label" style={{ marginBottom: 0 }}>
-                Hora del partido
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  setMatchDate("");
-                  setMatchTime("");
-                  setShowAllTimes(false);
-                }}
-                style={{
-                  border: "none",
-                  background: "none",
-                  padding: 0,
-                  fontSize: "0.78rem",
-                  color: "var(--primary)",
-                  fontFamily: "var(--font-dm-sans)",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Cambiar día
-              </button>
-            </div>
-            <p
-              style={{
-                fontSize: "0.8rem",
-                color: "var(--text-2)",
-                marginBottom: "0.75rem",
-                fontFamily: "var(--font-dm-sans)",
-              }}
-            >
-              {formatSelectedDay(matchDate)}
-            </p>
-
-            <p
-              style={{
-                fontSize: "0.72rem",
-                color: "var(--text-3)",
-                marginBottom: "0.4rem",
-                fontFamily: "var(--font-dm-sans)",
-              }}
-            >
-              Horarios populares
-            </p>
-            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
-              {POPULAR_HOURS.map((t) => {
-                const available = availableSlots.some((s) => s.value === t);
-                if (!available) return null;
-                const selected = matchTime === t;
-                const slotFee = playerFeeForSlot(venueName, matchDate, t, durationMinutes);
-                if (slotFee == null) return null;
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setMatchTime(selected ? "" : t)}
-                    style={{
-                      padding: "0.5rem 0.85rem",
-                      borderRadius: "8px",
-                      border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
-                      background: selected ? "var(--primary-muted)" : "var(--card)",
-                      color: selected ? "var(--primary)" : "var(--text-2)",
-                      fontSize: "0.85rem",
-                      fontWeight: selected ? 700 : 500,
-                      fontFamily: "var(--font-dm-sans)",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "2px",
-                      minWidth: "4.5rem",
-                    }}
-                  >
-                    <span>{t}</span>
-                    <span
-                      style={{
-                        fontSize: "0.68rem",
-                        fontWeight: 600,
-                        color: selected ? "var(--primary)" : "var(--text-3)",
-                      }}
-                    >
-                      {formatCop(slotFee)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {showAllTimes ? (
-              <>
-                <p
-                  style={{
-                    fontSize: "0.72rem",
-                    color: "var(--text-3)",
-                    marginBottom: "0.4rem",
-                    fontFamily: "var(--font-dm-sans)",
-                  }}
-                >
-                  Más horarios
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "0.4rem",
-                    overflowX: "auto",
-                    paddingBottom: "4px",
-                    scrollbarWidth: "thin",
-                  }}
-                >
-                  {availableSlots.map((s) => {
-                    const selected = matchTime === s.value;
-                    const slotFee = playerFeeForSlot(venueName, matchDate, s.value, durationMinutes);
-                    if (slotFee == null) return null;
-                    return (
-                      <button
-                        key={s.value}
-                        type="button"
-                        onClick={() => setMatchTime(s.value)}
-                        style={{
-                          flexShrink: 0,
-                          padding: "0.45rem 0.65rem",
-                          borderRadius: "8px",
-                          border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
-                          background: selected ? "var(--primary-muted)" : "var(--card)",
-                          color: selected ? "var(--primary)" : "var(--text-2)",
-                          fontSize: "0.82rem",
-                          fontWeight: selected ? 700 : 400,
-                          fontFamily: "var(--font-dm-sans)",
-                          cursor: "pointer",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: "2px",
-                          minWidth: "3.5rem",
-                        }}
-                      >
-                        <span>{s.label}</span>
-                        <span
-                          style={{
-                            fontSize: "0.65rem",
-                            fontWeight: 600,
-                            color: selected ? "var(--primary)" : "var(--text-3)",
-                          }}
-                        >
-                          {formatCop(slotFee)}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAllTimes(false)}
-                  style={{
-                    marginTop: "0.5rem",
-                    border: "none",
-                    background: "none",
-                    padding: 0,
-                    fontSize: "0.78rem",
-                    color: "var(--text-3)",
-                    fontFamily: "var(--font-dm-sans)",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                  }}
-                >
-                  Ocultar horarios
-                </button>
-              </>
-            ) : availableSlots.length > POPULAR_HOURS.filter((t) =>
-                availableSlots.some((s) => s.value === t),
-              ).length ? (
-              <button
-                type="button"
-                onClick={() => setShowAllTimes(true)}
-                style={{
-                  padding: "0.5rem 0.875rem",
-                  borderRadius: "8px",
-                  border: "1px dashed var(--border)",
-                  background: "var(--surface)",
-                  color: "var(--text-2)",
-                  fontSize: "0.82rem",
-                  fontFamily: "var(--font-dm-sans)",
-                  cursor: "pointer",
-                  width: "100%",
-                }}
-              >
-                Ver más horarios ({availableSlots.length})
-              </button>
-            ) : null}
-            {availableSlots.length === 0 ? (
-              <p
-                style={{
-                  fontSize: "0.8rem",
-                  color: "var(--text-3)",
-                  fontFamily: "var(--font-dm-sans)",
-                }}
-              >
-                {availabilityLoading
-                  ? "Comprobando disponibilidad de canchas…"
-                  : bookableTimes !== null && bookableTimes.size === 0
-                    ? "No hay cancha libre en ese día. Prueba otro horario o día."
-                    : "No hay horarios disponibles para este club y día. Prueba otro día o club."}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {/* Deadline chips */}
-        <div>
-          <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0 }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Límite para unirse
-          </label>
-          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-            {DEADLINE_OPTIONS.map((o) => {
-              const selected = deadlineHours === o.hours;
-              return (
-                <button
-                  key={o.hours}
-                  type="button"
-                  onClick={() => setDeadlineHours(o.hours)}
-                  style={{
-                    padding: "0.4rem 0.875rem",
-                    borderRadius: "999px",
-                    border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
-                    background: selected ? "var(--primary-muted)" : "var(--card)",
-                    color: selected ? "var(--primary)" : "var(--text-2)",
+                    background: selected ? "var(--primary)" : "transparent",
+                    color: selected ? "var(--primary-fg)" : "var(--text-2)",
                     fontSize: "0.82rem",
                     fontWeight: selected ? 600 : 400,
                     fontFamily: "var(--font-dm-sans)",
                     cursor: "pointer",
                     transition: "border-color 0.1s, background 0.1s, color 0.1s",
-                    whiteSpace: "nowrap",
                   }}
                 >
-                  {o.label}
+                  {dur === 60 ? "1 hora" : "1.5 horas"}
                 </button>
               );
             })}
           </div>
         </div>
+      ) : null}
 
-        {/* Skill level */}
-        <div>
-          <label className="form-label" htmlFor="skillLevel" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0 }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
-            Nivel de juego
-          </label>
-          <select
-            id="skillLevel"
-            className="input-base"
-            value={skillLevel}
-            onChange={(e) => setSkillLevel(e.target.value)}
-          >
-            <option value="beginner">Principiante</option>
-            <option value="intermediate">Intermedio</option>
-            <option value="advanced">Avanzado</option>
-          </select>
+      {/* ── Fecha ────────────────────────────────────── */}
+      <div style={ROW}>
+        <p style={LABEL}>Fecha del partido</p>
+        <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "4px", scrollbarWidth: "none" }}>
+          {DAYS.map((d) => {
+            const selected = matchDate === d.value;
+            return (
+              <button
+                key={d.value}
+                type="button"
+                onClick={() => {
+                  setMatchDate(d.value);
+                  setMatchTime("");
+                  setShowAllTimes(false);
+                }}
+                style={{
+                  flexShrink: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "2px",
+                  padding: "0.6rem 0.75rem",
+                  borderRadius: "6px",
+                  border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
+                  background: selected ? "var(--primary)" : "transparent",
+                  cursor: "pointer",
+                  transition: "border-color 0.12s, background 0.12s",
+                  minWidth: "52px",
+                }}
+              >
+                <span style={{
+                  fontSize: "0.62rem",
+                  fontWeight: 600,
+                  color: selected ? "var(--primary-fg)" : "var(--text-3)",
+                  fontFamily: "var(--font-dm-sans)",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}>
+                  {d.dayName}
+                </span>
+                <span style={{
+                  fontSize: "1.15rem",
+                  fontWeight: 700,
+                  color: selected ? "var(--primary-fg)" : "var(--text)",
+                  fontFamily: "var(--font-mono-ui, 'DM Mono', monospace)",
+                  lineHeight: 1,
+                }}>
+                  {d.dayNum}
+                </span>
+                <span style={{
+                  fontSize: "0.62rem",
+                  color: selected ? "var(--primary-fg)" : "var(--text-3)",
+                  fontFamily: "var(--font-dm-sans)",
+                }}>
+                  {d.monthName}
+                </span>
+              </button>
+            );
+          })}
         </div>
+        {!matchDate ? (
+          <p style={{ marginTop: "0.6rem", fontSize: "0.78rem", color: "var(--text-3)", fontFamily: "var(--font-dm-sans)" }}>
+            Elige un día para ver los horarios disponibles.
+          </p>
+        ) : null}
+      </div>
 
-        {/* Notes */}
-        <div>
-          <label className="form-label" htmlFor="notes">
-            Notas del partido
-            <span style={{ color: "var(--text-3)", fontWeight: 400 }}> — opcional</span>
-          </label>
-          <textarea
-            id="notes"
-            className="input-base"
-            placeholder="Reglas especiales, equipamiento, indicaciones..."
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            style={{ resize: "vertical", minHeight: "80px" }}
-          />
+      {matchDate && venueName.trim() && !hasPricedVenue ? (
+        <div style={{ paddingTop: "0.75rem", paddingBottom: "0.75rem", borderBottom: "1px solid var(--border)" }}>
+          <div className="banner-danger">
+            Elige uno de los clubes de la lista para ver horarios y precios.
+          </div>
         </div>
+      ) : null}
 
+      {/* ── Hora (conditional) ───────────────────────── */}
+      {matchDate && hasPricedVenue ? (
+        <div style={ROW}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.65rem" }}>
+            <p style={{ ...LABEL, marginBottom: 0 }}>Hora del partido</p>
+            <button
+              type="button"
+              onClick={() => {
+                setMatchDate("");
+                setMatchTime("");
+                setShowAllTimes(false);
+              }}
+              style={{
+                border: "none",
+                background: "none",
+                padding: 0,
+                fontSize: "0.75rem",
+                color: "var(--primary)",
+                fontFamily: "var(--font-dm-sans)",
+                cursor: "pointer",
+                textDecoration: "underline",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Cambiar día
+            </button>
+          </div>
+          <p style={{ fontSize: "0.8rem", color: "var(--text-2)", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+            {formatSelectedDay(matchDate)}
+          </p>
+
+          <p style={{ fontSize: "0.68rem", color: "var(--text-3)", marginBottom: "0.4rem", fontFamily: "var(--font-mono-ui, 'DM Mono', monospace)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            Populares
+          </p>
+          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+            {POPULAR_HOURS.map((t) => {
+              const available = availableSlots.some((s) => s.value === t);
+              if (!available) return null;
+              const selected = matchTime === t;
+              const slotFee = playerFeeForSlot(venueName, matchDate, t, durationMinutes);
+              if (slotFee == null) return null;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setMatchTime(selected ? "" : t)}
+                  style={{
+                    padding: "0.5rem 0.85rem",
+                    borderRadius: "4px",
+                    border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
+                    background: selected ? "var(--primary)" : "transparent",
+                    color: selected ? "var(--primary-fg)" : "var(--text-2)",
+                    fontSize: "0.85rem",
+                    fontWeight: selected ? 700 : 500,
+                    fontFamily: "var(--font-dm-sans)",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "2px",
+                    minWidth: "4.5rem",
+                  }}
+                >
+                  <span>{t}</span>
+                  <span style={{ fontSize: "0.68rem", fontWeight: 600, color: selected ? "var(--primary-fg)" : "var(--text-3)" }}>
+                    {formatCop(slotFee)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {showAllTimes ? (
+            <>
+              <p style={{ fontSize: "0.68rem", color: "var(--text-3)", marginBottom: "0.4rem", fontFamily: "var(--font-mono-ui, 'DM Mono', monospace)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                Más horarios
+              </p>
+              <div style={{ display: "flex", gap: "0.4rem", overflowX: "auto", paddingBottom: "4px", scrollbarWidth: "thin" }}>
+                {availableSlots.map((s) => {
+                  const selected = matchTime === s.value;
+                  const slotFee = playerFeeForSlot(venueName, matchDate, s.value, durationMinutes);
+                  if (slotFee == null) return null;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => setMatchTime(s.value)}
+                      style={{
+                        flexShrink: 0,
+                        padding: "0.45rem 0.65rem",
+                        borderRadius: "4px",
+                        border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
+                        background: selected ? "var(--primary)" : "transparent",
+                        color: selected ? "var(--primary-fg)" : "var(--text-2)",
+                        fontSize: "0.82rem",
+                        fontWeight: selected ? 700 : 400,
+                        fontFamily: "var(--font-dm-sans)",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "2px",
+                        minWidth: "3.5rem",
+                      }}
+                    >
+                      <span>{s.label}</span>
+                      <span style={{ fontSize: "0.65rem", fontWeight: 600, color: selected ? "var(--primary-fg)" : "var(--text-3)" }}>
+                        {formatCop(slotFee)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAllTimes(false)}
+                style={{ marginTop: "0.5rem", border: "none", background: "none", padding: 0, fontSize: "0.78rem", color: "var(--text-3)", fontFamily: "var(--font-dm-sans)", cursor: "pointer", textDecoration: "underline" }}
+              >
+                Ocultar horarios
+              </button>
+            </>
+          ) : availableSlots.length > POPULAR_HOURS.filter((t) => availableSlots.some((s) => s.value === t)).length ? (
+            <button
+              type="button"
+              onClick={() => setShowAllTimes(true)}
+              style={{
+                padding: "0.5rem 0.875rem",
+                borderRadius: "4px",
+                border: "1px dashed var(--border)",
+                background: "transparent",
+                color: "var(--text-2)",
+                fontSize: "0.82rem",
+                fontFamily: "var(--font-dm-sans)",
+                cursor: "pointer",
+                width: "100%",
+              }}
+            >
+              Ver más horarios ({availableSlots.length})
+            </button>
+          ) : null}
+          {availableSlots.length === 0 ? (
+            <p style={{ fontSize: "0.8rem", color: "var(--text-3)", fontFamily: "var(--font-dm-sans)" }}>
+              {availabilityLoading
+                ? "Comprobando disponibilidad de canchas…"
+                : bookableTimes !== null && bookableTimes.size === 0
+                  ? "No hay cancha libre en ese día. Prueba otro horario o día."
+                  : "No hay horarios disponibles para este club y día. Prueba otro día o club."}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* ── Límite ───────────────────────────────────── */}
+      <div style={ROW}>
+        <p style={LABEL}>Límite para unirse</p>
+        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+          {DEADLINE_OPTIONS.map((o) => {
+            const selected = deadlineHours === o.hours;
+            return (
+              <button
+                key={o.hours}
+                type="button"
+                onClick={() => setDeadlineHours(o.hours)}
+                style={{
+                  padding: "0.3rem 0.85rem",
+                  borderRadius: "4px",
+                  border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
+                  background: selected ? "var(--primary)" : "transparent",
+                  color: selected ? "var(--primary-fg)" : "var(--text-2)",
+                  fontSize: "0.82rem",
+                  fontWeight: selected ? 600 : 400,
+                  fontFamily: "var(--font-dm-sans)",
+                  cursor: "pointer",
+                  transition: "border-color 0.1s, background 0.1s, color 0.1s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Nivel ────────────────────────────────────── */}
+      <div style={ROW}>
+        <label htmlFor="skillLevel" style={LABEL}>Nivel de juego</label>
+        <select
+          id="skillLevel"
+          className="input-base"
+          value={skillLevel}
+          onChange={(e) => setSkillLevel(e.target.value)}
+        >
+          <option value="beginner">Principiante</option>
+          <option value="intermediate">Intermedio</option>
+          <option value="advanced">Avanzado</option>
+        </select>
+      </div>
+
+      {/* ── Notas ────────────────────────────────────── */}
+      <div style={ROW}>
+        <label htmlFor="notes" style={LABEL}>
+          Notas <span style={{ opacity: 0.5 }}>— opcional</span>
+        </label>
+        <textarea
+          id="notes"
+          className="input-base"
+          placeholder="Reglas especiales, equipamiento, indicaciones..."
+          rows={3}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          style={{ resize: "vertical", minHeight: "80px" }}
+        />
+      </div>
+
+      {/* ── Submit ───────────────────────────────────── */}
+      <div style={{ paddingTop: "1.5rem" }}>
         {selectedPlayerFee != null && venueName.trim() ? (
           <div
             style={{
-              padding: "1rem 1.1rem",
-              borderRadius: "12px",
-              border: "1px solid var(--border)",
-              background: "var(--surface)",
               display: "flex",
-              flexDirection: "column",
-              gap: "0.35rem",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "1rem",
+              marginBottom: "1.25rem",
+              padding: "0.875rem 1rem",
+              background: "var(--surface-2, #1F1C17)",
+              borderRadius: "4px",
+              border: "1px solid var(--border)",
             }}
           >
-            <p
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 600,
-                color: "var(--text-3)",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                fontFamily: "var(--font-dm-sans)",
-                margin: 0,
-              }}
-            >
-              Precio por jugador
-            </p>
-            <p
-              style={{
-                margin: 0,
-                fontFamily: "var(--font-montserrat)",
-                fontWeight: 800,
-                fontSize: "1.35rem",
-                color: "var(--text)",
-                letterSpacing: "-0.02em",
-              }}
-            >
+            <div>
+              <p style={{ margin: 0, fontSize: "0.68rem", color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.12em", fontFamily: "var(--font-mono-ui, 'DM Mono', monospace)" }}>
+                Por jugador
+              </p>
+              <p style={{ margin: "0.2rem 0 0", fontSize: "0.8rem", color: "var(--text-2)", fontFamily: "var(--font-dm-sans)" }}>
+                Cada jugador paga al unirse
+              </p>
+            </div>
+            <p style={{ margin: 0, fontFamily: "var(--font-mono-ui, 'DM Mono', monospace)", fontWeight: 700, fontSize: "1.5rem", color: "var(--primary)", letterSpacing: "-0.02em", flexShrink: 0 }}>
               {formatCop(selectedPlayerFee)}
-            </p>
-            <p
-              style={{
-                margin: 0,
-                fontSize: "0.78rem",
-                color: "var(--text-2)",
-                fontFamily: "var(--font-dm-sans)",
-              }}
-            >
-              Cada jugador paga este valor al unirse al partido.
             </p>
           </div>
         ) : null}
 
-        {/* Error */}
         {message && (
-          <div className="banner-danger">
+          <div className="banner-danger" style={{ marginBottom: "1rem" }}>
             {message}
           </div>
         )}
 
-        {/* Submit */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.25rem" }}>
-          <Button
-            disabled={!canSubmit}
-            onClick={submit}
-            size="lg"
-            style={{ width: "100%" }}
-          >
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <Button disabled={!canSubmit} onClick={submit} size="lg" style={{ width: "100%" }}>
             {pending ? (
               <>
                 <SpinnerIcon />
@@ -774,15 +637,7 @@ export function MatchForm() {
             )}
           </Button>
           {selectedPlayerFee != null ? (
-            <p
-              style={{
-                textAlign: "center",
-                fontSize: "0.78rem",
-                color: "var(--text-2)",
-                fontFamily: "var(--font-dm-sans)",
-                margin: 0,
-              }}
-            >
+            <p style={{ textAlign: "center", fontSize: "0.78rem", color: "var(--text-2)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
               Publicar es gratis · Los jugadores pagan {formatCop(selectedPlayerFee)} al unirse
             </p>
           ) : null}

@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Syne, DM_Sans, Montserrat } from "next/font/google";
+import { DM_Sans, Barlow_Condensed, DM_Mono } from "next/font/google";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getCurrentProfile } from "@/services/profiles/service";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
-const syne = Syne({
-  variable: "--font-syne",
+const barlowCondensed = Barlow_Condensed({
+  variable: "--font-barlow",
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
+  weight: ["600", "700", "800", "900"],
   display: "swap",
 });
 
@@ -20,10 +20,10 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
   subsets: ["latin"],
-  weight: ["700", "800", "900"],
+  weight: ["400", "500"],
   display: "swap",
 });
 
@@ -31,10 +31,10 @@ export const metadata: Metadata = {
   title: "PadelYa!",
   description: "Encuentra partidos de pádel abiertos en Barranquilla. Únete, paga y juega.",
   manifest: "/manifest.json",
-  themeColor: "#10B981",
+  themeColor: "#0C0B08",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "PadelYa!",
   },
 };
@@ -51,7 +51,10 @@ export default async function RootLayout({
   const profile = isVenuePortal ? null : await getCurrentProfile().catch(() => null);
 
   return (
-    <html lang="es" className={`${syne.variable} ${dmSans.variable} ${montserrat.variable} h-full`}>
+    <html
+      lang="es"
+      className={`${barlowCondensed.variable} ${dmSans.variable} ${dmMono.variable} h-full`}
+    >
       <body className="min-h-full flex flex-col">
         {!isVenuePortal && (
           <SiteHeader
@@ -70,33 +73,64 @@ export default async function RootLayout({
         <main className="flex-1 flex flex-col">{children}</main>
 
         {!isVenuePortal && (
-        <footer
-          style={{ borderTop: "1px solid var(--border)", color: "var(--text-3)" }}
-          className="py-6 text-center text-xs"
-        >
-          <div
+          <footer
             style={{
-              fontFamily: "var(--font-dm-sans)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.75rem",
-              flexWrap: "wrap",
+              background: "var(--surface)",
+              borderTop: "1px solid var(--border)",
+              color: "var(--text-3)",
             }}
+            className="py-8"
           >
-            <span>© 2026 PadelYa! · Barranquilla, Colombia</span>
-            <span aria-hidden>·</span>
-            <Link href="/terms" style={{ textDecoration: "underline" }}>
-              Términos
-            </Link>
-            <Link href="/privacy" style={{ textDecoration: "underline" }}>
-              Privacidad
-            </Link>
-            <Link href="/refund-policy" style={{ textDecoration: "underline" }}>
-              Reembolsos
-            </Link>
-          </div>
-        </footer>
+            <div className="mx-auto max-w-6xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-barlow, 'Barlow Condensed', sans-serif)",
+                    fontWeight: 900,
+                    fontSize: "1.1rem",
+                    letterSpacing: "0.02em",
+                    color: "var(--text)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Padel<span style={{ color: "var(--primary)" }}>Ya!</span>
+                </span>
+                <span
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "var(--text-3)",
+                    fontFamily: "var(--font-dm-sans, 'DM Sans', sans-serif)",
+                  }}
+                >
+                  · Barranquilla, Colombia
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1.5rem",
+                  fontSize: "0.78rem",
+                  fontFamily: "var(--font-dm-sans, 'DM Sans', sans-serif)",
+                }}
+              >
+                <Link href="/terms" style={{ color: "var(--text-3)", textDecoration: "none" }}
+                  className="hover:text-[var(--text-2)]">
+                  Términos
+                </Link>
+                <Link href="/privacy" style={{ color: "var(--text-3)", textDecoration: "none" }}
+                  className="hover:text-[var(--text-2)]">
+                  Privacidad
+                </Link>
+                <Link href="/refund-policy" style={{ color: "var(--text-3)", textDecoration: "none" }}
+                  className="hover:text-[var(--text-2)]">
+                  Reembolsos
+                </Link>
+                <span>© 2026</span>
+              </div>
+            </div>
+          </footer>
         )}
       </body>
     </html>

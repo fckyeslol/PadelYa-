@@ -15,17 +15,6 @@ export const VENUE_COURT_COUNTS: Record<string, VenueCourtConfig> = {
   "x3-padel-club": { courts: 2 },
 };
 
-/** Usuario de portal por sede (contraseña inicial: 123 — rotar en producción). */
-export const VENUE_PORTAL_USERS: Record<string, string> = {
-  "padel-zenter-del-rio": "DelRio",
-  "casa-padel": "CasaPadel",
-  "padel-zenter-la-arenosa": "LaArenosa",
-  "la-jaula": "LaJaula",
-  "padel-park": "PadelPark",
-  "ace-padel-club": "AcePadel",
-  "x3-padel-club": "X3Padel",
-};
-
 export function courtLabelsForVenue(venueId: string): string[] {
   const cfg = VENUE_COURT_COUNTS[venueId];
   if (!cfg) return [];

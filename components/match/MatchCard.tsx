@@ -8,15 +8,15 @@ import { formatCop } from "@/utils/currency";
 import { formatDateTime } from "@/utils/dates";
 
 const SKILL_COLOR: Record<string, string> = {
-  beginner: "var(--success)",
+  beginner:     "var(--success)",
   intermediate: "var(--gold)",
-  advanced: "var(--danger)",
+  advanced:     "var(--danger)",
 };
 
 const SKILL_LABEL: Record<string, string> = {
-  beginner: "Principiante",
+  beginner:     "Principiante",
   intermediate: "Intermedio",
-  advanced: "Avanzado",
+  advanced:     "Avanzado",
 };
 
 function initials(name: string): string {
@@ -27,10 +27,10 @@ function initials(name: string): string {
 }
 
 const AVATAR_COLORS = [
-  { bg: "rgba(16,185,129,0.15)", color: "var(--primary)" },
-  { bg: "rgba(96,165,250,0.15)", color: "var(--info)" },
-  { bg: "rgba(245,158,11,0.15)", color: "var(--gold)" },
-  { bg: "rgba(248,113,113,0.15)", color: "var(--danger)" },
+  { bg: "rgba(0,201,167,0.15)",  color: "var(--success)" },
+  { bg: "rgba(77,163,255,0.15)", color: "var(--info)" },
+  { bg: "rgba(255,90,31,0.15)",  color: "var(--gold)" },
+  { bg: "rgba(233,255,71,0.15)", color: "var(--primary)" },
 ];
 
 export function MatchCard({ match }: { match: MatchPreview }) {
@@ -41,44 +41,45 @@ export function MatchCard({ match }: { match: MatchPreview }) {
   const isUrgent = isOpen && spotsLeft <= 1;
   const venueImage = getVenueImage(match.venueName);
 
+  const statusBorderColor = isOpen
+    ? "var(--primary)"
+    : isFull
+      ? "var(--success)"
+      : "var(--border)";
+
   return (
     <article
-      className="card-lift group rounded-2xl overflow-hidden"
+      className="card-lift group rounded-md overflow-hidden"
       style={{
         background: "var(--card)",
         border: "1px solid var(--border)",
+        borderLeft: `3px solid ${statusBorderColor}`,
       }}
     >
-      {venueImage ? (
-        <VenuePhoto venueName={match.venueName} height={130} rounded="0" />
-      ) : (
-        <div
-          style={{
-            height: "3px",
-            background: isOpen ? "var(--primary)" : isFull ? "var(--info)" : "var(--border)",
-          }}
-        />
+      {venueImage && (
+        <VenuePhoto venueName={match.venueName} height={120} rounded="0" />
       )}
 
-      <div className="p-5">
+      <div className="p-4">
         {/* Header row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
             <h3
               style={{
-                fontFamily: "var(--font-montserrat)",
+                fontFamily: "var(--font-barlow, 'Barlow Condensed', sans-serif)",
                 fontWeight: 700,
-                fontSize: "1.05rem",
+                fontSize: "1.15rem",
                 color: "var(--text)",
-                letterSpacing: "-0.01em",
-                lineHeight: 1.2,
+                letterSpacing: "0.01em",
+                textTransform: "uppercase",
+                lineHeight: 1.1,
                 marginBottom: "0.25rem",
               }}
               className="truncate"
             >
               {match.venueName}
             </h3>
-            <p style={{ color: "var(--text-2)", fontSize: "0.82rem" }}>
+            <p style={{ color: "var(--text-3)", fontSize: "0.8rem" }}>
               {formatDateTime(match.scheduledAt)}
             </p>
           </div>
@@ -92,42 +93,41 @@ export function MatchCard({ match }: { match: MatchPreview }) {
               display: "inline-flex",
               alignItems: "center",
               gap: "0.35rem",
-              background: "rgba(248,113,113,0.1)",
-              border: "1px solid rgba(248,113,113,0.25)",
-              borderRadius: "999px",
+              background: "rgba(255,68,68,0.1)",
+              border: "1px solid rgba(255,68,68,0.25)",
+              borderRadius: "2px",
               padding: "0.2rem 0.65rem",
-              fontSize: "0.75rem",
+              fontSize: "0.72rem",
               fontWeight: 600,
               color: "var(--danger)",
               marginBottom: "0.75rem",
+              fontFamily: "var(--font-dm-mono, 'DM Mono', monospace)",
+              letterSpacing: "0.05em",
             }}
           >
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--danger)", flexShrink: 0 }} />
-            {spotsLeft === 0 ? "¡Último cupo!" : "1 cupo disponible"}
+            {spotsLeft === 0 ? "¡Último cupo!" : "1 cupo libre"}
           </div>
         )}
 
         {/* Info row */}
-        <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           <span
             style={{
               display: "inline-flex",
               alignItems: "center",
               gap: "0.35rem",
-              background: "var(--surface)",
+              background: "var(--surface-2, #1F1C17)",
               border: "1px solid var(--border)",
-              borderRadius: "999px",
-              padding: "0.25rem 0.7rem",
-              fontSize: "0.78rem",
+              borderRadius: "2px",
+              padding: "0.2rem 0.65rem",
+              fontSize: "0.75rem",
               fontWeight: 500,
               color: "var(--text-2)",
             }}
           >
             <span
               style={{
-                width: "7px",
-                height: "7px",
-                borderRadius: "50%",
+                width: "6px", height: "6px", borderRadius: "50%",
                 background: SKILL_COLOR[match.skillLevel] ?? "var(--text-3)",
                 flexShrink: 0,
               }}
@@ -140,23 +140,23 @@ export function MatchCard({ match }: { match: MatchPreview }) {
               display: "inline-flex",
               alignItems: "center",
               gap: "0.3rem",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              color: "var(--gold)",
+              fontSize: "0.85rem",
+              fontWeight: 700,
+              color: "var(--primary)",
+              fontFamily: "var(--font-dm-mono, 'DM Mono', monospace)",
             }}
           >
-            <CopIcon />
-            {formatCop(match.orgFeeCop)} / jugador
+            {formatCop(match.orgFeeCop)}
           </span>
         </div>
 
-        {/* Social proof + slots */}
+        {/* Players + slots */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: "1.1rem",
+            marginBottom: "1rem",
           }}
         >
           {/* Player avatars */}
@@ -172,30 +172,18 @@ export function MatchCard({ match }: { match: MatchPreview }) {
                         key={i}
                         title={name}
                         style={{
-                          width: "28px",
-                          height: "28px",
+                          width: "26px", height: "26px",
                           borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "0.65rem",
-                          fontWeight: 700,
-                          marginLeft: i === 0 ? 0 : "-8px",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: "0.6rem", fontWeight: 700,
+                          marginLeft: i === 0 ? 0 : "-7px",
                           border: "2px solid var(--card)",
-                          flexShrink: 0,
-                          overflow: "hidden",
-                          position: "relative",
+                          flexShrink: 0, overflow: "hidden", position: "relative",
                           ...(!avatarUrl ? colors : { background: "transparent" }),
                         }}
                       >
                         {avatarUrl ? (
-                          <Image
-                            src={avatarUrl}
-                            alt={name}
-                            fill
-                            style={{ objectFit: "cover" }}
-                            sizes="28px"
-                          />
+                          <Image src={avatarUrl} alt={name} fill style={{ objectFit: "cover" }} sizes="26px" />
                         ) : (
                           initials(name)
                         )}
@@ -203,34 +191,39 @@ export function MatchCard({ match }: { match: MatchPreview }) {
                     );
                   })}
                 </div>
-                <span style={{ fontSize: "0.78rem", color: "var(--text-2)" }}>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>
                   {playerNames.length === 1
                     ? playerNames[0].split(" ")[0]
                     : `${playerNames[0].split(" ")[0]} +${playerNames.length - 1}`}
                 </span>
               </>
             ) : (
-              <span style={{ fontSize: "0.78rem", color: "var(--text-3)" }}>
-                Sé el primero en unirte
+              <span style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>
+                Sé el primero
               </span>
             )}
           </div>
 
-          {/* Slot bar */}
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          {/* Slot count — scoreboard style */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             {Array.from({ length: maxPlayers }).map((_, i) => (
               <div
                 key={i}
                 style={{
-                  width: "22px",
-                  height: "5px",
-                  borderRadius: "3px",
+                  width: "20px", height: "4px", borderRadius: "2px",
                   background: i < paidCount ? "var(--primary)" : "var(--border)",
                   transition: "background 0.2s",
                 }}
               />
             ))}
-            <span style={{ fontSize: "0.72rem", color: "var(--text-3)", marginLeft: "4px" }}>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                color: "var(--text-3)",
+                marginLeft: "2px",
+                fontFamily: "var(--font-dm-mono, 'DM Mono', monospace)",
+              }}
+            >
               {paidCount}/{maxPlayers}
             </span>
           </div>
@@ -241,28 +234,21 @@ export function MatchCard({ match }: { match: MatchPreview }) {
           href={`/matches/${match.id}`}
           className="block text-center"
           style={{
-            background: isOpen ? "var(--primary)" : "var(--surface)",
+            background: isOpen ? "var(--primary)" : "var(--surface-2, #1F1C17)",
             color: isOpen ? "var(--primary-fg)" : "var(--text-2)",
-            borderRadius: "10px",
+            borderRadius: "4px",
             padding: "0.6rem 1rem",
             fontWeight: 700,
-            fontSize: "0.875rem",
-            fontFamily: "var(--font-dm-sans)",
+            fontSize: "0.85rem",
+            fontFamily: "var(--font-dm-sans, 'DM Sans', sans-serif)",
             border: isOpen ? "none" : "1px solid var(--border)",
             transition: "opacity 0.15s ease",
+            textDecoration: "none",
           }}
         >
           {isOpen ? "Unirme →" : "Ver partido →"}
         </Link>
       </div>
     </article>
-  );
-}
-
-function CopIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33" />
-    </svg>
   );
 }

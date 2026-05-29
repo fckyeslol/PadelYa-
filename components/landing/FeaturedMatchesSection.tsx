@@ -24,7 +24,7 @@ export async function FeaturedMatchesSection() {
   if (featured.length === 0) return null;
 
   return (
-    <section style={{ background: "#f8fafc" }} className="px-6 py-16 lg:py-20">
+    <section style={{ background: "var(--bg)" }} className="px-6 py-16 lg:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <h2 className="landing-section-title">
@@ -33,7 +33,7 @@ export async function FeaturedMatchesSection() {
           <Link
             href="/matches"
             style={{
-              color: "#1a4fd6",
+              color: "var(--primary)",
               fontWeight: 700,
               fontSize: "0.9rem",
             }}
@@ -59,9 +59,11 @@ export async function FeaturedMatchesSection() {
                 <div>
                   <h3
                     style={{
-                      fontFamily: "var(--font-montserrat)",
+                      fontFamily: "var(--font-display)",
                       fontWeight: 700,
-                      fontSize: "1.05rem",
+                      fontSize: "1.1rem",
+                      letterSpacing: "0.01em",
+                      textTransform: "uppercase",
                       marginBottom: "0.25rem",
                     }}
                   >
@@ -83,9 +85,9 @@ export async function FeaturedMatchesSection() {
                   style={{
                     display: "inline-flex",
                     alignSelf: "flex-start",
-                    background: "#1e3a6e",
-                    color: "#ffffff",
-                    borderRadius: "999px",
+                    background: "var(--primary)",
+                    color: "var(--primary-fg)",
+                    borderRadius: "4px",
                     padding: "0.6rem 1.25rem",
                     fontSize: "0.85rem",
                     fontWeight: 700,

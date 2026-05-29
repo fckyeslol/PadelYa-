@@ -21,6 +21,24 @@ type PricingSlotsFile = {
 
 const DATA = pricingData as PricingSlotsFile;
 
+(function checkPricingStaleness() {
+  const dates = DATA.calendarDates;
+  if (!dates?.length) return;
+  const lastDate = dates[dates.length - 1];
+  const lastMs = new Date(`${lastDate}T23:59:59-05:00`).getTime();
+  const nowMs = Date.now();
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  if (nowMs > lastMs) {
+    console.error(
+      `[pricing] DATOS DE PRECIOS EXPIRADOS — último día: ${lastDate}. Ejecuta "npm run pricing:generate".`,
+    );
+  } else if (nowMs > lastMs - SEVEN_DAYS_MS) {
+    console.warn(
+      `[pricing] Los datos de precios expiran pronto (${lastDate}). Ejecuta "npm run pricing:generate".`,
+    );
+  }
+})();
+
 export const COURT_MARKUP_COP = DATA.markupCop;
 export const PRICING_SOURCE = DATA.source;
 export const PRICING_CALENDAR_DATES = DATA.calendarDates;

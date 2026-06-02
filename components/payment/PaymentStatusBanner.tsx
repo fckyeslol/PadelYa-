@@ -22,7 +22,7 @@ export function PaymentStatusBanner({ status }: { status?: string }) {
   return (
     <div className="banner-warning" style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
       <ClockIcon />
-      <span>Pago en proceso. Te confirmamos cuando Mercado Pago lo apruebe.</span>
+      <span>Pago en proceso. Te confirmamos cuando Wompi lo apruebe.</span>
     </div>
   );
 }

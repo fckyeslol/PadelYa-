@@ -92,7 +92,7 @@ export interface Payment {
   playerId: string;
   amountCop: number;
   currency: "COP";
-  provider: "mercadopago" | "wompi";
+  provider: "wompi" | "mercadopago";
   status: "pending" | "approved" | "declined" | "voided" | "refunded";
   paymentMethod?: string | null;
   externalReference?: string | null;

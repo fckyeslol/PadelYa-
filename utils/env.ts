@@ -26,19 +26,19 @@ export function getPublicSupabaseEnv() {
   };
 }
 
-/** Server-only: creates preferences and processes payments. */
-export function getMercadoPagoAccessToken() {
-  return required("MP_ACCESS_TOKEN", process.env.MP_ACCESS_TOKEN);
+/** Public key for the Wompi Widget (safe to expose in the browser). */
+export function getWompiPublicKey() {
+  return required("NEXT_PUBLIC_WOMPI_PUBLIC_KEY", process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY);
 }
 
-/** Public key for Payment Brick (safe to expose in the browser). */
-export function getMercadoPagoPublicKey() {
-  return required("NEXT_PUBLIC_MP_PUBLIC_KEY", process.env.NEXT_PUBLIC_MP_PUBLIC_KEY);
+/** Server-only: generates the integrity hash for Wompi payment requests. */
+export function getWompiIntegritySecret() {
+  return required("WOMPI_INTEGRITY_SECRET", process.env.WOMPI_INTEGRITY_SECRET);
 }
 
-/** Server-only: validates Mercado Pago webhook signatures. */
-export function getMercadoPagoWebhookSecret() {
-  return required("MP_WEBHOOK_SECRET", process.env.MP_WEBHOOK_SECRET);
+/** Server-only: validates Wompi webhook event signatures. */
+export function getWompiEventsSecret() {
+  return required("WOMPI_WEBHOOK_SECRET", process.env.WOMPI_WEBHOOK_SECRET);
 }
 
 export function getUltraMsgEnv() {

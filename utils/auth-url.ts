@@ -1,7 +1,9 @@
 /** Canonical production domain (custom domain on Vercel). */
 export const PRODUCTION_APP_URL = "https://padelya.co";
 
-const DEPRECATED_APP_HOSTS = new Set(["padel-ya.vercel.app"]);
+// Hosts that should be rewritten to the canonical production URL.
+// Includes deprecated Vercel preview URLs and www variants.
+const DEPRECATED_APP_HOSTS = new Set(["padel-ya.vercel.app", "www.padelya.co"]);
 
 function stripTrailingSlash(url: string) {
   return url.replace(/\/$/, "");
@@ -101,7 +103,6 @@ export function buildAuthCallbackUrl(origin: string, next?: string): string {
   return `${base}${path}`;
 }
 
-/** Client-side callback URL for signInWithOtp. */
 /** Direct app link using hashed_token (avoids broken redirect_to / localhost). */
 export function buildMagicLinkFromHashedToken(
   callbackUrl: string,
@@ -121,7 +122,11 @@ export function getClientAuthCallbackUrl(next?: string): string | undefined {
 
   const { origin, hostname } = window.location;
   if (hostname !== "localhost" && hostname !== "127.0.0.1") {
-    return buildAuthCallbackUrl(origin, next);
+    // Always normalize to canonical domain so www.padelya.co → padelya.co.
+    // This prevents Supabase from rejecting the redirectTo when the user
+    // arrives via the www subdomain (which may not be in the allowlist).
+    const canonicalOrigin = normalizeAppUrl(origin);
+    return buildAuthCallbackUrl(canonicalOrigin, next);
   }
 
   const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();

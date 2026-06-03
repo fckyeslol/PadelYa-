@@ -134,7 +134,13 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
     });
 
     checkout.open((result) => {
-      const tx = result.transaction;
+      const tx = result?.transaction;
+      if (!tx) {
+        // Widget closed without a transaction (e.g. user dismissed it).
+        setError("Cerraste el pago. Puedes intentarlo de nuevo cuando quieras.");
+        setStep("confirm");
+        return;
+      }
       if (tx.status === "APPROVED") {
         setStep("success");
       } else if (tx.status === "PENDING") {
@@ -144,6 +150,9 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
         setStep("confirm");
       }
     });
+
+    // Safety valve: if the widget closes without firing the callback (sandbox quirk),
+    // the user can manually escape via the cancel button shown in the "paying" UI.
   }, [step, scriptLoaded, checkoutParams]);
 
   /** Auto-redirect to match page after a successful payment. */
@@ -198,6 +207,16 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
             <div className={styles.brickWrap}>
               <BrickLoadingOverlay label="Abriendo checkout seguro de Wompi…" />
             </div>
+            {step === "paying" && (
+              <GhostButton
+                onClick={() => {
+                  setError("Cerraste el pago. Puedes intentarlo de nuevo cuando quieras.");
+                  setStep("confirm");
+                }}
+              >
+                ← Cancelar pago
+              </GhostButton>
+            )}
           </>
         )}
 

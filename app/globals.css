@@ -136,6 +136,10 @@ body {
   box-shadow: 0 0 0 3px rgba(233, 255, 71, 0.10);
 }
 .input-base option { background: var(--surface); color: var(--text); }
+select.input-base {
+  appearance: none;
+  -webkit-appearance: none;
+}
 input[type="datetime-local"].input-base,
 input[type="date"].input-base,
 input[type="time"].input-base { color-scheme: dark; }

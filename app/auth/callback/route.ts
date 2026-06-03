@@ -69,6 +69,16 @@ export async function GET(request: NextRequest) {
         `${origin}/login?error=auth_failed&detail=${encodeURIComponent(error?.message ?? "otp")}`,
       );
     }
+
+    // Password reset: skip profile setup; send straight to the update-password page
+    if (type === "recovery") {
+      const recoveryTarget = NextResponse.redirect(`${origin}/auth/update-password`);
+      response.cookies.getAll().forEach(({ name, value, ...opts }) => {
+        recoveryTarget.cookies.set(name, value, opts as Parameters<typeof recoveryTarget.cookies.set>[2]);
+      });
+      return recoveryTarget;
+    }
+
     await ensureProfile(data.user.id, data.user.user_metadata, data.user.email);
 
     const incomplete = await isProfileIncomplete(data.user.id);

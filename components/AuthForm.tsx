@@ -1,64 +1,38 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { getClientAuthCallbackUrl } from "@/utils/auth-url";
 
+type Mode = "login" | "signup" | "forgot";
+
 function mapAuthError(message: string): string {
   const lower = message.toLowerCase();
-  if (lower.includes("security purposes") || lower.includes("after") && lower.includes("second")) {
-    return "Espera al menos 1 minuto antes de solicitar otro enlace de acceso.";
+  if (lower.includes("invalid login credentials") || lower.includes("invalid credentials")) {
+    return "Correo o contraseña incorrectos.";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "Confirma tu correo primero. Revisa tu bandeja de entrada.";
+  }
+  if (lower.includes("user already registered")) {
+    return "Ya existe una cuenta con ese correo. Intenta ingresar.";
+  }
+  if (lower.includes("password should be") || lower.includes("least 6") || lower.includes("least 8")) {
+    return "La contraseña debe tener al menos 8 caracteres.";
   }
   if (lower.includes("rate limit") || lower.includes("too many")) {
-    return "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.";
-  }
-  if (lower.includes("signup") && lower.includes("disabled")) {
-    return "El registro está deshabilitado en el servidor. Contacta al administrador.";
-  }
-  if (lower.includes("redirect") || lower.includes("url")) {
-    return "La URL de retorno no está autorizada. Revisa la configuración de Supabase.";
+    return "Demasiados intentos. Espera unos minutos.";
   }
   if (lower.includes("invalid") && lower.includes("email")) {
     return "Correo no válido. Revisa que esté bien escrito.";
   }
-  if (lower.includes("confirmation email") || lower.includes("sending email")) {
-    return "No pudimos enviar el correo de acceso. Reintenta en unos minutos o contacta soporte si persiste.";
+  if (lower.includes("signup") && lower.includes("disabled")) {
+    return "El registro está deshabilitado. Contacta al administrador.";
   }
   return message;
-}
-
-async function requestMagicLink(input: {
-  email: string;
-  firstName: string;
-  lastName: string;
-  next?: string;
-  redirectOrigin?: string;
-}): Promise<{ ok: true } | { ok: false; error: string; fallback?: boolean }> {
-  const response = await fetch("/api/auth/magic-link", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as {
-    error?: string;
-    fallback?: boolean;
-  };
-
-  if (response.ok) {
-    return { ok: true };
-  }
-
-  if (payload.fallback) {
-    return { ok: false, error: "", fallback: true };
-  }
-
-  return {
-    ok: false,
-    error: payload.error ?? "No pudimos enviar el correo. Intenta de nuevo.",
-  };
 }
 
 export function AuthForm({
@@ -68,71 +42,94 @@ export function AuthForm({
   next?: string;
   initialError?: string | null;
 }) {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>("login");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(initialError ?? null);
-  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(initialError ?? null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [signupDone, setSignupDone] = useState(false);
 
-  const canSubmit = email && firstName && lastName && !pending;
+  function switchMode(newMode: Mode) {
+    setMode(newMode);
+    setError(null);
+    setSuccessMsg(null);
+    if (newMode !== mode) setPassword("");
+  }
 
-  function signInWithMagicLink() {
+  function handleLogin() {
     startTransition(async () => {
-      const supabase = getSupabaseBrowserClient();
-      const callbackUrl = getClientAuthCallbackUrl(next);
-      const redirectOrigin =
-        typeof window !== "undefined" ? window.location.origin : undefined;
-
-      const normalizedEmail = email.trim().toLowerCase();
-      const trimmedFirst = firstName.trim();
-      const trimmedLast = lastName.trim();
-
-      const viaResend = await requestMagicLink({
-        email: normalizedEmail,
-        firstName: trimmedFirst,
-        lastName: trimmedLast,
-        next,
-        redirectOrigin,
+      setError(null);
+      const { error: authError } = await getSupabaseBrowserClient().auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
       });
-
-      if (viaResend.ok) {
-        setEmail(normalizedEmail);
-        setSent(true);
-        setMessage(null);
+      if (authError) {
+        setError(mapAuthError(authError.message));
         return;
       }
-
-      if (!viaResend.fallback) {
-        setMessage(mapAuthError(viaResend.error));
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithOtp({
-        email: normalizedEmail,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: callbackUrl,
-          data: {
-            first_name: trimmedFirst,
-            last_name: trimmedLast,
-          },
-        },
-      });
-
-      if (error) {
-        setMessage(mapAuthError(error.message));
-        return;
-      }
-
-      setEmail(normalizedEmail);
-
-      setSent(true);
-      setMessage(null);
+      router.push(next ?? "/matches");
+      router.refresh();
     });
   }
 
-  if (sent) {
+  function handleSignup() {
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+    startTransition(async () => {
+      setError(null);
+      const callbackUrl = getClientAuthCallbackUrl(next);
+      const { error: authError } = await getSupabaseBrowserClient().auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          emailRedirectTo: callbackUrl,
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+          },
+        },
+      });
+      if (authError) {
+        setError(mapAuthError(authError.message));
+        return;
+      }
+      setSignupDone(true);
+    });
+  }
+
+  function handleForgot() {
+    startTransition(async () => {
+      setError(null);
+      setSuccessMsg(null);
+      const callbackUrl = getClientAuthCallbackUrl();
+      // Point reset to the callback, which will detect type=recovery and redirect to update-password
+      const redirectTo =
+        callbackUrl ??
+        (typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "/auth/callback");
+
+      const { error: authError } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        { redirectTo },
+      );
+      if (authError) {
+        setError(mapAuthError(authError.message));
+        return;
+      }
+      setSuccessMsg(
+        "Si ese correo está registrado, recibirás un enlace para crear una nueva contraseña.",
+      );
+    });
+  }
+
+  // ── Post-signup: "check your email" state ───────────────────────────────────
+  if (signupDone) {
     return (
       <div
         style={{
@@ -150,8 +147,8 @@ export function AuthForm({
             width: "56px",
             height: "56px",
             borderRadius: "16px",
-            background: "var(--primary-muted)",
-            border: "1px solid rgba(30,58,110,0.2)",
+            background: "rgba(233,255,71,0.08)",
+            border: "1px solid rgba(233,255,71,0.18)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -160,9 +157,14 @@ export function AuthForm({
           }}
         >
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+            />
           </svg>
         </div>
+
         <h2
           style={{
             fontFamily: "var(--font-montserrat)",
@@ -172,15 +174,23 @@ export function AuthForm({
             marginBottom: "0.5rem",
           }}
         >
-          Revisa tu correo
+          Confirma tu correo
         </h2>
         <p style={{ color: "var(--text-2)", fontSize: "0.9rem", lineHeight: 1.6 }}>
-          Hola <strong style={{ color: "var(--text)" }}>{firstName}</strong>, te enviamos un
-          link a <strong style={{ color: "var(--text)" }}>{email}</strong>.
-          Haz clic en él para ingresar a PadelYa!
+          Hola{" "}
+          <strong style={{ color: "var(--text)" }}>{firstName}</strong>, te enviamos un enlace de
+          confirmación a{" "}
+          <strong style={{ color: "var(--text)" }}>{email}</strong>. Haz clic en él para activar
+          tu cuenta.
+        </p>
+        <p style={{ color: "var(--text-3)", fontSize: "0.8rem", marginTop: "0.6rem", lineHeight: 1.5 }}>
+          ¿No lo ves? Revisa la carpeta de spam.
         </p>
         <button
-          onClick={() => { setSent(false); setEmail(""); setFirstName(""); setLastName(""); }}
+          onClick={() => {
+            setSignupDone(false);
+            setPassword("");
+          }}
           style={{
             marginTop: "1.5rem",
             color: "var(--text-3)",
@@ -190,13 +200,21 @@ export function AuthForm({
             cursor: "pointer",
             fontFamily: "var(--font-dm-sans)",
           }}
-          className="hover:text-[var(--text-2)]"
         >
           Usar otro correo
         </button>
       </div>
     );
   }
+
+  const canLogin = email.trim().length > 0 && password.length >= 1 && !pending;
+  const canSignup =
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    !pending;
+  const canForgot = email.trim().length > 0 && !pending;
 
   return (
     <div
@@ -209,109 +227,132 @@ export function AuthForm({
         width: "100%",
       }}
     >
-      {/* Header */}
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div style={{ marginBottom: "1.75rem" }}>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            background: "var(--primary-muted)",
-            border: "1px solid rgba(30,58,110,0.2)",
-            borderRadius: "999px",
-            padding: "0.25rem 0.75rem",
-            marginBottom: "1rem",
-          }}
-        >
-          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--primary)", flexShrink: 0, display: "block" }} />
-          <span style={{ color: "var(--primary)", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>
-            Sin contraseña
-          </span>
-        </div>
-
-        <h1
-          style={{
-            fontFamily: "var(--font-montserrat)",
-            fontWeight: 800,
-            fontSize: "1.75rem",
-            letterSpacing: "-0.025em",
-            color: "var(--text)",
-            marginBottom: "0.5rem",
-          }}
-        >
-          Entrar a PadelYa!
-        </h1>
-        <p style={{ color: "var(--text-2)", fontSize: "0.9rem", lineHeight: 1.5 }}>
-          Ingresa tu nombre y correo. Te enviamos un link mágico.
-        </p>
+        {mode === "forgot" ? (
+          <>
+            <button
+              onClick={() => switchMode("login")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.375rem",
+                color: "var(--text-3)",
+                fontSize: "0.82rem",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                marginBottom: "1.25rem",
+                padding: 0,
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              ← Volver
+            </button>
+            <h1
+              style={{
+                fontFamily: "var(--font-montserrat)",
+                fontWeight: 800,
+                fontSize: "1.75rem",
+                letterSpacing: "-0.025em",
+                color: "var(--text)",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Restablecer contraseña
+            </h1>
+            <p style={{ color: "var(--text-2)", fontSize: "0.88rem", lineHeight: 1.5 }}>
+              Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1
+              style={{
+                fontFamily: "var(--font-montserrat)",
+                fontWeight: 800,
+                fontSize: "1.75rem",
+                letterSpacing: "-0.025em",
+                color: "var(--text)",
+                marginBottom: "1.25rem",
+              }}
+            >
+              PadelYa!
+            </h1>
+            {/* Mode tab switcher */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                background: "rgba(255,255,255,0.04)",
+                borderRadius: "12px",
+                padding: "3px",
+                gap: "3px",
+              }}
+            >
+              {(["login", "signup"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => switchMode(m)}
+                  style={{
+                    padding: "0.5rem",
+                    borderRadius: "9px",
+                    border: "none",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-dm-sans)",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    transition: "background 0.15s, color 0.15s",
+                    background:
+                      mode === m ? "rgba(255,255,255,0.09)" : "transparent",
+                    color: mode === m ? "var(--text)" : "var(--text-3)",
+                  }}
+                >
+                  {m === "login" ? "Ingresar" : "Crear cuenta"}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Form */}
+      {/* ── Form fields ─────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-        {/* Name row */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
-          <div>
-            <label
-              htmlFor="auth-first-name"
-              style={{
-                display: "block",
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: "var(--text-2)",
-                marginBottom: "0.4rem",
-                fontFamily: "var(--font-dm-sans)",
-              }}
-            >
-              Nombre
-            </label>
-            <input
-              id="auth-first-name"
-              type="text"
-              placeholder="Mateo"
-              className="input-base"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              autoComplete="given-name"
-            />
+        {mode === "signup" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
+            <div>
+              <label htmlFor="auth-first-name" style={labelStyle}>
+                Nombre
+              </label>
+              <input
+                id="auth-first-name"
+                type="text"
+                placeholder="Mateo"
+                className="input-base"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                autoComplete="given-name"
+              />
+            </div>
+            <div>
+              <label htmlFor="auth-last-name" style={labelStyle}>
+                Apellido
+              </label>
+              <input
+                id="auth-last-name"
+                type="text"
+                placeholder="Pirela"
+                className="input-base"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                autoComplete="family-name"
+              />
+            </div>
           </div>
-          <div>
-            <label
-              htmlFor="auth-last-name"
-              style={{
-                display: "block",
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: "var(--text-2)",
-                marginBottom: "0.4rem",
-                fontFamily: "var(--font-dm-sans)",
-              }}
-            >
-              Apellido
-            </label>
-            <input
-              id="auth-last-name"
-              type="text"
-              placeholder="Pirela"
-              className="input-base"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              autoComplete="family-name"
-            />
-          </div>
-        </div>
+        )}
 
         <div>
-          <label
-            htmlFor="auth-email"
-            style={{
-              display: "block",
-              fontSize: "0.8rem",
-              fontWeight: 500,
-              color: "var(--text-2)",
-              marginBottom: "0.4rem",
-              fontFamily: "var(--font-dm-sans)",
-            }}
-          >
+          <label htmlFor="auth-email" style={labelStyle}>
             Correo electrónico
           </label>
           <input
@@ -322,29 +363,109 @@ export function AuthForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && canSubmit) signInWithMagicLink();
+              if (e.key === "Enter" && mode === "forgot" && canForgot) handleForgot();
             }}
             autoComplete="email"
           />
         </div>
 
-        <Button
-          disabled={!canSubmit}
-          onClick={signInWithMagicLink}
-          size="lg"
-          style={{ width: "100%", marginTop: "0.25rem" }}
-        >
-          {pending ? (
-            <>
-              <SpinnerIcon />
-              Enviando...
-            </>
-          ) : (
-            "Ingresar con link →"
-          )}
-        </Button>
+        {mode !== "forgot" && (
+          <div>
+            <label htmlFor="auth-password" style={labelStyle}>
+              Contraseña
+            </label>
+            <div style={{ position: "relative" }}>
+              <input
+                id="auth-password"
+                type={showPassword ? "text" : "password"}
+                placeholder={mode === "signup" ? "Mínimo 8 caracteres" : "Tu contraseña"}
+                className="input-base"
+                style={{ paddingRight: "2.75rem" }}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (mode === "login" && canLogin) handleLogin();
+                    if (mode === "signup" && canSignup) handleSignup();
+                  }
+                }}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                style={{
+                  position: "absolute",
+                  right: "0.75rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-3)",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "0.25rem",
+                }}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+            {mode === "signup" && password.length > 0 && password.length < 8 && (
+              <p
+                style={{
+                  color: "var(--danger)",
+                  fontSize: "0.75rem",
+                  marginTop: "0.35rem",
+                  fontFamily: "var(--font-dm-sans)",
+                }}
+              >
+                Mínimo 8 caracteres ({password.length}/8)
+              </p>
+            )}
+          </div>
+        )}
 
-        {message && (
+        {/* Forgot password link (login mode only) */}
+        {mode === "login" && !successMsg && (
+          <div style={{ textAlign: "right", marginTop: "-0.25rem" }}>
+            <button
+              onClick={() => switchMode("forgot")}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-3)",
+                fontSize: "0.78rem",
+                cursor: "pointer",
+                fontFamily: "var(--font-dm-sans)",
+                padding: 0,
+              }}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+        )}
+
+        {/* Success message (forgot flow) */}
+        {successMsg && (
+          <p
+            style={{
+              background: "rgba(233,255,71,0.06)",
+              border: "1px solid rgba(233,255,71,0.18)",
+              borderRadius: "8px",
+              padding: "0.6rem 0.875rem",
+              color: "var(--primary)",
+              fontSize: "0.82rem",
+              lineHeight: 1.5,
+            }}
+          >
+            {successMsg}
+          </p>
+        )}
+
+        {/* Error message */}
+        {error && (
           <p
             style={{
               background: "rgba(248,113,113,0.08)",
@@ -355,8 +476,34 @@ export function AuthForm({
               fontSize: "0.82rem",
             }}
           >
-            {message}
+            {error}
           </p>
+        )}
+
+        {/* Submit button */}
+        {!successMsg && (
+          <Button
+            disabled={
+              mode === "login" ? !canLogin : mode === "signup" ? !canSignup : !canForgot
+            }
+            onClick={
+              mode === "login" ? handleLogin : mode === "signup" ? handleSignup : handleForgot
+            }
+            size="lg"
+            style={{ width: "100%", marginTop: "0.25rem" }}
+          >
+            {pending ? (
+              <>
+                <SpinnerIcon /> Procesando...
+              </>
+            ) : mode === "login" ? (
+              "Ingresar →"
+            ) : mode === "signup" ? (
+              "Crear cuenta →"
+            ) : (
+              "Enviar enlace →"
+            )}
+          </Button>
         )}
       </div>
 
@@ -380,6 +527,44 @@ export function AuthForm({
         .
       </p>
     </div>
+  );
+}
+
+// ── Shared styles ──────────────────────────────────────────────────────────────
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: "0.8rem",
+  fontWeight: 500,
+  color: "var(--text-2)",
+  marginBottom: "0.4rem",
+  fontFamily: "var(--font-dm-sans)",
+};
+
+// ── Icons ──────────────────────────────────────────────────────────────────────
+
+function EyeIcon() {
+  return (
+    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+      />
+    </svg>
   );
 }
 

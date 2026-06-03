@@ -193,10 +193,10 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   ).length;
   const paymentBannerStatus = query.payment;
 
-  const shouldAutoStartPayment =
-    query.pay === "1" || myPlayer?.status === "pending_payment";
+  const shouldAutoStartPayment = query.pay === "1";
+  const hasPendingPaymentSlot = myPlayer?.status === "pending_payment";
   const hasConfirmedSpot = myPlayer?.status === "paid";
-  const canJoin = isOpen && paidCount < 4 && !hasConfirmedSpot && hasCsvFee;
+  const canJoin = isOpen && paidCount < 4 && !hasConfirmedSpot && !hasPendingPaymentSlot && hasCsvFee;
   const canChat =
     match!.hostPlayerId === user?.id ||
     (!!myPlayer &&
@@ -368,6 +368,36 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
                 <p style={{ fontSize: "0.75rem", color: "var(--text-3)", textAlign: "center", fontFamily: "var(--font-dm-sans)" }}>
                   Ya tienes cuenta? El link te lleva directo al partido.
                 </p>
+              </div>
+            ) : hasPendingPaymentSlot ? (
+              /* ── Pago enviado, esperando confirmación ───── */
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+                <div
+                  style={{
+                    background: "rgba(251,191,36,0.06)",
+                    border: "1px solid rgba(251,191,36,0.25)",
+                    borderRadius: "14px",
+                    padding: "1.25rem",
+                    display: "flex",
+                    gap: "0.75rem",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <span style={{ fontSize: "1.25rem", lineHeight: 1 }}>⏳</span>
+                  <div>
+                    <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
+                      Verificando tu pago
+                    </p>
+                    <p style={{ fontSize: "0.82rem", color: "var(--text-2)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.55 }}>
+                      Si ya pagaste con Nequi u otro método, tu cupo se confirma automáticamente en unos minutos. Si aún no has completado el pago, usa el botón de abajo.
+                    </p>
+                  </div>
+                </div>
+                <MatchPaymentCheckout
+                  matchId={match!.id}
+                  orgFeeCop={displayFee}
+                  autoStart={false}
+                />
               </div>
             ) : canJoin ? (
               /* ── Auth user ──────────────────────────────── */

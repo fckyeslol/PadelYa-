@@ -69,7 +69,7 @@ export async function PATCH(request: Request) {
             if (playerEmail) {
               const playerName =
                 profile?.full_name ??
-                (authUser.user.user_metadata?.full_name as string | undefined) ??
+                (authUser.user?.user_metadata?.full_name as string | undefined) ??
                 "Jugador";
               const matchVenue = matchDetail?.venue_name ?? "Tu partido de pádel";
               const matchDate = matchDetail?.scheduled_at

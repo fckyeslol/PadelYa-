@@ -30,8 +30,6 @@ type Props = {
   searchParams: Promise<{
     payment?: string;
     pay?: string;
-    collection_status?: string;
-    status?: string;
   }>;
 };
 
@@ -193,15 +191,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const occupiedCount = players.filter(
     (p) => p.status === "paid" || p.status === "pending_payment",
   ).length;
-  const paymentBannerStatus =
-    query.payment ??
-    (query.collection_status === "approved" || query.status === "approved"
-      ? "approved"
-      : query.collection_status === "rejected" || query.status === "rejected"
-        ? "declined"
-        : query.collection_status === "pending" || query.status === "pending"
-          ? "pending"
-          : undefined);
+  const paymentBannerStatus = query.payment;
 
   const shouldAutoStartPayment =
     query.pay === "1" || myPlayer?.status === "pending_payment";

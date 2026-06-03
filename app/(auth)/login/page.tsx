@@ -1,7 +1,7 @@
 import { AuthForm } from "@/components/AuthForm";
 
 const LOGIN_ERRORS: Record<string, string> = {
-  missing_code: "El enlace de acceso no es válido o ya expiró. Solicita uno nuevo.",
+  missing_code: "El enlace no es válido o ya expiró.",
   auth_failed: "No pudimos completar el inicio de sesión. Intenta de nuevo.",
 };
 

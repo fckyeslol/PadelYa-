@@ -107,7 +107,7 @@ export function TrustStrip() {
           <span className={styles.trustIcon}>
             <ShieldCheckIcon size={14} />
           </span>
-          <span className={styles.trustText}>Procesado por MP</span>
+          <span className={styles.trustText}>Procesado por Wompi</span>
         </div>
       </div>
       <p className={styles.legal}>
@@ -125,13 +125,9 @@ export function TrustStrip() {
   );
 }
 
+/** @deprecated Use WompiBadge inside WompiCheckout instead. */
 export function MercadoPagoBadge() {
-  return (
-    <div className={styles.mpBadge}>
-      <span>Procesado por</span>
-      <span className={styles.mpLogo}>mercado pago</span>
-    </div>
-  );
+  return null;
 }
 
 export function PrimaryButton({

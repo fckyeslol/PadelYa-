@@ -404,7 +404,7 @@ async function _handleApprovedPayment({
   await supabase.from("match_players").update({ status: "paid" }).eq("id", matchPlayerId);
 
   const { data: fillResult } = await supabase.rpc("try_fill_match", { p_match_id: matchId });
-  const justFilled = fillResult === "filled";
+  const justFilled = fillResult === "full";
 
   await supabase.from("analytics_events").insert({
     event_name: "payment_approved",

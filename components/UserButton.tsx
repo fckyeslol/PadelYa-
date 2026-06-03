@@ -221,6 +221,13 @@ export function UserButton({ fullName, avatarUrl }: UserButtonProps) {
             Mi perfil público
           </DropdownItem>
 
+          <DropdownItem href="/payments" onClick={() => setOpen(false)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8.25h18M3 9h18M6.75 14.25h4.5M6.75 16.5h3M5.25 19.5h13.5A2.25 2.25 0 0021 17.25V6.75A2.25 2.25 0 0018.75 4.5H5.25A2.25 2.25 0 003 6.75v10.5a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            Mis pagos
+          </DropdownItem>
+
           <DropdownItem onClick={() => { setOpen(false); signOut(); }} danger disabled={pending}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />

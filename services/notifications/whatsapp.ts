@@ -1,11 +1,11 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatDateTime } from "@/utils/dates";
 
-function getUltraMsgEnv() {
-  const instance = process.env.ULTRAMSG_INSTANCE;
-  const token = process.env.ULTRAMSG_TOKEN;
-  if (!instance || !token) return null;
-  return { instance, token };
+function getMetaWaEnv() {
+  const phoneNumberId = process.env.WA_PHONE_NUMBER_ID;
+  const accessToken = process.env.WA_ACCESS_TOKEN;
+  if (!phoneNumberId || !accessToken) return null;
+  return { phoneNumberId, accessToken };
 }
 
 function getOwnerPhone(): string | null {
@@ -13,20 +13,32 @@ function getOwnerPhone(): string | null {
 }
 
 async function send(to: string, body: string): Promise<void> {
-  const env = getUltraMsgEnv();
-  if (!env) return;
+  const env = getMetaWaEnv();
+  if (!env) return; // silently skip if not configured
 
-  const phone = to.startsWith("+") ? to : `+${to}`;
+  // Meta requires phone without leading + — just digits with country code
+  const phone = to.replace(/^\+/, "");
 
-  const res = await fetch(`https://api.ultramsg.com/${env.instance}/messages/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ token: env.token, to: phone, body }),
-  });
+  const res = await fetch(
+    `https://graph.facebook.com/v20.0/${env.phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.accessToken}`,
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "text",
+        text: { body, preview_url: false },
+      }),
+    }
+  );
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`UltraMsg send failed (${res.status}): ${err}`);
+    throw new Error(`WhatsApp send failed (${res.status}): ${err}`);
   }
 }
 
@@ -87,7 +99,7 @@ async function getPaidPlayerPhones(
     .filter((p) => p.phone !== "");
 }
 
-/** Notifies the host (creator) when their match is confirmed and they're in. */
+/** Notifies the host (creator) when their match is confirmed and they are in. */
 export async function notifyHostMatchCreated(params: {
   hostPhone: string;
   hostName: string;

@@ -46,11 +46,11 @@ export function getWompiPrivateKey() {
   return required("WOMPI_PRIVATE_KEY", process.env.WOMPI_PRIVATE_KEY);
 }
 
-export function getUltraMsgEnv() {
-  const instance = process.env.ULTRAMSG_INSTANCE;
-  const token = process.env.ULTRAMSG_TOKEN;
-  if (!instance || !token) return null;
-  return { instance, token };
+export function getWhatsAppPhoneNumberId(): string | null {
+  return process.env.WA_PHONE_NUMBER_ID ?? null;
+}
+export function getWhatsAppAccessToken(): string | null {
+  return process.env.WA_ACCESS_TOKEN ?? null;
 }
 
 export function getResendEnv() {

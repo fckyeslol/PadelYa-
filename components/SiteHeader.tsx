@@ -39,6 +39,7 @@ export function SiteHeader({ profile }: Props) {
     { href: "/matches", label: "Partidos" },
     { href: "/matches/new", label: "Crear partido" },
     { href: "/players", label: "Jugadores" },
+    ...(profile ? [{ href: "/payments", label: "Mis pagos" }] : []),
     ...(profile?.role === "organizer" ? [{ href: "/organizer", label: "Organizador" }] : []),
   ];
 

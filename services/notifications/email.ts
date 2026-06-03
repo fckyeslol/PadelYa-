@@ -138,6 +138,56 @@ export async function sendMatchFilledEmail(input: MatchFilledEmailInput) {
   }
 }
 
+export type RefundProcessedEmailInput = {
+  playerEmail: string;
+  playerName: string;
+  amountCop: number;
+  matchVenue: string;
+  matchDate: string;
+};
+
+export async function sendRefundProcessedEmail(input: RefundProcessedEmailInput) {
+  const resend = getResendEnv();
+  if (!resend) return;
+
+  const amount = formatCop(input.amountCop);
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resend.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: resend.from,
+        to: [input.playerEmail],
+        subject: "Tu devolución ha sido procesada — PadelYa!",
+        html: `
+          <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5; max-width: 480px;">
+            <h2 style="margin: 0 0 12px;">Tu devolución ha sido procesada</h2>
+            <p style="margin: 0 0 12px;">Hola ${escapeHtml(input.playerName)},</p>
+            <p style="margin: 0 0 12px;">
+              Tu devolución de <strong>${escapeHtml(amount)}</strong> ha sido procesada exitosamente.
+              El valor aparecerá reflejado en tu cuenta en un plazo de 3 a 5 días hábiles.
+            </p>
+            <div style="margin: 14px 0; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px;">
+              <p style="margin: 0 0 6px;"><strong>Partido:</strong> ${escapeHtml(input.matchVenue)}</p>
+              <p style="margin: 0 0 6px;"><strong>Fecha:</strong> ${escapeHtml(input.matchDate)}</p>
+              <p style="margin: 0;"><strong>Monto devuelto:</strong> ${escapeHtml(amount)}</p>
+            </div>
+            <p style="margin: 16px 0 0; color: #6b7280; font-size: 14px;">
+              Si tienes dudas sobre la devolución, contáctanos respondiendo este correo.
+            </p>
+          </div>
+        `,
+      }),
+    });
+  } catch {
+    // Email delivery should never block the refund operation.
+  }
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")

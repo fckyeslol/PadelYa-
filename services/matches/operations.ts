@@ -295,7 +295,7 @@ export async function cancelMatchAsOrganizer(matchId: string, reason: string) {
 
   const { data: payments, error: paymentsError } = await supabase
     .from("payments")
-    .select("id, amount_cop")
+    .select("id, amount_cop, wompi_transaction_id")
     .eq("match_id", matchId)
     .eq("status", "approved");
   if (paymentsError) {
@@ -314,6 +314,31 @@ export async function cancelMatchAsOrganizer(matchId: string, reason: string) {
     );
     if (refundsError) {
       throw refundsError;
+    }
+
+    // Attempt automatic Wompi void for each approved payment.
+    for (const payment of payments) {
+      if (!payment.wompi_transaction_id) continue;
+      try {
+        const voidResult = await voidWompiTransaction(
+          payment.wompi_transaction_id,
+          payment.amount_cop * 100,
+        );
+        if (voidResult.success) {
+          await Promise.all([
+            supabase.from("payments").update({ status: "voided" }).eq("id", payment.id),
+            supabase
+              .from("refunds")
+              .update({ status: "refunded" })
+              .eq("payment_id", payment.id),
+          ]);
+          console.log("[auto-refund] Voided transaction", payment.wompi_transaction_id, "for payment", payment.id);
+        } else {
+          console.log("[auto-refund] Void failed for", payment.wompi_transaction_id, "—", voidResult.error, "— left as pending_manual");
+        }
+      } catch (err) {
+        console.log("[auto-refund] Unexpected error voiding payment", payment.id, err);
+      }
     }
   }
 
@@ -367,7 +392,7 @@ export async function cancelPlayerSpot(matchId: string, playerId: string) {
   if (!isLate) {
     const { data: payment, error: paymentError } = await supabase
       .from("payments")
-      .select("id, amount_cop")
+      .select("id, amount_cop, wompi_transaction_id")
       .eq("match_player_id", matchPlayer.id)
       .eq("status", "approved")
       .maybeSingle();
@@ -387,6 +412,30 @@ export async function cancelPlayerSpot(matchId: string, playerId: string) {
       );
       if (refundError) {
         throw refundError;
+      }
+
+      // Attempt automatic Wompi void for the player's approved payment.
+      if (payment.wompi_transaction_id) {
+        try {
+          const voidResult = await voidWompiTransaction(
+            payment.wompi_transaction_id,
+            payment.amount_cop * 100,
+          );
+          if (voidResult.success) {
+            await Promise.all([
+              supabase.from("payments").update({ status: "voided" }).eq("id", payment.id),
+              supabase
+                .from("refunds")
+                .update({ status: "refunded" })
+                .eq("payment_id", payment.id),
+            ]);
+            console.log("[auto-refund] Voided transaction", payment.wompi_transaction_id, "for player", playerId);
+          } else {
+            console.log("[auto-refund] Void failed for", payment.wompi_transaction_id, "—", voidResult.error, "— left as pending_manual");
+          }
+        } catch (err) {
+          console.log("[auto-refund] Unexpected error voiding payment", payment.id, err);
+        }
       }
     }
   }

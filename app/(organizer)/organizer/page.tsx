@@ -1,11 +1,14 @@
 import { AnalyticsKpiCards } from "@/components/organizer/AnalyticsKpiCards";
+import { OrganizerMatchEarningsTable } from "@/components/organizer/OrganizerMatchEarningsTable";
 import { OrganizerMatchTable } from "@/components/organizer/OrganizerMatchTable";
 import { OrganizerRefundTable } from "@/components/organizer/OrganizerRefundTable";
 import { redirect } from "next/navigation";
 import { requireOrganizerUser } from "@/lib/auth/organizer";
+import { getMatchEarnings, sumEarnings } from "@/services/analytics/match-revenue";
 import { getOrganizerKpis } from "@/services/analytics/service";
 import { listOpenMatches } from "@/services/matches/service";
 import { listAllRefunds } from "@/services/refunds/service";
+import { formatCop } from "@/utils/currency";
 
 export const dynamic = "force-dynamic";
 
@@ -44,11 +47,13 @@ export default async function OrganizerPage() {
     );
   }
 
-  const [matches, analytics, refunds] = await Promise.all([
+  const [matches, analytics, refunds, matchEarnings] = await Promise.all([
     listOpenMatches(),
     getOrganizerKpis(),
     listAllRefunds().catch(() => []),
+    getMatchEarnings(50).catch(() => []),
   ]);
+  const totalEarningsCop = sumEarnings(matchEarnings);
   const latestFunnel = analytics.funnel[0];
   const completedMatches = Number(latestFunnel?.matches_completed ?? 0);
   const createdMatches = Number(latestFunnel?.matches_created ?? 0);
@@ -127,6 +132,81 @@ export default async function OrganizerPage() {
           fillRate={fillRate}
           repeatRate={repeatRate}
         />
+
+        <section>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "space-between",
+              gap: "0.75rem",
+              marginBottom: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <h2
+                style={{
+                  fontFamily: "var(--font-montserrat)",
+                  fontWeight: 700,
+                  fontSize: "1.1rem",
+                  color: "var(--text)",
+                  letterSpacing: "-0.01em",
+                  marginBottom: "0.15rem",
+                }}
+              >
+                Ingresos por partido
+              </h2>
+              <p style={{ color: "var(--text-2)", fontSize: "0.82rem" }}>
+                Recaudo (tarifa × jugadores pagos) en los últimos 50 partidos.
+              </p>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: "0.15rem",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.65rem",
+                  fontWeight: 600,
+                  color: "var(--text-3)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  fontFamily: "var(--font-dm-sans)",
+                }}
+              >
+                Total mostrado
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 800,
+                  fontSize: "1.4rem",
+                  color: "var(--primary)",
+                  letterSpacing: "-0.01em",
+                  lineHeight: 1,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {formatCop(totalEarningsCop)}
+              </span>
+            </div>
+          </div>
+          <div
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: "16px",
+              padding: matchEarnings.length === 0 ? "1.25rem" : "0.5rem",
+            }}
+          >
+            <OrganizerMatchEarningsTable rows={matchEarnings} />
+          </div>
+        </section>
 
         <section>
           <h2

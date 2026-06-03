@@ -144,41 +144,33 @@ export async function getCommunityStats(): Promise<{ totalPlayers: number; match
 
 export async function listCommunityPlayers(limit = 30, skillLevel?: string): Promise<CommunityPlayerCard[]> {
   const supabase = getSupabaseAdminClient();
-  const fetchLimit = skillLevel ? limit * 6 : limit * 3;
-  const { data, error } = await supabase
-    .from("match_players")
-    .select("player_id, joined_at, profiles(full_name, avatar_url, skill_level)")
-    .in("status", ["paid", "pending_payment"])
-    .order("joined_at", { ascending: false })
-    .limit(fetchLimit);
 
-  if (error) throw error;
+  let query = supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, skill_level, created_at")
+    .order("created_at", { ascending: false })
+    .limit(skillLevel ? limit * 4 : limit);
 
-  const seen = new Set<string>();
-  const players: CommunityPlayerCard[] = [];
-
-  for (const row of (data ?? []) as Array<{
-    player_id: string;
-    joined_at: string;
-    profiles:
-      | { full_name: string; avatar_url: string | null; skill_level: "beginner" | "intermediate" | "advanced" }
-      | Array<{ full_name: string; avatar_url: string | null; skill_level: "beginner" | "intermediate" | "advanced" }>
-      | null;
-  }>) {
-    if (seen.has(row.player_id)) continue;
-    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-    if (!profile) continue;
-    if (skillLevel && profile.skill_level !== skillLevel) continue;
-    seen.add(row.player_id);
-    players.push({
-      id: row.player_id,
-      fullName: sanitizeDisplayName(profile.full_name, "Jugador"),
-      avatarUrl: profile.avatar_url,
-      skillLevel: profile.skill_level,
-      lastSeenAt: row.joined_at,
-    });
-    if (players.length >= limit) break;
+  if (skillLevel) {
+    query = query.eq("skill_level", skillLevel);
   }
 
-  return players;
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return ((data ?? []) as Array<{
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+    skill_level: "beginner" | "intermediate" | "advanced";
+    created_at: string;
+  }>)
+    .slice(0, limit)
+    .map((row) => ({
+      id: row.id,
+      fullName: sanitizeDisplayName(row.full_name, "Jugador"),
+      avatarUrl: row.avatar_url,
+      skillLevel: row.skill_level,
+      lastSeenAt: row.created_at,
+    }));
 }

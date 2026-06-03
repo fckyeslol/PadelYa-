@@ -49,13 +49,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Password reset via PKCE flow — type=recovery arrives alongside the code
-    if (type === "recovery") {
-      const recoveryTarget = NextResponse.redirect(`${origin}/auth/update-password`);
-      response.cookies.getAll().forEach(({ name, value, ...opts }) => {
-        recoveryTarget.cookies.set(name, value, opts as Parameters<typeof recoveryTarget.cookies.set>[2]);
-      });
-      return recoveryTarget;
+    // Password reset via PKCE flow: redirectTo is /auth/callback?next=/auth/update-password
+    // so `next` tells us this was a recovery — skip profile setup
+    if (next === "/auth/update-password") {
+      return response;
     }
 
     await ensureProfile(data.user.id, data.user.user_metadata, data.user.email);

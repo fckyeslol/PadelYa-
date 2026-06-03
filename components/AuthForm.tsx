@@ -108,11 +108,14 @@ export function AuthForm({
     startTransition(async () => {
       setError(null);
       setSuccessMsg(null);
-      const callbackUrl = getClientAuthCallbackUrl();
-      // Point reset to the callback, which will detect type=recovery and redirect to update-password
+      // Pass next=/auth/update-password so the callback knows this is a recovery flow.
+      // PKCE doesn't include type=recovery in the redirect, so we rely on the next param.
+      const callbackUrl = getClientAuthCallbackUrl("/auth/update-password");
       const redirectTo =
         callbackUrl ??
-        (typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "/auth/callback");
+        (typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback?next=%2Fauth%2Fupdate-password`
+          : "/auth/callback?next=%2Fauth%2Fupdate-password");
 
       const { error: authError } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(
         email.trim().toLowerCase(),

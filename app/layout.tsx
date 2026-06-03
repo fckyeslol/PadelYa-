@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Barlow_Condensed, DM_Mono } from "next/font/google";
 import Link from "next/link";
 import { headers } from "next/headers";
@@ -27,11 +27,14 @@ const dmMono = DM_Mono({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#0C0B08",
+};
+
 export const metadata: Metadata = {
   title: "PadelYa!",
   description: "Encuentra partidos de pádel abiertos en Barranquilla. Únete, paga y juega.",
   manifest: "/manifest.json",
-  themeColor: "#0C0B08",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

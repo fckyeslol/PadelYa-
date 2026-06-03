@@ -106,7 +106,16 @@ function verifyWompiSignature(event: WompiWebhookEvent, eventsSecret: string): b
   });
   const manifest = [...values, String(event.timestamp), eventsSecret].join("");
   const expected = crypto.createHash("sha256").update(manifest).digest("hex");
-  return expected === checksum;
+  const ok = expected === checksum;
+  if (!ok) {
+    console.error("[webhook/wompi] signature mismatch", {
+      properties,
+      expectedLength: expected.length,
+      checksumLength: checksum.length,
+      secretPrefix: eventsSecret.slice(0, 12) + "...",
+    });
+  }
+  return ok;
 }
 
 // ── DB: reserve match_players slot ────────────────────────────────────────
@@ -311,8 +320,14 @@ export async function createCheckoutForMatch(
 export async function processWompiWebhook(body: Record<string, unknown>): Promise<void> {
   const event = body as unknown as WompiWebhookEvent;
 
-  if (event.event !== "transaction.updated") return;
-  if (!event.data?.transaction?.reference) return;
+  if (event.event !== "transaction.updated") {
+    console.log("[webhook/wompi] skipping non-transaction event:", event.event);
+    return;
+  }
+  if (!event.data?.transaction?.reference) {
+    console.error("[webhook/wompi] missing transaction reference in payload");
+    return;
+  }
 
   // Verify signature.
   const eventsSecret = getWompiEventsSecret();
@@ -321,15 +336,36 @@ export async function processWompiWebhook(body: Record<string, unknown>): Promis
   }
 
   const tx = event.data.transaction;
+  console.log("[webhook/wompi] signature ok, processing tx", {
+    reference: tx.reference,
+    status: tx.status,
+    id: tx.id,
+  });
+
   const supabase = getSupabaseAdminClient();
 
-  const { data: payment } = await supabase
+  const { data: payment, error: paymentLookupError } = await supabase
     .from("payments")
     .select("id, match_id, player_id, match_player_id, status, amount_cop")
     .eq("wompi_reference", tx.reference)
     .maybeSingle();
 
-  if (!payment || payment.status === "approved") return;
+  if (paymentLookupError) {
+    console.error("[webhook/wompi] DB error looking up payment:", paymentLookupError.message);
+    throw new Error("DB lookup failed: " + paymentLookupError.message);
+  }
+
+  if (!payment) {
+    console.error("[webhook/wompi] no payment found for reference:", tx.reference);
+    return;
+  }
+
+  if (payment.status === "approved") {
+    console.log("[webhook/wompi] payment already approved, skipping:", payment.id);
+    return;
+  }
+
+  console.log("[webhook/wompi] found payment", { id: payment.id, currentStatus: payment.status });
 
   const mappedStatus =
     tx.status === "APPROVED"

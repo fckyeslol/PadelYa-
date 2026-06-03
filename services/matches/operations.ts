@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { voidWompiTransaction } from "@/services/payments/service";
 
 export type MatchPlayerRow = {
   id: string;
@@ -125,8 +126,110 @@ export async function markMatchCompleted(matchId: string) {
 export async function cancelUnfilledMatchesNow() {
   const supabase = getSupabaseAdminClient();
   const { error } = await supabase.rpc("cancel_unfilled_matches");
-  if (error) {
-    throw error;
+  if (error) throw error;
+
+  // After cancelling, automatically void Wompi transactions and record refunds.
+  await processAutoRefundsForUnfilledMatches();
+}
+
+/**
+ * Finds approved payments for cancelled_unfilled matches that have no refund
+ * record yet, calls the Wompi void API for each, and records the outcome.
+ * Safe to call multiple times — idempotent via the refunds.payment_id unique constraint.
+ */
+async function processAutoRefundsForUnfilledMatches(): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+
+  // 1. Find cancelled_unfilled matches (set by the RPC above).
+  const { data: cancelledMatches, error: matchesError } = await supabase
+    .from("matches")
+    .select("id")
+    .eq("status", "cancelled_unfilled")
+    .limit(100);
+
+  if (matchesError) {
+    console.error("[refunds] Failed to query cancelled matches", matchesError);
+    return;
+  }
+  if (!cancelledMatches?.length) return;
+
+  const matchIds = cancelledMatches.map((m) => m.id);
+
+  // 2. Find approved payments for those matches.
+  const { data: payments, error: paymentsError } = await supabase
+    .from("payments")
+    .select("id, match_id, player_id, amount_cop, wompi_transaction_id")
+    .eq("status", "approved")
+    .in("match_id", matchIds);
+
+  if (paymentsError) {
+    console.error("[refunds] Failed to query payments", paymentsError);
+    return;
+  }
+  if (!payments?.length) return;
+
+  // 3. Exclude payments that already have a refund record.
+  const paymentIds = payments.map((p) => p.id);
+  const { data: existingRefunds } = await supabase
+    .from("refunds")
+    .select("payment_id")
+    .in("payment_id", paymentIds);
+
+  const alreadyQueued = new Set((existingRefunds ?? []).map((r) => r.payment_id));
+  const toProcess = payments.filter((p) => !alreadyQueued.has(p.id));
+  if (!toProcess.length) return;
+
+  // 4. For each payment, attempt a Wompi void and record the result.
+  for (const payment of toProcess) {
+    try {
+      if (!payment.wompi_transaction_id) {
+        // No Wompi transaction ID — flag for manual review.
+        await supabase.from("refunds").upsert(
+          {
+            payment_id: payment.id,
+            amount_cop: payment.amount_cop,
+            status: "pending_manual",
+            reason: "match_cancelled_unfilled",
+          },
+          { onConflict: "payment_id" },
+        );
+        continue;
+      }
+
+      const amountInCents = payment.amount_cop * 100;
+      const result = await voidWompiTransaction(payment.wompi_transaction_id, amountInCents);
+
+      if (result.success) {
+        // Mark payment as voided and refund as done.
+        await Promise.all([
+          supabase.from("payments").update({ status: "voided" }).eq("id", payment.id),
+          supabase.from("refunds").upsert(
+            {
+              payment_id: payment.id,
+              amount_cop: payment.amount_cop,
+              status: "refunded",
+              reason: "match_cancelled_unfilled",
+            },
+            { onConflict: "payment_id" },
+          ),
+        ]);
+        console.log(`[refunds] Voided transaction ${payment.wompi_transaction_id} for payment ${payment.id}`);
+      } else {
+        // Void failed — flag for manual review.
+        await supabase.from("refunds").upsert(
+          {
+            payment_id: payment.id,
+            amount_cop: payment.amount_cop,
+            status: "pending_manual",
+            reason: "match_cancelled_unfilled",
+          },
+          { onConflict: "payment_id" },
+        );
+        console.error(`[refunds] Wompi void failed for ${payment.wompi_transaction_id}: ${result.error}`);
+      }
+    } catch (err) {
+      console.error(`[refunds] Unexpected error for payment ${payment.id}:`, err);
+    }
   }
 }
 

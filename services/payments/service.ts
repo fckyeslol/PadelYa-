@@ -10,7 +10,7 @@ import {
   notifyMatchFull,
 } from "@/services/notifications/whatsapp";
 import { getAppUrl } from "@/utils/auth-url";
-import { getWompiPublicKey, getWompiIntegritySecret, getWompiEventsSecret } from "@/utils/env";
+import { getWompiPublicKey, getWompiIntegritySecret, getWompiEventsSecret, getWompiPrivateKey } from "@/utils/env";
 import { getErrorMessage } from "@/utils/errors";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -27,6 +27,41 @@ export type CheckoutResult = {
   /** Where Wompi redirects after the payment overlay closes */
   redirectUrl: string;
 };
+
+// ── Wompi: void transaction via management API ────────────────────────────
+
+/** Calls the Wompi void endpoint to cancel an approved transaction. */
+export async function voidWompiTransaction(
+  transactionId: string,
+  amountInCents: number,
+): Promise<{ success: boolean; error?: string }> {
+  const privateKey = getWompiPrivateKey();
+  const isSandbox = privateKey.startsWith("prv_test_");
+  const baseUrl = isSandbox
+    ? "https://sandbox.wompi.co/v1"
+    : "https://production.wompi.co/v1";
+
+  try {
+    const res = await fetch(`${baseUrl}/transactions/${transactionId}/void`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${privateKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount_in_cents: amountInCents }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      return { success: false, error: `HTTP ${res.status}: ${body}` };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
+}
 
 // ── Wompi: integrity signature ─────────────────────────────────────────────
 

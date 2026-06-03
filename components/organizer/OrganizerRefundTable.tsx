@@ -51,6 +51,25 @@ export function OrganizerRefundTable({ refunds: initial }: { refunds: RefundRow[
   const pendingRefunds = refunds.filter((r) => r.status === "pending_manual");
   const resolvedRefunds = refunds.filter((r) => r.status !== "pending_manual");
 
+  const statusLabel: Record<string, string> = {
+    processed: "Procesado manualmente",
+    rejected: "Rechazado",
+    refunded: "Reembolsado automáticamente",
+    failed: "Error — revisar",
+  };
+  const statusColor: Record<string, string> = {
+    processed: "var(--success)",
+    rejected: "var(--danger)",
+    refunded: "var(--primary)",
+    failed: "var(--danger)",
+  };
+  const statusBg: Record<string, string> = {
+    processed: "rgba(16,185,129,0.1)",
+    rejected: "rgba(239,68,68,0.1)",
+    refunded: "rgba(233,255,71,0.08)",
+    failed: "rgba(239,68,68,0.1)",
+  };
+
   if (refunds.length === 0) {
     return (
       <p style={{ color: "var(--text-3)", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>
@@ -169,11 +188,11 @@ export function OrganizerRefundTable({ refunds: initial }: { refunds: RefundRow[
                     fontFamily: "var(--font-dm-sans)",
                     padding: "0.2rem 0.6rem",
                     borderRadius: "999px",
-                    background: r.status === "processed" ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)",
-                    color: r.status === "processed" ? "var(--success)" : "var(--danger)",
+                    background: statusBg[r.status] ?? "rgba(255,255,255,0.06)",
+                    color: statusColor[r.status] ?? "var(--text-3)",
                   }}
                 >
-                  {r.status === "processed" ? "Procesado" : "Rechazado"}
+                  {statusLabel[r.status] ?? r.status}
                 </span>
               </div>
             ))}

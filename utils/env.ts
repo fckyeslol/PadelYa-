@@ -41,6 +41,11 @@ export function getWompiEventsSecret() {
   return required("WOMPI_WEBHOOK_SECRET", process.env.WOMPI_WEBHOOK_SECRET);
 }
 
+/** Server-only: authenticates Wompi management API calls (void/refund). */
+export function getWompiPrivateKey() {
+  return required("WOMPI_PRIVATE_KEY", process.env.WOMPI_PRIVATE_KEY);
+}
+
 export function getUltraMsgEnv() {
   const instance = process.env.ULTRAMSG_INSTANCE;
   const token = process.env.ULTRAMSG_TOKEN;

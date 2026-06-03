@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Script from "next/script";
 import { formatCop } from "@/utils/currency";
 import {
   BrickLoadingOverlay,
@@ -72,10 +71,46 @@ function funnelStep(step: Step): FunnelStepKey {
 export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) {
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [scriptReady, setScriptReady] = useState(false);
   const [checkoutParams, setCheckoutParams] = useState<CheckoutParams | null>(null);
   const checkoutInFlightRef = useRef(false);
   const autoStartedRef = useRef(false);
+
+  /** Load Wompi script manually so we can detect when it's already cached. */
+  useEffect(() => {
+    // Already loaded from a previous navigation — use it immediately.
+    if (window.WidgetCheckout) {
+      setScriptReady(true);
+      return;
+    }
+
+    const existing = document.querySelector(
+      `script[src="${WOMPI_SCRIPT}"]`,
+    ) as HTMLScriptElement | null;
+
+    if (existing) {
+      // Tag exists but hasn't fired yet — listen for its events.
+      const onLoad = () => setScriptReady(true);
+      const onError = () =>
+        setError("No se pudo cargar Wompi. Verifica tu conexión e intenta de nuevo.");
+      existing.addEventListener("load", onLoad);
+      existing.addEventListener("error", onError);
+      return () => {
+        existing.removeEventListener("load", onLoad);
+        existing.removeEventListener("error", onError);
+      };
+    }
+
+    // First time — inject the script tag.
+    const script = document.createElement("script");
+    script.src = WOMPI_SCRIPT;
+    script.async = true;
+    script.onload = () => setScriptReady(true);
+    script.onerror = () =>
+      setError("No se pudo cargar Wompi. Verifica tu conexión e intenta de nuevo.");
+    document.body.appendChild(script);
+    // Don't remove on cleanup — it's a shared global resource.
+  }, []);
 
   if (orgFeeCop == null || orgFeeCop <= 0) {
     return (
@@ -117,7 +152,9 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
 
   /** Step 2: open Wompi widget once params and script are ready. */
   useEffect(() => {
-    if (step !== "paying" || !scriptLoaded || !checkoutParams) return;
+    if (step !== "paying" || !checkoutParams) return;
+    // Accept either the state flag OR the global already being present (cache case).
+    if (!scriptReady && !window.WidgetCheckout) return;
     if (!window.WidgetCheckout) {
       setError("No se pudo cargar Wompi. Recarga la página e intenta de nuevo.");
       setStep("confirm");
@@ -153,7 +190,7 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
 
     // Safety valve: if the widget closes without firing the callback (sandbox quirk),
     // the user can manually escape via the cancel button shown in the "paying" UI.
-  }, [step, scriptLoaded, checkoutParams]);
+  }, [step, scriptReady, checkoutParams]);
 
   /** Auto-redirect to match page after a successful payment. */
   useEffect(() => {
@@ -176,17 +213,7 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
   }, [autoStart, fetchCheckoutParams]);
 
   return (
-    <>
-      <Script
-        src={WOMPI_SCRIPT}
-        strategy="afterInteractive"
-        onLoad={() => setScriptLoaded(true)}
-        onError={() => {
-          setError("No se pudo cargar Wompi. Verifica tu conexión e intenta de nuevo.");
-        }}
-      />
-
-      <PaymentFunnelShell activeStep={activeFunnelStep}>
+    <PaymentFunnelShell activeStep={activeFunnelStep}>
         {step === "success" && (
           <StatusSuccess
             title="Pago aprobado"
@@ -254,8 +281,7 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
             <WompiBadge />
           </>
         )}
-      </PaymentFunnelShell>
-    </>
+    </PaymentFunnelShell>
   );
 }
 

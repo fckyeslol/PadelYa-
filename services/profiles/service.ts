@@ -12,6 +12,7 @@ type ProfileRow = {
   role: Profile["role"];
   strike_count: number;
   avatar_url: string | null;
+  wants_match_notifications: boolean | null;
   created_at: string;
 };
 
@@ -25,6 +26,7 @@ function mapProfile(row: ProfileRow): Profile {
     role: row.role,
     strikeCount: row.strike_count,
     avatarUrl: row.avatar_url,
+    wantsMatchNotifications: row.wants_match_notifications ?? true,
     createdAt: row.created_at,
   };
 }
@@ -46,7 +48,7 @@ export async function getCurrentProfile() {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, phone, whatsapp_phone, skill_level, role, strike_count, created_at, avatar_url",
+      "id, full_name, phone, whatsapp_phone, skill_level, role, strike_count, created_at, avatar_url, wants_match_notifications",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -73,7 +75,7 @@ export async function getCurrentProfile() {
     const { data: retry } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, phone, whatsapp_phone, skill_level, role, strike_count, avatar_url, created_at",
+        "id, full_name, phone, whatsapp_phone, skill_level, role, strike_count, avatar_url, created_at, wants_match_notifications",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -96,7 +98,14 @@ export async function getCurrentProfile() {
 
 export async function upsertProfile(
   userId: string,
-  fields: { fullName?: string; phone?: string; whatsappPhone?: string; skillLevel?: Profile["skillLevel"]; avatarUrl?: string },
+  fields: {
+    fullName?: string;
+    phone?: string;
+    whatsappPhone?: string;
+    skillLevel?: Profile["skillLevel"];
+    avatarUrl?: string;
+    wantsMatchNotifications?: boolean;
+  },
 ) {
   // Use admin client — the regular client has no INSERT RLS policy for profiles
   const { getSupabaseAdminClient } = await import("@/lib/supabase/admin");
@@ -110,6 +119,9 @@ export async function upsertProfile(
       ...(fields.whatsappPhone !== undefined && { whatsapp_phone: fields.whatsappPhone }),
       ...(fields.skillLevel !== undefined && { skill_level: fields.skillLevel }),
       ...(fields.avatarUrl !== undefined && { avatar_url: fields.avatarUrl }),
+      ...(fields.wantsMatchNotifications !== undefined && {
+        wants_match_notifications: fields.wantsMatchNotifications,
+      }),
     },
     { onConflict: "id" },
   );

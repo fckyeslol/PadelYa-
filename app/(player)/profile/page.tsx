@@ -192,6 +192,42 @@ export default async function ProfilePage({ searchParams }: Props) {
 
           <SkillLevelPicker defaultValue={profile.skillLevel} />
 
+          <SectionLabel>Notificaciones</SectionLabel>
+
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "0.55rem",
+              cursor: "pointer",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <input
+              type="checkbox"
+              name="wantsMatchNotifications"
+              defaultChecked={profile.wantsMatchNotifications}
+              style={{
+                marginTop: "0.15rem",
+                accentColor: "var(--primary)",
+                width: "16px",
+                height: "16px",
+                flexShrink: 0,
+                cursor: "pointer",
+              }}
+            />
+            <span
+              style={{
+                fontSize: "0.85rem",
+                color: "var(--text-2)",
+                fontFamily: "var(--font-dm-sans)",
+                lineHeight: 1.45,
+              }}
+            >
+              Recibir avisos de nuevos partidos por WhatsApp
+            </span>
+          </label>
+
           <SaveProfileButton />
         </form>
 

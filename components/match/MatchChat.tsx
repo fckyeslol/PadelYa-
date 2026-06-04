@@ -279,7 +279,7 @@ export function MatchChat({
                   justifyContent: "center",
                   fontSize: "0.62rem",
                   fontWeight: 700,
-                  color: isMe ? "#ffffff" : "var(--text-2)",
+                  color: isMe ? "var(--primary-fg)" : "var(--text-2)",
                 }}
               >
                 {msg.playerAvatar ? (
@@ -319,7 +319,7 @@ export function MatchChat({
                 <div
                   style={{
                     background: isMe ? "var(--primary)" : "var(--surface)",
-                    color: isMe ? "#ffffff" : "var(--text)",
+                    color: isMe ? "var(--primary-fg)" : "var(--text)",
                     borderRadius: isMe
                       ? "14px 14px 4px 14px"
                       : "14px 14px 14px 4px",
@@ -381,7 +381,7 @@ export function MatchChat({
             style={{
               background: text.trim() && !sending ? "var(--primary)" : "var(--surface)",
               border: "1px solid var(--border)",
-              color: text.trim() && !sending ? "#ffffff" : "var(--text-3)",
+              color: text.trim() && !sending ? "var(--primary-fg)" : "var(--text-3)",
               borderRadius: "10px",
               padding: "0 0.875rem",
               cursor: sending || !text.trim() ? "not-allowed" : "pointer",

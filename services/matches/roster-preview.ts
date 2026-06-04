@@ -50,7 +50,7 @@ export async function buildMatchRosterPreviews(
   const admin = getSupabaseAdminClient();
   const { data: profiles, error } = await admin
     .from("profiles")
-    .select("id, full_name, avatar_url")
+    .select("id, full_name, avatar_url, role")
     .in("id", [...profileIds]);
 
   if (error) throw error;
@@ -60,6 +60,11 @@ export async function buildMatchRosterPreviews(
       p.id,
       mapProfile(p.full_name, p.avatar_url),
     ]),
+  );
+
+  // Organizers create matches but don't occupy a slot — exclude them as host-players.
+  const organizerHostIds = new Set(
+    (profiles ?? []).filter((p) => p.role === "organizer").map((p) => p.id),
   );
 
   for (const match of matches) {
@@ -73,7 +78,9 @@ export async function buildMatchRosterPreviews(
       roster.push({ status, ...profile });
     };
 
-    addPlayer(match.host_player_id, "paid");
+    if (!organizerHostIds.has(match.host_player_id)) {
+      addPlayer(match.host_player_id, "paid");
+    }
 
     for (const player of match.match_players ?? []) {
       if (!ACTIVE_STATUSES.has(player.status)) continue;

@@ -18,6 +18,8 @@ export type VenueInfo = {
   /** Posición móvil para banner de partido. */
   matchImagePositionMobile?: string;
   bookingHint?: string;
+  /** Número de canchas disponibles en la sede. */
+  courts?: number;
 };
 
 export const BARRANQUILLA_VENUES: VenueInfo[] = [
@@ -42,6 +44,7 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
     matchImagePosition: "center 60%",
     matchImagePositionMobile: "center 66%",
     bookingHint: "ReservaDeportes",
+    courts: 3,
   },
   {
     id: "padel-zenter-la-arenosa",
@@ -63,6 +66,7 @@ export const BARRANQUILLA_VENUES: VenueInfo[] = [
     clubImagePositionMobile: "center 40%",
     matchImagePosition: "center 30%",
     matchImagePositionMobile: "center 36%",
+    courts: 4,
   },
   {
     id: "padel-park",

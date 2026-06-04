@@ -1,5 +1,36 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatDateTime } from "@/utils/dates";
+import { formatCop } from "@/utils/currency";
+
+/**
+ * WhatsApp Business Cloud API (Meta) — template-based notifications.
+ *
+ * Proactive messages outside the 24h customer-service window REQUIRE a
+ * pre-approved template. Each function below maps to a template that must
+ * exist (and be approved) in WhatsApp Manager with the EXACT name and
+ * variable order documented next to TEMPLATES.
+ */
+
+/** Template names — must match exactly what's created & approved in Meta. */
+const TEMPLATES = {
+  /** partido_creado · vars: [hostName, venue, date, link] · Utility */
+  matchCreated: "partido_creado",
+  /** nuevo_partido · vars: [venue, date, level, price, link] · Marketing */
+  newMatch: "nuevo_partido",
+  /** jugador_unido · vars: [playerName, venue, date, roster, link] · Utility */
+  playerJoined: "jugador_unido",
+  /** partido_lleno · vars: [venue, date, link] · Utility */
+  matchFull: "partido_lleno",
+} as const;
+
+/** Language code of the approved templates (must match Meta). */
+const TEMPLATE_LANG = "es";
+
+const SKILL_LABELS: Record<string, string> = {
+  beginner: "Principiante",
+  intermediate: "Intermedio",
+  advanced: "Avanzado",
+};
 
 function getMetaWaEnv() {
   const phoneNumberId = process.env.WA_PHONE_NUMBER_ID;
@@ -12,11 +43,24 @@ function getOwnerPhone(): string | null {
   return process.env.OWNER_WHATSAPP_PHONE ?? null;
 }
 
-async function send(to: string, body: string): Promise<void> {
+function appUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
+}
+
+function matchLink(matchId: string): string {
+  return `${appUrl()}/matches/${matchId}`;
+}
+
+/** Sends one approved template message. Throws on API error. */
+async function sendTemplate(
+  to: string,
+  templateName: string,
+  bodyParams: string[],
+): Promise<void> {
   const env = getMetaWaEnv();
   if (!env) return; // silently skip if not configured
 
-  // Meta requires phone without leading + — just digits with country code
+  // Meta requires phone without leading + — just digits with country code.
   const phone = to.replace(/^\+/, "");
 
   const res = await fetch(
@@ -30,23 +74,52 @@ async function send(to: string, body: string): Promise<void> {
       body: JSON.stringify({
         messaging_product: "whatsapp",
         to: phone,
-        type: "text",
-        text: { body, preview_url: false },
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: TEMPLATE_LANG },
+          components: bodyParams.length
+            ? [
+                {
+                  type: "body",
+                  parameters: bodyParams.map((text) => ({ type: "text", text })),
+                },
+              ]
+            : [],
+        },
       }),
-    }
+    },
   );
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`WhatsApp send failed (${res.status}): ${err}`);
+    throw new Error(`WhatsApp template send failed (${res.status}): ${err}`);
   }
 }
 
-async function safeSend(to: string, body: string): Promise<void> {
+async function safeSendTemplate(
+  to: string,
+  templateName: string,
+  bodyParams: string[],
+): Promise<void> {
   try {
-    await send(to, body);
+    await sendTemplate(to, templateName, bodyParams);
   } catch (err) {
-    console.error("[WhatsApp] send failed", { to, error: err });
+    console.error("[WhatsApp] template send failed", { to, templateName, error: err });
+  }
+}
+
+/** Fan-out a template to many phones in bounded-concurrency batches. */
+async function sendTemplateToMany(
+  phones: string[],
+  templateName: string,
+  bodyParams: string[],
+): Promise<void> {
+  const BATCH = 20;
+  const unique = [...new Set(phones.filter((p) => p !== ""))];
+  for (let i = 0; i < unique.length; i += BATCH) {
+    const slice = unique.slice(i, i + BATCH);
+    await Promise.all(slice.map((ph) => safeSendTemplate(ph, templateName, bodyParams)));
   }
 }
 
@@ -59,17 +132,21 @@ function formatMatchDate(scheduledAt: string | null): string {
   }
 }
 
-type ProfilePhoneRow = { whatsapp_phone?: string | null; phone?: string | null; full_name?: string | null };
+type ProfilePhoneRow = {
+  whatsapp_phone?: string | null;
+  phone?: string | null;
+  full_name?: string | null;
+};
 
 function bestPhone(profile: ProfilePhoneRow | null): string {
   return (profile?.whatsapp_phone ?? profile?.phone ?? "").trim();
 }
 
-/** Paid players in a match with a phone, excluding excludePlayerId. */
-async function getPaidPlayerPhones(
+/** Active players (paid + pending) in a match with a phone, excluding one id. */
+async function getActivePlayerPhones(
   matchId: string,
   excludePlayerId: string,
-): Promise<{ phone: string; name: string }[]> {
+): Promise<string[]> {
   const supabase = getSupabaseAdminClient();
 
   const { data: players, error } = await supabase
@@ -91,15 +168,10 @@ async function getPaidPlayerPhones(
 
   if (profilesError) return [];
 
-  return (profiles ?? [])
-    .map((p) => ({
-      phone: bestPhone(p as ProfilePhoneRow),
-      name: p.full_name ?? "Jugador",
-    }))
-    .filter((p) => p.phone !== "");
+  return (profiles ?? []).map((p) => bestPhone(p as ProfilePhoneRow)).filter((p) => p !== "");
 }
 
-/** Notifies the host (creator) when their match is confirmed and they are in. */
+/** Notifies the host that their match is published. Template: partido_creado. */
 export async function notifyHostMatchCreated(params: {
   hostPhone: string;
   hostName: string;
@@ -108,50 +180,61 @@ export async function notifyHostMatchCreated(params: {
   scheduledAt: string | null;
   maxPlayers: number;
 }): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
-  const body = [
-    `*PadelYa!*`,
-    ``,
-    `Hola ${params.hostName}, tu partido ha sido creado exitosamente.`,
-    ``,
-    `Cancha: ${params.venueName}`,
-    `Fecha: ${formatMatchDate(params.scheduledAt)}`,
-    `Jugadores: 1/${params.maxPlayers}`,
-    ``,
-    `Comparte este link para llenar el partido:`,
-    `${appUrl}/matches/${params.matchId}`,
-  ].join("\n");
-
-  await safeSend(params.hostPhone, body);
+  await safeSendTemplate(params.hostPhone, TEMPLATES.matchCreated, [
+    params.hostName,
+    params.venueName,
+    formatMatchDate(params.scheduledAt),
+    matchLink(params.matchId),
+  ]);
 }
 
-/** Notifies the owner when the host creates a game and joins (1st paid slot). */
-export async function notifyOwnerNewGame(params: {
+/**
+ * Broadcasts a newly published match to the owner + every registered user
+ * that has a phone. Template: nuevo_partido.
+ *
+ * NOTE: this is a marketing-style broadcast. Meta requires recipients to have
+ * opted in; sending to users who never opted in risks the number being blocked.
+ * excludePlayerId skips the host (who already got partido_creado).
+ */
+export async function notifyAllUsersNewMatch(params: {
   matchId: string;
-  hostName: string;
   venueName: string;
   scheduledAt: string | null;
+  skillLevel: string;
+  feeCop: number;
+  excludePlayerId?: string;
 }): Promise<void> {
+  const bodyParams = [
+    params.venueName,
+    formatMatchDate(params.scheduledAt),
+    SKILL_LABELS[params.skillLevel] ?? params.skillLevel,
+    formatCop(params.feeCop),
+    matchLink(params.matchId),
+  ];
+
   const ownerPhone = getOwnerPhone();
-  if (!ownerPhone) return;
+  if (ownerPhone) {
+    await safeSendTemplate(ownerPhone, TEMPLATES.newMatch, bodyParams);
+  }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
-  const body = [
-    `*PadelYa! — Nuevo partido*`,
-    ``,
-    `${params.hostName} acaba de crear un partido.`,
-    ``,
-    `Cancha: ${params.venueName}`,
-    `Fecha: ${formatMatchDate(params.scheduledAt)}`,
-    `Estado: 1/4 jugadores`,
-    ``,
-    `${appUrl}/matches/${params.matchId}`,
-  ].join("\n");
+  const supabase = getSupabaseAdminClient();
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, whatsapp_phone, phone")
+    .or("whatsapp_phone.not.is.null,phone.not.is.null");
 
-  await safeSend(ownerPhone, body);
+  const phones = (profiles ?? [])
+    .filter((p) => p.id !== params.excludePlayerId)
+    .map((p) => bestPhone(p as ProfilePhoneRow))
+    .filter((p) => p !== "" && p !== ownerPhone);
+
+  await sendTemplateToMany(phones, TEMPLATES.newMatch, bodyParams);
 }
 
-/** Notifies the owner + all existing players each time a new player joins. */
+/**
+ * Notifies the host + existing players when a new player joins.
+ * Template: jugador_unido.
+ */
 export async function notifyOnPlayerJoined(params: {
   matchId: string;
   newPlayerName: string;
@@ -161,70 +244,33 @@ export async function notifyOnPlayerJoined(params: {
   currentPaidCount: number;
   maxPlayers: number;
 }): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
-  const matchLink = `${appUrl}/matches/${params.matchId}`;
-  const roster = `${params.currentPaidCount}/${params.maxPlayers}`;
+  const bodyParams = [
+    params.newPlayerName,
+    params.venueName,
+    formatMatchDate(params.scheduledAt),
+    `${params.currentPaidCount}/${params.maxPlayers}`,
+    matchLink(params.matchId),
+  ];
 
+  const phones = await getActivePlayerPhones(params.matchId, params.newPlayerId);
   const ownerPhone = getOwnerPhone();
-  if (ownerPhone) {
-    const ownerMsg = [
-      `*PadelYa! — Jugador unido*`,
-      ``,
-      `${params.newPlayerName} se unio a un partido.`,
-      ``,
-      `Cancha: ${params.venueName}`,
-      `Fecha: ${formatMatchDate(params.scheduledAt)}`,
-      `Estado: ${roster} jugadores`,
-      ``,
-      `${matchLink}`,
-    ].join("\n");
-    await safeSend(ownerPhone, ownerMsg);
-  }
+  if (ownerPhone) phones.push(ownerPhone);
 
-  const others = await getPaidPlayerPhones(params.matchId, params.newPlayerId);
-  if (others.length === 0) return;
-
-  const playerMsg = [
-    `*PadelYa!*`,
-    ``,
-    `${params.newPlayerName} se unio a tu partido.`,
-    ``,
-    `Cancha: ${params.venueName}`,
-    `Fecha: ${formatMatchDate(params.scheduledAt)}`,
-    `Jugadores: ${roster}`,
-    ``,
-    `${matchLink}`,
-  ].join("\n");
-
-  await Promise.all(others.map((p) => safeSend(p.phone, playerMsg)));
+  await sendTemplateToMany(phones, TEMPLATES.playerJoined, bodyParams);
 }
 
-/** Notifies the owner + all players when a match becomes full (4/4). */
+/** Notifies the owner + all players when a match becomes full. Template: partido_lleno. */
 export async function notifyMatchFull(params: {
   matchId: string;
   venueName: string;
   scheduledAt: string | null;
   maxPlayers: number;
 }): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
-  const matchLink = `${appUrl}/matches/${params.matchId}`;
-  const roster = `${params.maxPlayers}/${params.maxPlayers}`;
-
-  const ownerPhone = getOwnerPhone();
-  if (ownerPhone) {
-    const ownerMsg = [
-      `*PadelYa! — Partido lleno*`,
-      ``,
-      `Un partido acaba de llenarse.`,
-      ``,
-      `Cancha: ${params.venueName}`,
-      `Fecha: ${formatMatchDate(params.scheduledAt)}`,
-      `Jugadores: ${roster}`,
-      ``,
-      `${matchLink}`,
-    ].join("\n");
-    await safeSend(ownerPhone, ownerMsg);
-  }
+  const bodyParams = [
+    params.venueName,
+    formatMatchDate(params.scheduledAt),
+    matchLink(params.matchId),
+  ];
 
   const supabase = getSupabaseAdminClient();
   const { data } = await supabase
@@ -235,23 +281,15 @@ export async function notifyMatchFull(params: {
 
   const phones = (data ?? [])
     .map((row) => {
-      const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as ProfilePhoneRow | null;
+      const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as
+        | ProfilePhoneRow
+        | null;
       return bestPhone(profile);
     })
     .filter((p) => p !== "");
 
-  if (phones.length === 0) return;
+  const ownerPhone = getOwnerPhone();
+  if (ownerPhone) phones.push(ownerPhone);
 
-  const playerMsg = [
-    `*PadelYa!*`,
-    ``,
-    `Tu partido esta completo. Ya son ${roster} jugadores confirmados.`,
-    ``,
-    `Cancha: ${params.venueName}`,
-    `Fecha: ${formatMatchDate(params.scheduledAt)}`,
-    ``,
-    `${matchLink}`,
-  ].join("\n");
-
-  await Promise.all(phones.map((phone) => safeSend(phone, playerMsg)));
+  await sendTemplateToMany(phones, TEMPLATES.matchFull, bodyParams);
 }

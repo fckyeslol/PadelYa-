@@ -148,6 +148,8 @@ export function MatchForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [bookableTimes, setBookableTimes] = useState<Set<string> | null>(null);
+  const [freeCourtsByTime, setFreeCourtsByTime] = useState<Record<string, number>>({});
+  const [totalCourts, setTotalCourts] = useState(0);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
   const isRuleBased = isRuleBasedVenueName(venueName);
@@ -164,13 +166,25 @@ export function MatchForm() {
       `/api/venues/slot-availability?venueName=${encodeURIComponent(venueName.trim())}&date=${encodeURIComponent(matchDate)}`,
     )
       .then((res) => res.json())
-      .then((data: { bookableTimes?: string[] }) => {
-        if (!cancelled) {
-          setBookableTimes(new Set(data.bookableTimes ?? []));
-        }
-      })
+      .then(
+        (data: {
+          bookableTimes?: string[];
+          freeCourtsByTime?: Record<string, number>;
+          totalCourts?: number;
+        }) => {
+          if (!cancelled) {
+            setBookableTimes(new Set(data.bookableTimes ?? []));
+            setFreeCourtsByTime(data.freeCourtsByTime ?? {});
+            setTotalCourts(data.totalCourts ?? 0);
+          }
+        },
+      )
       .catch(() => {
-        if (!cancelled) setBookableTimes(new Set());
+        if (!cancelled) {
+          setBookableTimes(new Set());
+          setFreeCourtsByTime({});
+          setTotalCourts(0);
+        }
       })
       .finally(() => {
         if (!cancelled) setAvailabilityLoading(false);
@@ -523,6 +537,51 @@ export function MatchForm() {
                   : "No hay horarios disponibles para este club y día. Prueba otro día o club."}
             </p>
           ) : null}
+
+          {/* Court capacity hint — explains you can create several matches per hour */}
+          {matchTime && totalCourts > 1 && freeCourtsByTime[matchTime] != null ? (
+            <div
+              style={{
+                marginTop: "0.85rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.55rem",
+                padding: "0.6rem 0.8rem",
+                borderRadius: "4px",
+                background:
+                  freeCourtsByTime[matchTime] > 0
+                    ? "rgba(233,255,71,0.06)"
+                    : "rgba(255,90,31,0.07)",
+                border: `1px solid ${
+                  freeCourtsByTime[matchTime] > 0
+                    ? "rgba(233,255,71,0.25)"
+                    : "rgba(255,90,31,0.25)"
+                }`,
+              }}
+            >
+              <CourtsIcon active={freeCourtsByTime[matchTime] > 0} />
+              <span
+                style={{
+                  fontSize: "0.78rem",
+                  color: "var(--text-2)",
+                  fontFamily: "var(--font-dm-sans)",
+                  lineHeight: 1.45,
+                }}
+              >
+                {freeCourtsByTime[matchTime] > 0 ? (
+                  <>
+                    <strong style={{ color: "var(--text)" }}>
+                      {freeCourtsByTime[matchTime]} de {totalCourts}
+                    </strong>{" "}
+                    canchas libres a las {matchTime}. Se asigna una automáticamente — puedes
+                    crear varios partidos a la misma hora (uno por cancha).
+                  </>
+                ) : (
+                  <>No quedan canchas libres a las {matchTime}. Elige otro horario.</>
+                )}
+              </span>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -688,6 +747,24 @@ function SpinnerIcon() {
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+    </svg>
+  );
+}
+
+function CourtsIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={active ? "var(--primary)" : "var(--gold)"}
+      strokeWidth={2}
+      style={{ flexShrink: 0 }}
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="1.5" />
+      <path strokeLinecap="round" d="M12 4v16M3 12h18" />
     </svg>
   );
 }

@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { getVenueInfo } from "@/config/venues";
-import { getBookableTimeSlotsForVenue, pickAvailableCourt } from "@/services/venue-portal/availability";
+import {
+  getBookableTimeSlotsForVenue,
+  listVenueCourts,
+  loadBlocksForCourts,
+  loadMatchesForCourts,
+} from "@/services/venue-portal/availability";
 import { hasCsvPricingForVenueName } from "@/config/pricing";
 
-/** Horarios reservables: CSV + al menos una cancha física libre. */
+/**
+ * Horarios reservables para una sede + fecha.
+ * Devuelve, por horario, cuántas canchas físicas están libres — así el
+ * formulario puede mostrar la capacidad real (varios partidos por hora).
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -15,27 +24,44 @@ export async function GET(request: Request) {
     }
 
     if (!hasCsvPricingForVenueName(venueName)) {
-      return NextResponse.json({ bookableTimes: [] });
+      return NextResponse.json({ bookableTimes: [], freeCourtsByTime: {}, totalCourts: 0 });
     }
 
     const info = getVenueInfo(venueName);
     if (!info) {
-      return NextResponse.json({ bookableTimes: [] });
+      return NextResponse.json({ bookableTimes: [], freeCourtsByTime: {}, totalCourts: 0 });
     }
 
+    const courts = await listVenueCourts(info.id);
+    const courtIds = courts.map((c) => c.id);
     const times = getBookableTimeSlotsForVenue(info.id, date);
+
+    // Load blocks + existing matches once, then count free courts per slot.
+    const [blocks, matches] = await Promise.all([
+      loadBlocksForCourts(courtIds, date),
+      loadMatchesForCourts(courtIds, date),
+    ]);
+
+    const freeCourtsByTime: Record<string, number> = {};
     const bookableTimes: string[] = [];
 
-    await Promise.all(
-      times.map(async (time) => {
-        const courtId = await pickAvailableCourt(info.id, date, time);
-        if (courtId) bookableTimes.push(time);
-      }),
-    );
+    for (const time of times) {
+      let free = 0;
+      for (const court of courts) {
+        const key = `${court.id}:${time}`;
+        if (!blocks.has(key) && !matches.has(key)) free++;
+      }
+      freeCourtsByTime[time] = free;
+      if (free > 0) bookableTimes.push(time);
+    }
 
     bookableTimes.sort((a, b) => a.localeCompare(b));
 
-    return NextResponse.json({ bookableTimes });
+    return NextResponse.json({
+      bookableTimes,
+      freeCourtsByTime,
+      totalCourts: courts.length,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error";
     return NextResponse.json({ error: message }, { status: 500 });

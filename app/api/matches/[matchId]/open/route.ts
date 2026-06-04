@@ -54,11 +54,14 @@ export async function POST(request: Request, { params }: Props) {
 
     if (error) throw error;
 
-    // Fetch host profile and match data for notifications
-    const [{ data: hostProfile }, { data: matchData }] = await Promise.all([
+    // Check if the host is an organizer (creates matches but doesn't play)
+    const [{ data: hostProfile }, { data: matchData }, { data: hostProfileRole }] = await Promise.all([
       admin.from("profiles").select("full_name, phone, whatsapp_phone").eq("id", user.id).maybeSingle(),
       admin.from("matches").select("venue_name, scheduled_at, max_players").eq("id", matchId).maybeSingle(),
+      admin.from("profiles").select("role").eq("id", user.id).maybeSingle(),
     ]);
+
+    const isOrganizerHost = hostProfileRole?.role === "organizer";
 
     const hostName = hostProfile?.full_name ?? "Un jugador";
     const venueName = matchData?.venue_name ?? "partido";
@@ -82,14 +85,21 @@ export async function POST(request: Request, { params }: Props) {
       }
     }
 
-    // Pre-create checkout for the host so they can pay on the match page
-    try {
-      await createCheckoutForMatch(matchId, { isHost: true });
-    } catch {
-      // Non-fatal — host can pay from the match page
+    // Organizers don't take a player slot — skip checkout entirely.
+    // Regular hosts get a pre-created checkout so they can pay on the match page.
+    if (!isOrganizerHost) {
+      try {
+        await createCheckoutForMatch(matchId, { isHost: true });
+      } catch {
+        // Non-fatal — host can pay from the match page
+      }
     }
 
-    return NextResponse.json({ ok: true, payUrl: `/matches/${matchId}?pay=1` });
+    const payUrl = isOrganizerHost
+      ? `/matches/${matchId}`
+      : `/matches/${matchId}?pay=1`;
+
+    return NextResponse.json({ ok: true, payUrl });
   } catch (error) {
     const message =
       error instanceof Error

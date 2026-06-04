@@ -196,7 +196,16 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const shouldAutoStartPayment = query.pay === "1";
   const hasPendingPaymentSlot = myPlayer?.status === "pending_payment";
   const hasConfirmedSpot = myPlayer?.status === "paid";
-  const canJoin = isOpen && paidCount < 4 && !hasConfirmedSpot && !hasPendingPaymentSlot && hasCsvFee;
+  // Organizer hosts create matches but don't occupy a player slot.
+  const isOrganizerHost =
+    user?.id === match!.hostPlayerId && profile?.role === "organizer";
+  const canJoin =
+    isOpen &&
+    paidCount < 4 &&
+    !hasConfirmedSpot &&
+    !hasPendingPaymentSlot &&
+    !isOrganizerHost &&
+    hasCsvFee;
   const canChat =
     match!.hostPlayerId === user?.id ||
     (!!myPlayer &&
@@ -368,6 +377,29 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
                 <p style={{ fontSize: "0.75rem", color: "var(--text-3)", textAlign: "center", fontFamily: "var(--font-dm-sans)" }}>
                   Ya tienes cuenta? El link te lleva directo al partido.
                 </p>
+              </div>
+            ) : isOrganizerHost ? (
+              /* ── Organizer host — no player slot ────────── */
+              <div
+                style={{
+                  background: "rgba(233,255,71,0.05)",
+                  border: "1px solid rgba(233,255,71,0.2)",
+                  borderRadius: "14px",
+                  padding: "1.25rem",
+                  display: "flex",
+                  gap: "0.75rem",
+                  alignItems: "flex-start",
+                }}
+              >
+                <span style={{ fontSize: "1.25rem", lineHeight: 1 }}>🎾</span>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
+                    Partido creado por ti
+                  </p>
+                  <p style={{ fontSize: "0.82rem", color: "var(--text-2)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.55 }}>
+                    Eres el organizador — los 4 cupos están disponibles para los jugadores.
+                  </p>
+                </div>
               </div>
             ) : hasPendingPaymentSlot ? (
               /* ── Pago enviado, esperando confirmación ───── */

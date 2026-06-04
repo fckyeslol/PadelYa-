@@ -17,6 +17,7 @@ export async function updateProfileAction(formData: FormData) {
   const phone = (formData.get("phone") as string | null)?.trim() ?? "";
   const whatsappPhone = (formData.get("whatsappPhone") as string | null)?.trim() || undefined;
   const skillLevel = formData.get("skillLevel") as "beginner" | "intermediate" | "advanced" | null;
+  const wantsMatchNotifications = formData.get("wantsMatchNotifications") === "on";
 
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
   if (!fullName) {
@@ -27,6 +28,7 @@ export async function updateProfileAction(formData: FormData) {
     fullName,
     phone,
     whatsappPhone,
+    wantsMatchNotifications,
     ...(skillLevel && { skillLevel }),
   });
 

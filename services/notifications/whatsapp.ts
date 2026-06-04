@@ -221,6 +221,7 @@ export async function notifyAllUsersNewMatch(params: {
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, whatsapp_phone, phone")
+    .eq("wants_match_notifications", true)
     .or("whatsapp_phone.not.is.null,phone.not.is.null");
 
   const phones = (profiles ?? [])

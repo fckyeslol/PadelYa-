@@ -9,6 +9,14 @@ import { getClientAuthCallbackUrl } from "@/utils/auth-url";
 
 type Mode = "login" | "signup" | "forgot";
 
+/** Normaliza un celular colombiano a E.164 sin "+": 573001234567. Null si inválido. */
+function normalizeCoPhone(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10 && digits.startsWith("3")) return `57${digits}`;
+  if (digits.length === 12 && digits.startsWith("57")) return digits;
+  return null;
+}
+
 function mapAuthError(message: string): string {
   const lower = message.toLowerCase();
   if (lower.includes("invalid login credentials") || lower.includes("invalid credentials")) {
@@ -46,6 +54,8 @@ export function AuthForm({
   const [mode, setMode] = useState<Mode>("login");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [wantsNotifications, setWantsNotifications] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -82,6 +92,11 @@ export function AuthForm({
       setError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
+    const normalizedPhone = normalizeCoPhone(phone);
+    if (!normalizedPhone) {
+      setError("Ingresa un celular colombiano válido (10 dígitos, ej. 300 123 4567).");
+      return;
+    }
     startTransition(async () => {
       setError(null);
       const callbackUrl = getClientAuthCallbackUrl(next);
@@ -93,6 +108,8 @@ export function AuthForm({
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
+            phone: normalizedPhone,
+            wants_match_notifications: wantsNotifications,
           },
         },
       });
@@ -216,6 +233,7 @@ export function AuthForm({
     password.length >= 8 &&
     firstName.trim().length > 0 &&
     lastName.trim().length > 0 &&
+    normalizeCoPhone(phone) !== null &&
     !pending;
   const canForgot = email.trim().length > 0 && !pending;
 
@@ -372,6 +390,35 @@ export function AuthForm({
           />
         </div>
 
+        {mode === "signup" && (
+          <div>
+            <label htmlFor="auth-phone" style={labelStyle}>
+              Celular (WhatsApp)
+            </label>
+            <input
+              id="auth-phone"
+              type="tel"
+              inputMode="numeric"
+              placeholder="300 123 4567"
+              className="input-base"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
+            />
+            <p
+              style={{
+                fontSize: "0.72rem",
+                color: "var(--text-3)",
+                marginTop: "0.3rem",
+                fontFamily: "var(--font-dm-sans)",
+                lineHeight: 1.4,
+              }}
+            >
+              Te avisamos por WhatsApp cuando alguien se una y cuando tu partido se complete.
+            </p>
+          </div>
+        )}
+
         {mode !== "forgot" && (
           <div>
             <label htmlFor="auth-password" style={labelStyle}>
@@ -428,6 +475,43 @@ export function AuthForm({
               </p>
             )}
           </div>
+        )}
+
+        {/* WhatsApp opt-in (signup only) */}
+        {mode === "signup" && (
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "0.55rem",
+              cursor: "pointer",
+              marginTop: "0.1rem",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={wantsNotifications}
+              onChange={(e) => setWantsNotifications(e.target.checked)}
+              style={{
+                marginTop: "0.15rem",
+                accentColor: "var(--primary)",
+                width: "16px",
+                height: "16px",
+                flexShrink: 0,
+                cursor: "pointer",
+              }}
+            />
+            <span
+              style={{
+                fontSize: "0.8rem",
+                color: "var(--text-2)",
+                fontFamily: "var(--font-dm-sans)",
+                lineHeight: 1.45,
+              }}
+            >
+              Quiero recibir avisos de nuevos partidos por WhatsApp
+            </span>
+          </label>
         )}
 
         {/* Forgot password link (login mode only) */}

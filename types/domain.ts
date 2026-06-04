@@ -25,6 +25,7 @@ export interface Profile {
   role: "player" | "organizer";
   strikeCount: number;
   avatarUrl?: string | null;
+  wantsMatchNotifications: boolean;
   createdAt: string;
 }
 

@@ -84,8 +84,14 @@ const slotStyle = (filled: boolean): CSSProperties => ({
   cursor: filled ? "pointer" : "default",
 });
 
+/** Solo estos estados ocupan un cupo visible; cancelados/no-show se ocultan. */
+const ACTIVE_SLOT_STATUSES = new Set(["paid", "pending_payment"]);
+
 export function PlayerSlots({ players }: { players: MatchPlayerRow[] }) {
-  const slots = Array.from({ length: 4 }).map((_, i) => players[i] ?? null);
+  // Cancelled / cancelled_late / no_show players stay in the DB for history,
+  // but must not occupy a visible slot — the spot shows as "Disponible".
+  const activePlayers = players.filter((p) => ACTIVE_SLOT_STATUSES.has(p.status));
+  const slots = Array.from({ length: 4 }).map((_, i) => activePlayers[i] ?? null);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>

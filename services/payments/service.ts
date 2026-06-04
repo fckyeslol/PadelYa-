@@ -4,8 +4,6 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { sendPaymentStatusEmail, sendMatchFilledEmail } from "@/services/notifications/email";
 import {
-  notifyOwnerNewGame,
-  notifyHostMatchCreated,
   notifyOnPlayerJoined,
   notifyMatchFull,
 } from "@/services/notifications/whatsapp";
@@ -466,8 +464,6 @@ async function _handleApprovedPayment({
     .maybeSingle();
 
   const joiningPlayerName = joiningProfile?.full_name ?? "Un jugador";
-  const joiningPlayerPhone =
-    joiningProfile?.whatsapp_phone?.trim() || joiningProfile?.phone?.trim() || null;
 
   const { count: paidCount } = await supabase
     .from("match_players")
@@ -484,19 +480,10 @@ async function _handleApprovedPayment({
   const isHost = matchPlayer?.is_host ?? false;
 
   try {
-    if (isHost && currentPaidCount === 1) {
-      await notifyOwnerNewGame({ matchId, hostName: joiningPlayerName, venueName, scheduledAt });
-      if (joiningPlayerPhone) {
-        await notifyHostMatchCreated({
-          hostPhone: joiningPlayerPhone,
-          hostName: joiningPlayerName,
-          matchId,
-          venueName,
-          scheduledAt,
-          maxPlayers,
-        });
-      }
-    } else {
+    // The host paying their own first slot already received "partido_creado"
+    // when the match was published — don't re-notify. Every other paid join
+    // fires "jugador_unido" to the host + existing players.
+    if (!(isHost && currentPaidCount === 1)) {
       await notifyOnPlayerJoined({
         matchId,
         newPlayerName: joiningPlayerName,

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createCheckoutForMatch } from "@/services/payments/service";
-import { notifyOwnerNewGame, notifyHostMatchCreated } from "@/services/notifications/whatsapp";
+import { notifyAllUsersNewMatch, notifyHostMatchCreated } from "@/services/notifications/whatsapp";
 
 const schema = z.object({
   courtReference: z.string().min(1).max(200).optional(),
@@ -57,7 +57,11 @@ export async function POST(request: Request, { params }: Props) {
     // Check if the host is an organizer (creates matches but doesn't play)
     const [{ data: hostProfile }, { data: matchData }, { data: hostProfileRole }] = await Promise.all([
       admin.from("profiles").select("full_name, phone, whatsapp_phone").eq("id", user.id).maybeSingle(),
-      admin.from("matches").select("venue_name, scheduled_at, max_players").eq("id", matchId).maybeSingle(),
+      admin
+        .from("matches")
+        .select("venue_name, scheduled_at, max_players, skill_level, org_fee_cop")
+        .eq("id", matchId)
+        .maybeSingle(),
       admin.from("profiles").select("role").eq("id", user.id).maybeSingle(),
     ]);
 
@@ -67,22 +71,31 @@ export async function POST(request: Request, { params }: Props) {
     const venueName = matchData?.venue_name ?? "partido";
     const scheduledAt = matchData?.scheduled_at ?? null;
     const maxPlayers = matchData?.max_players ?? 4;
+    const skillLevel = matchData?.skill_level ?? "intermediate";
+    const feeCop = matchData?.org_fee_cop ?? 0;
     const hostPhone = hostProfile?.whatsapp_phone?.trim() || hostProfile?.phone?.trim() || null;
 
-    // Notify owner
-    try {
-      await notifyOwnerNewGame({ matchId, hostName, venueName, scheduledAt });
-    } catch (err) {
-      console.error("[WhatsApp] notifyOwnerNewGame failed", err);
-    }
-
-    // Notify the host themselves
+    // Notify the host that their match is published (partido_creado)
     if (hostPhone) {
       try {
         await notifyHostMatchCreated({ hostPhone, hostName, matchId, venueName, scheduledAt, maxPlayers });
       } catch (err) {
         console.error("[WhatsApp] notifyHostMatchCreated failed", err);
       }
+    }
+
+    // Broadcast the new match to the owner + every registered user (nuevo_partido)
+    try {
+      await notifyAllUsersNewMatch({
+        matchId,
+        venueName,
+        scheduledAt,
+        skillLevel,
+        feeCop,
+        excludePlayerId: user.id,
+      });
+    } catch (err) {
+      console.error("[WhatsApp] notifyAllUsersNewMatch failed", err);
     }
 
     // Organizers don't take a player slot — skip checkout entirely.

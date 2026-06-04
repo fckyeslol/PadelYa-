@@ -45,20 +45,24 @@ export async function getPlayersForMatch(matchId: string): Promise<MatchPlayerRo
   if (hostId && !players.some((p) => p.player_id === hostId)) {
     const { data: hostProfile } = await admin
       .from("profiles")
-      .select("full_name, avatar_url")
+      .select("full_name, avatar_url, role")
       .eq("id", hostId)
       .maybeSingle();
 
-    players.unshift({
-      id: `host-${hostId}`,
-      player_id: hostId,
-      is_host: true,
-      status: "paid",
-      joined_at: null,
-      profiles: hostProfile
-        ? { full_name: hostProfile.full_name ?? null, avatar_url: hostProfile.avatar_url ?? null }
-        : null,
-    });
+    // Organizers create matches but don't occupy a player slot — never inject
+    // them into the roster as a confirmed player.
+    if (hostProfile?.role !== "organizer") {
+      players.unshift({
+        id: `host-${hostId}`,
+        player_id: hostId,
+        is_host: true,
+        status: "paid",
+        joined_at: null,
+        profiles: hostProfile
+          ? { full_name: hostProfile.full_name ?? null, avatar_url: hostProfile.avatar_url ?? null }
+          : null,
+      });
+    }
   }
 
   return players;

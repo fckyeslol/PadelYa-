@@ -24,6 +24,8 @@ const TEMPLATES = {
   playerJoined: "jugador_unido",
   /** partido_lleno · body: [venue, date] · button: matchId · Utility */
   matchFull: "partido_lleno",
+  /** reserva_cancha · body: [venue, when, price, courts] · sin botón · Utility */
+  courtToBook: "reserva_cancha",
 } as const;
 
 /** Language code of the approved templates (must match Meta). */
@@ -303,4 +305,28 @@ export async function notifyMatchFull(params: {
   if (ownerPhone) phones.push(ownerPhone);
 
   await sendTemplateToMany(phones, TEMPLATES.matchFull, opts);
+}
+
+/**
+ * Avisa al equipo (TEAM_WHATSAPP_PHONES + owner) que un partido se llenó y hay que
+ * reservar la cancha en EasyCancha. Template: reserva_cancha (body-only, sin botón).
+ */
+export async function notifyTeamCourtToBook(params: {
+  venueName: string;
+  whenStr: string;
+  priceStr: string;
+  courtsInfo: string;
+}): Promise<void> {
+  const team = (process.env.TEAM_WHATSAPP_PHONES ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const ownerPhone = getOwnerPhone();
+  if (ownerPhone) team.push(ownerPhone);
+  const phones = [...new Set(team)];
+  if (!phones.length) return;
+
+  await sendTemplateToMany(phones, TEMPLATES.courtToBook, {
+    bodyParams: [params.venueName, params.whenStr, params.priceStr, params.courtsInfo],
+  });
 }

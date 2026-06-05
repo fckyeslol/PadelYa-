@@ -8,18 +8,7 @@ async function handle(request: Request) {
   const authHeader = request.headers.get("authorization")?.trim();
   const cronSecret = process.env.CRON_SECRET?.trim();
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    // Diagnóstico temporal (sin filtrar el valor) para depurar el 401 en prod.
-    return NextResponse.json(
-      {
-        error: "Unauthorized",
-        debug: {
-          hasSecret: Boolean(process.env.CRON_SECRET),
-          rawLen: process.env.CRON_SECRET?.length ?? 0,
-          gotAuthHeader: Boolean(authHeader),
-        },
-      },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

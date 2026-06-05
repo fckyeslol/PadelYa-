@@ -78,6 +78,10 @@ const slotStyle = (filled: boolean): CSSProperties => ({
   display: "flex",
   alignItems: "center",
   gap: "0.75rem",
+  // Allow the grid item to shrink so long names truncate (ellipsis) instead
+  // of overflowing the card.
+  minWidth: 0,
+  overflow: "hidden",
   transition: "border-color 0.2s ease, background 0.2s ease",
   textDecoration: "none",
   color: "inherit",

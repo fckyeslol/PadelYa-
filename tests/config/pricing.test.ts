@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { bogotaDateAndTime, getCourtPriceCop, getPlayerFeeCop } from "@/config/pricing";
+import { PLAYER_FEE_SURCHARGE_COP } from "@/config/venue-pricing-rules";
 
 describe("bogotaDateAndTime", () => {
   it("converts UTC to Bogota time (UTC-5)", () => {
@@ -31,11 +32,11 @@ describe("getCourtPriceCop — casa-padel (fixed price)", () => {
 });
 
 describe("getPlayerFeeCop", () => {
-  it("returns court price / 4 for csv venues", () => {
+  it("returns court price / 4 plus the per-player surcharge", () => {
     const court = getCourtPriceCop("casa-padel", "2026-06-01", "10:00");
     const player = getPlayerFeeCop("casa-padel", "2026-06-01", "10:00");
     if (court !== null && player !== null) {
-      expect(player).toBe(Math.round(court / 4));
+      expect(player).toBe(Math.round(court / 4) + PLAYER_FEE_SURCHARGE_COP);
     }
   });
 

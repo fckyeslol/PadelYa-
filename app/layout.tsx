@@ -173,6 +173,10 @@ export default async function RootLayout({
                   fontFamily: "var(--font-dm-sans, 'DM Sans', sans-serif)",
                 }}
               >
+                <Link href="/canchas" style={{ color: "var(--text-3)", textDecoration: "none" }}
+                  className="hover:text-[var(--text-2)]">
+                  Canchas
+                </Link>
                 <Link href="/terms" style={{ color: "var(--text-3)", textDecoration: "none" }}
                   className="hover:text-[var(--text-2)]">
                   Términos

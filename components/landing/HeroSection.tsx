@@ -46,10 +46,10 @@ export function HeroSection() {
         </p>
 
         {/* Headline */}
-        <h1 className="landing-hero-title mb-6" style={{ maxWidth: "14ch" }}>
-          Encuentra<br />
-          tu <em>partido</em><br />
-          esta noche
+        <h1 className="landing-hero-title mb-6" style={{ maxWidth: "16ch" }}>
+          Encuentra tu<br />
+          partido de <em>pádel</em><br />
+          en Barranquilla
         </h1>
 
         {/* Subtext */}

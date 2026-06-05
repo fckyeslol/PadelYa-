@@ -36,6 +36,13 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# easycancha session tokens / scraped auth dumps (contain account JWTs — never commit)
+.firecrawl/session.json
+.firecrawl/cookies*.json
+.firecrawl/cookies.txt
+.firecrawl/*login*.json
+.firecrawl/.browser-profile/
+
 # vercel
 .vercel
 

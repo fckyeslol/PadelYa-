@@ -6,6 +6,7 @@ import {
   loadBlocksForCourts,
   loadMatchesForCourts,
 } from "@/services/venue-portal/availability";
+import { getEasycanchaDayAvailability } from "@/services/easycancha/availability";
 import { hasCsvPricingForVenueName } from "@/config/pricing";
 
 /**
@@ -36,10 +37,11 @@ export async function GET(request: Request) {
     const courtIds = courts.map((c) => c.id);
     const times = getBookableTimeSlotsForVenue(info.id, date);
 
-    // Load blocks + existing matches once, then count free courts per slot.
-    const [blocks, matches] = await Promise.all([
+    // Load blocks + existing matches + EasyCancha availability once.
+    const [blocks, matches, ecAvail] = await Promise.all([
       loadBlocksForCourts(courtIds, date),
       loadMatchesForCourts(courtIds, date),
+      getEasycanchaDayAvailability(venueName, date),
     ]);
 
     const freeCourtsByTime: Record<string, number> = {};
@@ -47,9 +49,17 @@ export async function GET(request: Request) {
 
     for (const time of times) {
       let free = 0;
+      let matchesAtTime = 0;
       for (const court of courts) {
         const key = `${court.id}:${time}`;
-        if (!blocks.has(key) && !matches.has(key)) free++;
+        const hasMatch = matches.has(key);
+        if (hasMatch) matchesAtTime++;
+        if (!blocks.has(key) && !hasMatch) free++;
+      }
+      // Tope EasyCancha (si hay datos): no ofrecer más cupos que canchas libres reales.
+      if (ecAvail.hasData) {
+        const ecCap = Math.max(0, (ecAvail.freeByTime.get(time) ?? 0) - matchesAtTime);
+        free = Math.min(free, ecCap);
       }
       freeCourtsByTime[time] = free;
       if (free > 0) bookableTimes.push(time);

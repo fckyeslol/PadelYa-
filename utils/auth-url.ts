@@ -1,9 +1,16 @@
-/** Canonical production domain (custom domain on Vercel). */
-export const PRODUCTION_APP_URL = "https://padelya.co";
+/**
+ * Canonical production domain (custom domain on Vercel).
+ * MUST match Vercel's primary domain: the apex `padelya.co` 307-redirects to
+ * `www.padelya.co`, so auth must emit www URLs — otherwise the session cookie
+ * is set on apex and then dropped when the browser bounces to www (host-only
+ * cookies), leaving the user logged-out. Keep this aligned with the SEO
+ * canonical in app/layout.tsx and the Supabase redirect allowlist.
+ */
+export const PRODUCTION_APP_URL = "https://www.padelya.co";
 
 // Hosts that should be rewritten to the canonical production URL.
-// Includes deprecated Vercel preview URLs and www variants.
-const DEPRECATED_APP_HOSTS = new Set(["padel-ya.vercel.app", "www.padelya.co"]);
+// Includes deprecated Vercel preview URLs and the bare apex (which redirects to www).
+const DEPRECATED_APP_HOSTS = new Set(["padel-ya.vercel.app", "padelya.co"]);
 
 function stripTrailingSlash(url: string) {
   return url.replace(/\/$/, "");

@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         has: [{ type: "host", value: "padel-ya.vercel.app" }],
-        destination: "https://padelya.co/:path*",
+        destination: "https://www.padelya.co/:path*",
         permanent: true,
       },
     ];

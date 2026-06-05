@@ -280,8 +280,12 @@ export type CourtBookingHandoff = {
  */
 export async function sendCourtBookingEmail(h: CourtBookingHandoff) {
   const resend = getResendEnv();
-  const to = process.env.OWNER_EMAIL?.trim();
-  if (!resend || !to) return;
+  // OWNER_EMAIL admite varias direcciones separadas por coma.
+  const recipients = (process.env.OWNER_EMAIL ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (!resend || recipients.length === 0) return;
 
   const when = new Date(`${h.date}T12:00:00Z`).toLocaleDateString("es-CO", {
     weekday: "long",
@@ -304,7 +308,7 @@ export async function sendCourtBookingEmail(h: CourtBookingHandoff) {
       },
       body: JSON.stringify({
         from: resend.from,
-        to: [to],
+        to: recipients,
         subject: `🎾 Partido lleno — reservá la cancha · ${h.venueName}`,
         html: `
           <div style="font-family: Arial, sans-serif; color:#111827; line-height:1.5; max-width:520px;">

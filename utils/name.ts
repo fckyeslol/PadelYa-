@@ -24,7 +24,7 @@ export function sanitizeDisplayName(
   if (!value) return fallback;
 
   if (!value.includes("@")) {
-    return toTitleWords(value);
+    return toTitleWords(value) || fallback;
   }
 
   const localPart = value.split("@")[0]?.trim() ?? "";
@@ -55,6 +55,9 @@ export function sanitizeDisplayName(
 
 function toTitleWords(value: string) {
   return value
+    // Drop stray symbols (backticks, quotes, numbers…) but keep Unicode
+    // letters (incl. tildes/ñ), spaces, hyphens and apostrophes.
+    .replace(/[^\p{L}\s'-]/gu, " ")
     .split(/\s+/)
     .filter(Boolean)
     .map((word) => capitalize(word))

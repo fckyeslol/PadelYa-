@@ -4,8 +4,8 @@
   "description": "Encuentra y únete a partidos de pádel en Barranquilla",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7f8fc",
-  "theme_color": "#10B981",
+  "background_color": "#0C0B08",
+  "theme_color": "#0C0B08",
   "orientation": "portrait",
   "icons": [
     {

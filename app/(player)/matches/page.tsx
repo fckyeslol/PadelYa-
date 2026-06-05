@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { MatchList } from "@/components/match/MatchList";
 import { getVenueInfo } from "@/config/venues";
 import { listOpenMatches } from "@/services/matches/service";
 import { getCurrentProfile } from "@/services/profiles/service";
+
+export const metadata: Metadata = {
+  title: "Partidos de pádel disponibles en Barranquilla",
+  description:
+    "Explora partidos de pádel abiertos en Barranquilla. Filtra por nivel y fecha, únete y paga tu cupo en línea.",
+  alternates: { canonical: "/matches" },
+};
 
 export const dynamic = "force-dynamic";
 

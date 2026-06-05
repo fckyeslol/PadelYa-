@@ -1,8 +1,16 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { getCommunityStats, listCommunityPlayers } from "@/services/players/service";
 import { formatDateTime } from "@/utils/dates";
+
+export const metadata: Metadata = {
+  title: "Jugadores de pádel en Barranquilla",
+  description:
+    "Conoce a la comunidad de jugadores de pádel en Barranquilla. Mira niveles, perfiles e historial de partidos.",
+  alternates: { canonical: "/players" },
+};
 
 
 function IconTrophy({ size = 20 }: { size?: number }) {

@@ -31,15 +31,64 @@ export const viewport: Viewport = {
   themeColor: "#0C0B08",
 };
 
+const SITE_URL = "https://www.padelya.co";
+const SITE_DESCRIPTION =
+  "Encuentra partidos de pádel abiertos en Barranquilla, únete con un clic y paga tu cupo en línea. Juega con gente de tu nivel, sin grupos de WhatsApp.";
+
 export const metadata: Metadata = {
-  title: "PadelYa!",
-  description: "Encuentra partidos de pádel abiertos en Barranquilla. Únete, paga y juega.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "PadelYa! — Encuentra partidos de pádel en Barranquilla",
+    template: "%s · PadelYa!",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: "PadelYa!",
+  keywords: [
+    "pádel Barranquilla",
+    "partidos de pádel",
+    "canchas de pádel Barranquilla",
+    "jugar pádel",
+    "padel",
+  ],
   manifest: "/manifest.json",
+  alternates: { canonical: "/" },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "PadelYa!",
   },
+  openGraph: {
+    type: "website",
+    locale: "es_CO",
+    url: SITE_URL,
+    siteName: "PadelYa!",
+    title: "PadelYa! — Encuentra partidos de pádel en Barranquilla",
+    description: SITE_DESCRIPTION,
+    images: [{ url: "/logo.png", width: 329, height: 329, alt: "PadelYa!" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "PadelYa! — Partidos de pádel en Barranquilla",
+    description: SITE_DESCRIPTION,
+    images: ["/logo.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+};
+
+/** Organization structured data — helps Google understand the brand. */
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "PadelYa!",
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.png`,
+  description:
+    "Plataforma para encontrar y unirse a partidos de pádel en Barranquilla, Colombia.",
+  areaServed: { "@type": "City", name: "Barranquilla" },
 };
 
 export default async function RootLayout({
@@ -59,6 +108,12 @@ export default async function RootLayout({
       className={`${barlowCondensed.variable} ${dmSans.variable} ${dmMono.variable} h-full`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
         {!isVenuePortal && (
           <SiteHeader
             profile={

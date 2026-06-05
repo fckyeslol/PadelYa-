@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   getCourtCopFromRules,
   getPlayerFeeFromRules,
+  PLAYER_FEE_SURCHARGE_COP,
   RULE_BASED_VENUE_IDS,
 } from "@/config/venue-pricing-rules";
 
@@ -53,8 +54,11 @@ describe("getCourtCopFromRules — ace-padel-club", () => {
 });
 
 describe("getPlayerFeeFromRules", () => {
-  it("returns court / 4", () => {
-    expect(getPlayerFeeFromRules("ace-padel-club", MONDAY, "10:00", 60)).toBe(12_500);
+  it("returns court / 4 plus the per-player platform surcharge", () => {
+    // court 50_000 / 4 = 12_500, + surcharge
+    expect(getPlayerFeeFromRules("ace-padel-club", MONDAY, "10:00", 60)).toBe(
+      12_500 + PLAYER_FEE_SURCHARGE_COP,
+    );
   });
 
   it("returns null for time outside all ranges", () => {

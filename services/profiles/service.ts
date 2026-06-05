@@ -16,6 +16,39 @@ type ProfileRow = {
   created_at: string;
 };
 
+/**
+ * Minimal profile derived purely from the authenticated user. Used as a
+ * resilient fallback so a transient/schema error reading the `profiles` table
+ * never makes an authenticated user render as logged-out (see the 2026-06-05
+ * outage: a missing column threw here and the layout's catch hid the session).
+ */
+function fallbackProfileFromUser(user: {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+}): Profile {
+  const meta = user.user_metadata ?? {};
+  const first = (meta.first_name as string | undefined)?.trim() ?? "";
+  const last = (meta.last_name as string | undefined)?.trim() ?? "";
+  const phone = (meta.phone as string | undefined)?.trim() ?? "";
+  const fromMeta = [first, last].filter(Boolean).join(" ");
+  const fullName =
+    fromMeta || sanitizeDisplayName(user.email?.split("@")[0] ?? "", "Jugador");
+
+  return {
+    id: user.id,
+    fullName: sanitizeDisplayName(fullName, "Jugador"),
+    phone,
+    whatsappPhone: phone || null,
+    skillLevel: "beginner",
+    role: "player",
+    strikeCount: 0,
+    avatarUrl: null,
+    wantsMatchNotifications: true,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 function mapProfile(row: ProfileRow): Profile {
   return {
     id: row.id,
@@ -54,7 +87,11 @@ export async function getCurrentProfile() {
     .maybeSingle();
 
   if (error) {
-    throw error;
+    // Do NOT throw: the layout reads this to decide logged-in state, and a
+    // profile-read failure must not present an authenticated user as logged-out.
+    // Fall back to a minimal profile from the auth session instead.
+    console.error("[getCurrentProfile] profiles read failed; using session fallback", error);
+    return fallbackProfileFromUser(user);
   }
 
   if (!data) {

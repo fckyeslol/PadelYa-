@@ -1,6 +1,10 @@
 import pricingData from "@/config/pricing-slots.json";
 import { BARRANQUILLA_VENUES, getVenueInfo } from "@/config/venues";
-import { RULE_BASED_VENUE_IDS, getPlayerFeeFromRules } from "@/config/venue-pricing-rules";
+import {
+  RULE_BASED_VENUE_IDS,
+  getPlayerFeeFromRules,
+  PLAYER_FEE_SURCHARGE_COP,
+} from "@/config/venue-pricing-rules";
 
 type SlotOverride = { courtCop: number; playerCop: number };
 
@@ -129,11 +133,12 @@ export function getCourtPriceCop(venueId: string, date: string, time: string): n
 export function getPlayerFeeCop(venueId: string, date: string, time: string): number | null {
   if (isCasaPadelVenueId(venueId)) {
     const override = DATA.fixedVenues["casa-padel"].slotOverrides?.[date]?.[time];
-    return override ? override.playerCop : CASA_PADEL_PLAYER_FEE_COP;
+    const base = override ? override.playerCop : CASA_PADEL_PLAYER_FEE_COP;
+    return base + PLAYER_FEE_SURCHARGE_COP;
   }
   const court = getCourtPriceCop(venueId, date, time);
   if (court === null) return null;
-  return Math.round(court / 4);
+  return Math.round(court / 4) + PLAYER_FEE_SURCHARGE_COP;
 }
 
 export function getPlayerFeeByVenueName(

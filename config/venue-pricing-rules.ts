@@ -1,6 +1,14 @@
 export const RULE_BASED_VENUE_IDS = ["ace-padel-club", "x3-padel-club"] as const;
 export type RuleBasedVenueId = (typeof RULE_BASED_VENUE_IDS)[number];
 
+/**
+ * Recargo fijo de plataforma por jugador, añadido sobre (precio cancha / 4).
+ * Se aplica en los dos puntos donde se calcula la tarifa por jugador:
+ * `getPlayerFeeFromRules` (Ace/X3) y `getPlayerFeeCop` (Casa Padel + EasyCancha),
+ * de modo que TODOS los partidos suben este monto por persona.
+ */
+export const PLAYER_FEE_SURCHARGE_COP = 1500;
+
 type TimeRange = { from: string; to: string; courtCop: number };
 type DayType = "weekday" | "saturday" | "sunday";
 
@@ -108,5 +116,5 @@ export function getPlayerFeeFromRules(
   durationMinutes: 60 | 90,
 ): number | null {
   const court = getCourtCopFromRules(venueId, date, time, durationMinutes);
-  return court === null ? null : Math.round(court / 4);
+  return court === null ? null : Math.round(court / 4) + PLAYER_FEE_SURCHARGE_COP;
 }

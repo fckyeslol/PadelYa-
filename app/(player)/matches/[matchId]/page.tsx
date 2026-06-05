@@ -42,7 +42,7 @@ const SKILL_META: Record<string, string> = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { matchId } = await params;
   const match = await getMatchById(matchId).catch(() => null);
-  if (!match) return { title: "Partido — PadelYa!" };
+  if (!match) return { title: "Partido" };
 
   const date = new Date(match.scheduledAt).toLocaleDateString("es-CO", { dateStyle: "medium" });
   const skill = SKILL_META[match.skillLevel] ?? match.skillLevel;
@@ -54,12 +54,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = `Partido de pádel en ${match.venueName} el ${date}. Nivel ${skill}. ${feeLine} en PadelYa!`;
 
   return {
-    title: `${match.venueName} · ${date} — PadelYa!`,
+    title: `Pádel en ${match.venueName} · ${date}`,
     description,
+    alternates: { canonical: `/matches/${matchId}` },
     openGraph: {
-      title: `${match.venueName} — PadelYa!`,
+      type: "website",
+      title: `Pádel en ${match.venueName} · ${date}`,
       description,
       siteName: "PadelYa!",
+      url: `/matches/${matchId}`,
+      images: [{ url: "/logo.png", width: 329, height: 329, alt: "PadelYa!" }],
     },
   };
 }
@@ -212,8 +216,48 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
       (myPlayer.status === "paid" || myPlayer.status === "pending_payment"));
   const canRecordResult = (isCompleted || isConfirmed) && canChat;
 
+  const eventJsonLd = isOpen
+    ? {
+        "@context": "https://schema.org",
+        "@type": "SportsEvent",
+        name: `Partido de pádel en ${match!.venueName}`,
+        sport: "Pádel",
+        startDate: match!.scheduledAt,
+        eventStatus: "https://schema.org/EventScheduled",
+        eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+        location: {
+          "@type": "Place",
+          name: match!.venueName,
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: "Barranquilla",
+            addressCountry: "CO",
+          },
+        },
+        ...(hasCsvFee && displayFee
+          ? {
+              offers: {
+                "@type": "Offer",
+                price: displayFee,
+                priceCurrency: "COP",
+                availability: "https://schema.org/InStock",
+                url: `https://www.padelya.co/matches/${match!.id}`,
+              },
+            }
+          : {}),
+      }
+    : null;
+
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
+      {eventJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(eventJsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
+      )}
       <MatchRealtimeRefresher matchId={match!.id} />
 
       {/* Back link */}

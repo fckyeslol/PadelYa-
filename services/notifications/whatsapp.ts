@@ -5,21 +5,24 @@ import { formatCop } from "@/utils/currency";
 /**
  * WhatsApp Business Cloud API (Meta) — template-based notifications.
  *
- * Proactive messages outside the 24h customer-service window REQUIRE a
- * pre-approved template. Each function below maps to a template that must
- * exist (and be approved) in WhatsApp Manager with the EXACT name and
- * variable order documented next to TEMPLATES.
+ * Proactive messages outside the 24h window REQUIRE a pre-approved template.
+ * Each template is designed with: an image header (static, brand), a clean
+ * body (no raw link), a footer, and a dynamic-URL "Ver partido" button.
+ *
+ * The body parameters map to {{1}}, {{2}}… in order. The button URL is
+ * defined in Meta as https://www.padelya.co/matches/{{1}} and the code sends
+ * the matchId as that {{1}} (buttonUrlSuffix).
  */
 
 /** Template names — must match exactly what's created & approved in Meta. */
 const TEMPLATES = {
-  /** partido_creado · vars: [hostName, venue, date, link] · Utility */
+  /** partido_creado · body: [hostName, venue, date] · button: matchId · Utility */
   matchCreated: "partido_creado",
-  /** nuevo_partido · vars: [venue, date, level, price, link] · Marketing */
+  /** nuevo_partido · body: [venue, date, level, price] · button: matchId · Marketing */
   newMatch: "nuevo_partido",
-  /** jugador_unido · vars: [playerName, venue, date, roster, link] · Utility */
+  /** jugador_unido · body: [playerName, venue, date, roster] · button: matchId · Utility */
   playerJoined: "jugador_unido",
-  /** partido_lleno · vars: [venue, date, link] · Utility */
+  /** partido_lleno · body: [venue, date] · button: matchId · Utility */
   matchFull: "partido_lleno",
 } as const;
 
@@ -30,6 +33,12 @@ const SKILL_LABELS: Record<string, string> = {
   beginner: "Principiante",
   intermediate: "Intermedio",
   advanced: "Avanzado",
+};
+
+type TemplateOpts = {
+  bodyParams: string[];
+  /** Dynamic suffix for the template's URL button (matches.../{{1}}). */
+  buttonUrlSuffix?: string;
 };
 
 function getMetaWaEnv() {
@@ -43,25 +52,33 @@ function getOwnerPhone(): string | null {
   return process.env.OWNER_WHATSAPP_PHONE ?? null;
 }
 
-function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "https://padelya.co";
-}
-
-function matchLink(matchId: string): string {
-  return `${appUrl()}/matches/${matchId}`;
-}
-
 /** Sends one approved template message. Throws on API error. */
 async function sendTemplate(
   to: string,
   templateName: string,
-  bodyParams: string[],
+  opts: TemplateOpts,
 ): Promise<void> {
   const env = getMetaWaEnv();
   if (!env) return; // silently skip if not configured
 
   // Meta requires phone without leading + — just digits with country code.
   const phone = to.replace(/^\+/, "");
+
+  const components: Record<string, unknown>[] = [];
+  if (opts.bodyParams.length) {
+    components.push({
+      type: "body",
+      parameters: opts.bodyParams.map((text) => ({ type: "text", text })),
+    });
+  }
+  if (opts.buttonUrlSuffix) {
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [{ type: "text", text: opts.buttonUrlSuffix }],
+    });
+  }
 
   const res = await fetch(
     `https://graph.facebook.com/v20.0/${env.phoneNumberId}/messages`,
@@ -78,14 +95,7 @@ async function sendTemplate(
         template: {
           name: templateName,
           language: { code: TEMPLATE_LANG },
-          components: bodyParams.length
-            ? [
-                {
-                  type: "body",
-                  parameters: bodyParams.map((text) => ({ type: "text", text })),
-                },
-              ]
-            : [],
+          components,
         },
       }),
     },
@@ -100,10 +110,10 @@ async function sendTemplate(
 async function safeSendTemplate(
   to: string,
   templateName: string,
-  bodyParams: string[],
+  opts: TemplateOpts,
 ): Promise<void> {
   try {
-    await sendTemplate(to, templateName, bodyParams);
+    await sendTemplate(to, templateName, opts);
   } catch (err) {
     console.error("[WhatsApp] template send failed", { to, templateName, error: err });
   }
@@ -113,13 +123,13 @@ async function safeSendTemplate(
 async function sendTemplateToMany(
   phones: string[],
   templateName: string,
-  bodyParams: string[],
+  opts: TemplateOpts,
 ): Promise<void> {
   const BATCH = 20;
   const unique = [...new Set(phones.filter((p) => p !== ""))];
   for (let i = 0; i < unique.length; i += BATCH) {
     const slice = unique.slice(i, i + BATCH);
-    await Promise.all(slice.map((ph) => safeSendTemplate(ph, templateName, bodyParams)));
+    await Promise.all(slice.map((ph) => safeSendTemplate(ph, templateName, opts)));
   }
 }
 
@@ -180,20 +190,17 @@ export async function notifyHostMatchCreated(params: {
   scheduledAt: string | null;
   maxPlayers: number;
 }): Promise<void> {
-  await safeSendTemplate(params.hostPhone, TEMPLATES.matchCreated, [
-    params.hostName,
-    params.venueName,
-    formatMatchDate(params.scheduledAt),
-    matchLink(params.matchId),
-  ]);
+  await safeSendTemplate(params.hostPhone, TEMPLATES.matchCreated, {
+    bodyParams: [params.hostName, params.venueName, formatMatchDate(params.scheduledAt)],
+    buttonUrlSuffix: params.matchId,
+  });
 }
 
 /**
  * Broadcasts a newly published match to the owner + every registered user
- * that has a phone. Template: nuevo_partido.
+ * that opted in and has a phone. Template: nuevo_partido.
  *
- * NOTE: this is a marketing-style broadcast. Meta requires recipients to have
- * opted in; sending to users who never opted in risks the number being blocked.
+ * NOTE: marketing-style broadcast. Only opted-in users receive it.
  * excludePlayerId skips the host (who already got partido_creado).
  */
 export async function notifyAllUsersNewMatch(params: {
@@ -204,17 +211,19 @@ export async function notifyAllUsersNewMatch(params: {
   feeCop: number;
   excludePlayerId?: string;
 }): Promise<void> {
-  const bodyParams = [
-    params.venueName,
-    formatMatchDate(params.scheduledAt),
-    SKILL_LABELS[params.skillLevel] ?? params.skillLevel,
-    formatCop(params.feeCop),
-    matchLink(params.matchId),
-  ];
+  const opts: TemplateOpts = {
+    bodyParams: [
+      params.venueName,
+      formatMatchDate(params.scheduledAt),
+      SKILL_LABELS[params.skillLevel] ?? params.skillLevel,
+      formatCop(params.feeCop),
+    ],
+    buttonUrlSuffix: params.matchId,
+  };
 
   const ownerPhone = getOwnerPhone();
   if (ownerPhone) {
-    await safeSendTemplate(ownerPhone, TEMPLATES.newMatch, bodyParams);
+    await safeSendTemplate(ownerPhone, TEMPLATES.newMatch, opts);
   }
 
   const supabase = getSupabaseAdminClient();
@@ -229,7 +238,7 @@ export async function notifyAllUsersNewMatch(params: {
     .map((p) => bestPhone(p as ProfilePhoneRow))
     .filter((p) => p !== "" && p !== ownerPhone);
 
-  await sendTemplateToMany(phones, TEMPLATES.newMatch, bodyParams);
+  await sendTemplateToMany(phones, TEMPLATES.newMatch, opts);
 }
 
 /**
@@ -245,19 +254,21 @@ export async function notifyOnPlayerJoined(params: {
   currentPaidCount: number;
   maxPlayers: number;
 }): Promise<void> {
-  const bodyParams = [
-    params.newPlayerName,
-    params.venueName,
-    formatMatchDate(params.scheduledAt),
-    `${params.currentPaidCount}/${params.maxPlayers}`,
-    matchLink(params.matchId),
-  ];
+  const opts: TemplateOpts = {
+    bodyParams: [
+      params.newPlayerName,
+      params.venueName,
+      formatMatchDate(params.scheduledAt),
+      `${params.currentPaidCount}/${params.maxPlayers}`,
+    ],
+    buttonUrlSuffix: params.matchId,
+  };
 
   const phones = await getActivePlayerPhones(params.matchId, params.newPlayerId);
   const ownerPhone = getOwnerPhone();
   if (ownerPhone) phones.push(ownerPhone);
 
-  await sendTemplateToMany(phones, TEMPLATES.playerJoined, bodyParams);
+  await sendTemplateToMany(phones, TEMPLATES.playerJoined, opts);
 }
 
 /** Notifies the owner + all players when a match becomes full. Template: partido_lleno. */
@@ -267,11 +278,10 @@ export async function notifyMatchFull(params: {
   scheduledAt: string | null;
   maxPlayers: number;
 }): Promise<void> {
-  const bodyParams = [
-    params.venueName,
-    formatMatchDate(params.scheduledAt),
-    matchLink(params.matchId),
-  ];
+  const opts: TemplateOpts = {
+    bodyParams: [params.venueName, formatMatchDate(params.scheduledAt)],
+    buttonUrlSuffix: params.matchId,
+  };
 
   const supabase = getSupabaseAdminClient();
   const { data } = await supabase
@@ -292,5 +302,5 @@ export async function notifyMatchFull(params: {
   const ownerPhone = getOwnerPhone();
   if (ownerPhone) phones.push(ownerPhone);
 
-  await sendTemplateToMany(phones, TEMPLATES.matchFull, bodyParams);
+  await sendTemplateToMany(phones, TEMPLATES.matchFull, opts);
 }

@@ -1,5 +1,6 @@
 import { bogotaDateAndTime, getAvailableTimeSlots, isRuleBasedVenueId } from "@/config/pricing";
 import { getVenueInfo } from "@/config/venues";
+import { getEasycanchaDayAvailability } from "@/services/easycancha/availability";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const ACTIVE_MATCH_STATUSES = ["pending_court", "open", "full", "confirmed"] as const;
@@ -165,10 +166,34 @@ export async function assertVenueHasCourtForSlot(
     }
   }
 
-  const courtId = await pickAvailableCourt(info.id, date, time);
+  const courts = await listVenueCourts(info.id);
+  const courtIds = courts.map((c) => c.id);
+  const [blocks, matches, ecAvail] = await Promise.all([
+    loadBlocksForCourts(courtIds, date),
+    loadMatchesForCourts(courtIds, date),
+    getEasycanchaDayAvailability(venueName, date),
+  ]);
+
+  // Primera cancha PadelYa libre (no bloqueada, sin partido) en ese horario.
+  const courtId =
+    courts.find((c) => !blocks.has(`${c.id}:${time}`) && !matches.has(`${c.id}:${time}`))?.id ?? null;
   if (!courtId) {
     throw new Error("No hay cancha disponible en ese horario.");
   }
+
+  // Tope EasyCancha: no crear más partidos que canchas físicamente libres allá.
+  // Sin datos ⇒ no aplica (fail-open). Cada partido PadelYa ya activo descuenta uno.
+  if (ecAvail.hasData) {
+    let activeMatchesAtTime = 0;
+    for (const key of matches.keys()) {
+      if (key.endsWith(`:${time}`)) activeMatchesAtTime++;
+    }
+    const cap = (ecAvail.freeByTime.get(time) ?? 0) - activeMatchesAtTime;
+    if (cap <= 0) {
+      throw new Error("Ese horario ya está reservado en EasyCancha.");
+    }
+  }
+
   return courtId;
 }
 

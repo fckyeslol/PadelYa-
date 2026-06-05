@@ -198,6 +198,10 @@ export function getVenueInfo(venueName: string): VenueInfo | null {
   return null;
 }
 
+export function getVenueById(venueId: string): VenueInfo | null {
+  return BARRANQUILLA_VENUES.find((v) => v.id === venueId) ?? null;
+}
+
 export type VenueImageVariant = "club" | "match";
 
 export function getVenueImage(

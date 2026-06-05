@@ -7,6 +7,7 @@ import {
   notifyOnPlayerJoined,
   notifyMatchFull,
 } from "@/services/notifications/whatsapp";
+import { sendCourtBookingHandoff } from "@/services/easycancha/booking-alert";
 import { getAppUrl } from "@/utils/auth-url";
 import { getWompiPublicKey, getWompiIntegritySecret, getWompiEventsSecret, getWompiPrivateKey } from "@/utils/env";
 import { getErrorMessage } from "@/utils/errors";
@@ -527,6 +528,14 @@ async function _handleApprovedPayment({
       }
     } catch (err) {
       console.error("[notifications] match-filled notifications failed", err);
+    }
+
+    // #3: avisar al equipo para reservar la cancha en EasyCancha (email con el detalle;
+    // el WhatsApp "partido lleno" al owner ya sale arriba). Aislado para no afectar lo demás.
+    try {
+      await sendCourtBookingHandoff({ matchId, venueName, scheduledAt });
+    } catch (err) {
+      console.error("[easycancha] court booking handoff failed", err);
     }
   }
 

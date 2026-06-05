@@ -263,6 +263,72 @@ export async function sendSlotsAvailableEmail(to: string, slots: FreedSlot[]) {
   }
 }
 
+export type CourtBookingHandoff = {
+  matchId: string;
+  venueName: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:MM
+  durationMinutes: number;
+  freeCourtNames: string[];
+  priceCop: number | null;
+  bookingUrl: string; // link a EasyCancha
+};
+
+/**
+ * Aviso al equipo (OWNER_EMAIL) cuando un partido llega a 4/4: hay que reservar y
+ * pagar la cancha en EasyCancha. Trae todo para hacerlo en 30 segundos.
+ */
+export async function sendCourtBookingEmail(h: CourtBookingHandoff) {
+  const resend = getResendEnv();
+  const to = process.env.OWNER_EMAIL?.trim();
+  if (!resend || !to) return;
+
+  const when = new Date(`${h.date}T12:00:00Z`).toLocaleDateString("es-CO", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "America/Bogota",
+  });
+  const price = h.priceCop != null ? formatCop(h.priceCop) : "—";
+  const matchUrl = `${resend.appUrl}/matches/${h.matchId}`;
+  const courtsRow = h.freeCourtNames.length
+    ? `<strong style="color:#16a34a;">${h.freeCourtNames.length} libre(s)</strong>: ${escapeHtml(h.freeCourtNames.join(", "))}`
+    : `<strong style="color:#dc2626;">⚠️ 0 libres en EasyCancha ahora</strong> — reservá cuanto antes o coordiná alternativa`;
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resend.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: resend.from,
+        to: [to],
+        subject: `🎾 Partido lleno — reservá la cancha · ${h.venueName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; color:#111827; line-height:1.5; max-width:520px;">
+            <h2 style="margin:0 0 12px;">Partido lleno (4/4) — hay que reservar la cancha</h2>
+            <p style="margin:0 0 14px;">Reservá y pagá la cancha en EasyCancha:</p>
+            <div style="margin:14px 0; padding:12px; border:1px solid #e5e7eb; border-radius:10px;">
+              <p style="margin:0 0 6px;"><strong>Sede:</strong> ${escapeHtml(h.venueName)}</p>
+              <p style="margin:0 0 6px;"><strong>Cuándo:</strong> ${escapeHtml(when)} · ${escapeHtml(h.time)} (${h.durationMinutes} min)</p>
+              <p style="margin:0 0 6px;"><strong>Precio a pagar en EasyCancha:</strong> ${escapeHtml(price)}</p>
+              <p style="margin:0;"><strong>Canchas:</strong> ${courtsRow}</p>
+            </div>
+            <p style="margin:16px 0 8px;">
+              <a href="${h.bookingUrl}" style="display:inline-block; background:#1e3a6e; color:#fff; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600;">Reservar en EasyCancha →</a>
+            </p>
+            <p style="margin:8px 0 0;"><a href="${matchUrl}" style="color:#1e3a6e; font-weight:600;">Ver el partido en PadelYa</a></p>
+          </div>
+        `,
+      }),
+    });
+  } catch {
+    // El aviso nunca debe romper el cobro.
+  }
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")

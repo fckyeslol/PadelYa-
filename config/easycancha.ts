@@ -11,6 +11,28 @@ export const EASYCANCHA_BASE_URL = "https://www.easycancha.com";
 /** sport_id de Padel en EasyCancha. */
 export const PADEL_SPORT_ID = 7;
 
+/**
+ * Ventana "caliente": días hacia adelante que las 6 cuentas mantienen frescos en
+ * cada visita. Fechas más lejanas se traen on-demand cuando un usuario las elige.
+ */
+export const HOT_WINDOW_DAYS = 3;
+
+/** Intervalos (min) entre turnos de una misma cuenta; se elige uno al azar por turno. */
+export const SYNC_INTERVALS_MIN = [30, 45, 60] as const;
+
+/** Jitter extra (± min) sobre el intervalo elegido, para no ser metronómico. */
+export const SYNC_INTERVAL_JITTER_MIN = 5;
+
+/** Top-up on-demand: timeout corto (la creación de partido no debe colgarse). */
+export const ON_DEMAND_TIMEOUT_MS = 4_000;
+
+/**
+ * Presupuesto global de fetches on-demand en vivo (token-bucket). Pasado el tope,
+ * las fechas extra caen en fail-open: no se llama a EasyCancha.
+ */
+export const ON_DEMAND_BUDGET_CAPACITY = 12;
+export const ON_DEMAND_BUDGET_REFILL_PER_MIN = 12;
+
 export type EasycanchaClub = {
   /** club_id en EasyCancha. */
   id: number;

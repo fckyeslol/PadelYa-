@@ -1,6 +1,8 @@
 import { bogotaDateAndTime, getAvailableTimeSlots, isRuleBasedVenueId } from "@/config/pricing";
 import { getVenueInfo } from "@/config/venues";
 import { getEasycanchaDayAvailability } from "@/services/easycancha/availability";
+import { ensureFreshAvailability } from "@/services/easycancha/on-demand";
+import { hotWindowDates } from "@/services/easycancha/sync";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const ACTIVE_MATCH_STATUSES = ["pending_court", "open", "full", "confirmed"] as const;
@@ -20,7 +22,7 @@ function timeToMinutes(t: string): number {
 /** Horarios del CSV para la sede en una fecha, filtrados si es hoy (Bogotá). */
 export function getBookableTimeSlotsForVenue(venueId: string, date: string): string[] {
   const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "America/Bogota" }).slice(0, 10);
-  let slots = getAvailableTimeSlots(venueId, date);
+  const slots = getAvailableTimeSlots(venueId, date);
   if (date !== todayStr) return slots;
 
   const nowBogota = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Bogota" }));
@@ -168,11 +170,18 @@ export async function assertVenueHasCourtForSlot(
 
   const courts = await listVenueCourts(info.id);
   const courtIds = courts.map((c) => c.id);
-  const [blocks, matches, ecAvail] = await Promise.all([
+  const [blocks, matches] = await Promise.all([
     loadBlocksForCourts(courtIds, date),
     loadMatchesForCourts(courtIds, date),
-    getEasycanchaDayAvailability(venueName, date),
   ]);
+
+  // Enforcement: para fechas fuera de la ventana caliente, asegurar data fresca antes
+  // de aplicar el tope (top-up con bucket + dedup; fail-open si no se puede).
+  let ecAvail = await getEasycanchaDayAvailability(venueName, date);
+  if (!ecAvail.hasData && !hotWindowDates().includes(date)) {
+    await ensureFreshAvailability(venueName, date);
+    ecAvail = await getEasycanchaDayAvailability(venueName, date);
+  }
 
   // Primera cancha PadelYa libre (no bloqueada, sin partido) en ese horario.
   const courtId =

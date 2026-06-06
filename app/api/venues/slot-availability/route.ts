@@ -7,6 +7,8 @@ import {
   loadMatchesForCourts,
 } from "@/services/venue-portal/availability";
 import { getEasycanchaDayAvailability } from "@/services/easycancha/availability";
+import { ensureFreshAvailability } from "@/services/easycancha/on-demand";
+import { hotWindowDates } from "@/services/easycancha/sync";
 import { hasCsvPricingForVenueName } from "@/config/pricing";
 
 /**
@@ -37,12 +39,19 @@ export async function GET(request: Request) {
     const courtIds = courts.map((c) => c.id);
     const times = getBookableTimeSlotsForVenue(info.id, date);
 
-    // Load blocks + existing matches + EasyCancha availability once.
-    const [blocks, matches, ecAvail] = await Promise.all([
+    // Load blocks + existing matches en paralelo.
+    const [blocks, matches] = await Promise.all([
       loadBlocksForCourts(courtIds, date),
       loadMatchesForCourts(courtIds, date),
-      getEasycanchaDayAvailability(venueName, date),
     ]);
+
+    // EasyCancha: la ventana caliente la mantiene el cron; para fechas más lejanas sin
+    // data fresca, top-up on-demand (con bucket + dedup; fail-open si no se puede).
+    let ecAvail = await getEasycanchaDayAvailability(venueName, date);
+    if (!ecAvail.hasData && !hotWindowDates().includes(date)) {
+      await ensureFreshAvailability(venueName, date);
+      ecAvail = await getEasycanchaDayAvailability(venueName, date);
+    }
 
     const freeCourtsByTime: Record<string, number> = {};
     const bookableTimes: string[] = [];

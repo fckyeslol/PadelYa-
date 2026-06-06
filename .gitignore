@@ -37,11 +37,9 @@ yarn-error.log*
 .env*
 
 # easycancha session tokens / scraped auth dumps (contain account JWTs — never commit)
-.firecrawl/session.json
-.firecrawl/cookies*.json
-.firecrawl/cookies.txt
-.firecrawl/*login*.json
-.firecrawl/.browser-profile/
+# perfiles de navegador por cuenta (.browser-profile-1..6) tienen cookies/sesión: ignorar todo
+.firecrawl/
+.playwright-mcp/
 
 # vercel
 .vercel

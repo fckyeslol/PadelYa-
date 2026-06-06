@@ -1,34 +1,53 @@
 /**
- * Refresca el authtoken de EasyCancha vía login real con Playwright.
+ * Refresca los authtoken de las 6 cuentas de EasyCancha vía login real con Playwright.
  *
- *   npx tsx scripts/easycancha-refresh-token.ts            # navegador visible (recomendado)
- *   npx tsx scripts/easycancha-refresh-token.ts --headless # sin ventana
+ *   npx tsx scripts/easycancha-refresh-token.ts             # todas, navegador visible
+ *   npx tsx scripts/easycancha-refresh-token.ts --headless  # todas, sin ventana
+ *   npx tsx scripts/easycancha-refresh-token.ts --only=3    # solo la cuenta id=3
  *
- * Requiere en .env.local:
- *   EASYCANCHA_EMAIL=tu@email.com
- *   EASYCANCHA_PASSWORD=tu-clave
+ * Credenciales en .env.local como JSON (recomendado):
+ *   EASYCANCHA_ACCOUNTS=[{"id":1,"email":"a@x.com","password":"..."}, ... 6 cuentas]
+ * Fallback (1 cuenta): EASYCANCHA_EMAIL / EASYCANCHA_PASSWORD -> id 1.
  *
- * Escribe el token en .firecrawl/session.json (gitignored), que es lo que lee
- * scripts/easycancha_fetch_4weeks.py.
+ * Cada cuenta usa su propio perfil persistente (.firecrawl/.browser-profile-<id>) y, si
+ * tiene proxy_url en easycancha_accounts, loguea POR ESE proxy (mismo IP residencial que
+ * usará el sync para leer → login y lecturas coherentes). Escribe token + expires_at; el
+ * scheduling (next_run_at) NO se toca acá.
  *
  * IMPORTANTE: el login corre reCAPTCHA v3 (score) + detección de abuso (código -48).
- * Por eso usamos un navegador real con perfil persistente y tipeo humano, y conviene
- * correrlo ESPACIADO: el token dura ~7 días, no lo pongas en un loop.
+ * Por eso: navegador real, perfil persistente, tipeo humano, y ESPACIADO entre cuentas.
+ * El token dura ~7 días: no lo pongas en un loop agresivo.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { createClient } from "@supabase/supabase-js";
+import { mkdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { type BrowserContext, chromium, type Page } from "playwright";
 
 const ROOT = process.cwd();
-const SESSION_PATH = resolve(ROOT, ".firecrawl", "session.json");
-const PROFILE_DIR = resolve(ROOT, ".firecrawl", ".browser-profile");
 const LOGIN_URL = "https://www.easycancha.com/login?lang=es-CO&country=CO";
+const ACCOUNT_GAP_MIN_MS = 20_000; // espaciado entre cuentas (anti-abuso)
+const ACCOUNT_GAP_MAX_MS = 60_000;
 
-/** Endpoint conocido-bueno para validar que el token funciona (un club de BAQ). */
-function validateUrl(): string {
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
-  return `https://www.easycancha.com/api/sports/7/clubs/1125/timeslots?date=${today}&time=18:00&timespan=90`;
+type Account = { id: number; email: string; password: string };
+type PlaywrightProxy = { server: string; username?: string; password?: string };
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** "http://user:pass@host:port" -> { server, username, password } para Playwright. */
+function parseProxy(proxyUrl: string): PlaywrightProxy | undefined {
+  if (!proxyUrl) return undefined;
+  try {
+    const u = new URL(proxyUrl);
+    return {
+      server: `${u.protocol}//${u.host}`, // host incluye el puerto
+      username: u.username ? decodeURIComponent(u.username) : undefined,
+      password: u.password ? decodeURIComponent(u.password) : undefined,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 function loadEnvLocal(): void {
@@ -40,12 +59,40 @@ function loadEnvLocal(): void {
       const i = t.indexOf("=");
       if (i === -1) continue;
       const key = t.slice(0, i);
-      const val = t.slice(i + 1);
-      if (!process.env[key]) process.env[key] = val;
+      if (!process.env[key]) process.env[key] = t.slice(i + 1);
     }
   } catch {
     /* .env.local opcional si las vars ya están en el entorno */
   }
+}
+
+function loadAccounts(): Account[] {
+  const json = process.env.EASYCANCHA_ACCOUNTS?.trim();
+  if (json) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      throw new Error("EASYCANCHA_ACCOUNTS no es JSON válido.");
+    }
+    if (!Array.isArray(parsed)) throw new Error("EASYCANCHA_ACCOUNTS debe ser un array.");
+    const accounts = parsed.map((a, idx) => {
+      const obj = a as Record<string, unknown>;
+      const id = Number(obj.id ?? idx + 1);
+      const email = String(obj.email ?? "").trim();
+      const password = String(obj.password ?? "").trim();
+      if (!id || !email || !password) {
+        throw new Error(`Cuenta inválida en EASYCANCHA_ACCOUNTS (índice ${idx}).`);
+      }
+      return { id, email, password };
+    });
+    return accounts;
+  }
+  // Fallback: una sola cuenta.
+  const email = process.env.EASYCANCHA_EMAIL?.trim();
+  const password = process.env.EASYCANCHA_PASSWORD?.trim();
+  if (email && password) return [{ id: 1, email, password }];
+  throw new Error("Faltan credenciales: definí EASYCANCHA_ACCOUNTS (JSON) o EASYCANCHA_EMAIL/PASSWORD.");
 }
 
 function decodeJwtExpMs(token: string): number | null {
@@ -57,12 +104,16 @@ function decodeJwtExpMs(token: string): number | null {
   }
 }
 
+function validateUrl(): string {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
+  return `https://www.easycancha.com/api/sports/7/clubs/1125/timeslots?date=${today}&time=18:00&timespan=90`;
+}
+
 async function readAuthToken(ctx: BrowserContext): Promise<string> {
   const cookies = await ctx.cookies("https://www.easycancha.com");
   return cookies.find((c) => c.name === "authtoken")?.value ?? "";
 }
 
-/** Confirma que el token devuelve datos reales (no 401/error). */
 async function tokenWorks(page: Page, token: string): Promise<boolean> {
   try {
     return await page.evaluate(
@@ -105,70 +156,71 @@ async function waitForToken(ctx: BrowserContext, page: Page, timeoutMs: number):
   return "";
 }
 
-/** Empuja el token a Supabase (easycancha_session) para que lo lea el cron de Vercel. */
-async function pushToSupabase(token: string, awsalb: string, expMs: number | null): Promise<void> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    console.warn("  (Supabase no configurado: token solo local; el cron no lo verá)");
+async function pushAccount(
+  supabase: SupabaseClient | null,
+  id: number,
+  token: string,
+  awsalb: string,
+  expMs: number | null,
+): Promise<void> {
+  if (!supabase) {
+    console.warn("  (Supabase no configurado: token no persistido; el cron no lo verá)");
     return;
   }
-  const supabase = createClient(url, key, { auth: { persistSession: false } });
-  const { error } = await supabase.from("easycancha_session").upsert({
-    id: 1,
+  const { error } = await supabase.from("easycancha_accounts").upsert({
+    id,
     token,
     awsalb,
     expires_at: expMs ? new Date(expMs).toISOString() : null,
     updated_at: new Date().toISOString(),
   });
-  if (error) console.error(`  Supabase upsert falló: ${error.message}`);
-  else console.log("  ✓ Token guardado también en Supabase (easycancha_session) para el cron");
+  if (error) console.error(`  Supabase upsert cuenta ${id} falló: ${error.message}`);
+  else console.log(`  ✓ Cuenta ${id} guardada en easycancha_accounts`);
 }
 
-async function main(): Promise<void> {
-  loadEnvLocal();
-  const email = process.env.EASYCANCHA_EMAIL?.trim();
-  const password = process.env.EASYCANCHA_PASSWORD?.trim();
-  if (!email || !password) {
-    console.error("Faltan EASYCANCHA_EMAIL / EASYCANCHA_PASSWORD en .env.local");
-    process.exit(1);
-  }
-  const headless = process.argv.includes("--headless");
+async function refreshAccount(
+  account: Account,
+  headless: boolean,
+  supabase: SupabaseClient | null,
+  proxy: PlaywrightProxy | undefined,
+): Promise<boolean> {
+  const profileDir = resolve(ROOT, ".firecrawl", `.browser-profile-${account.id}`);
+  mkdirSync(profileDir, { recursive: true });
+  if (proxy) console.log(`  proxy: ${proxy.server}`);
 
-  mkdirSync(PROFILE_DIR, { recursive: true });
   let ctx: BrowserContext;
   try {
-    ctx = await chromium.launchPersistentContext(PROFILE_DIR, {
+    ctx = await chromium.launchPersistentContext(profileDir, {
       headless,
       locale: "es-CO",
       timezoneId: "America/Bogota",
       viewport: { width: 1280, height: 800 },
+      serviceWorkers: "block", // evita 503 cacheado por la PWA
+      ...(proxy ? { proxy } : {}),
     });
   } catch (e) {
-    console.error(`No pude lanzar Chromium: ${(e as Error).message}`);
-    console.error("Probá: npx playwright install chromium");
-    process.exit(1);
+    console.error(`  No pude lanzar Chromium: ${(e as Error).message}`);
+    console.error("  Probá: npx playwright install chromium");
+    return false;
   }
 
   try {
     const page = ctx.pages()[0] ?? (await ctx.newPage());
     await page.goto(LOGIN_URL, { waitUntil: "domcontentloaded" });
 
-    // El perfil persistente puede traer una sesión todavía válida → evitá re-loguear.
     let token = await readAuthToken(ctx);
     let reused = false;
     if (token && (await tokenWorks(page, token))) {
       reused = true;
     } else {
-      console.log("Logueando…");
-      await humanType(page, 'input[name="email"]', email);
-      await humanType(page, 'input[name="password"]', password);
+      console.log(`  Logueando ${account.email}…`);
+      await humanType(page, 'input[name="email"]', account.email);
+      await humanType(page, 'input[name="password"]', account.password);
       await page.getByRole("button", { name: "Ingresar" }).click();
       token = await waitForToken(ctx, page, 45_000);
       if (!token) {
         throw new Error(
-          "El login no dejó authtoken. Causas probables: credenciales, score de reCAPTCHA v3 bajo, " +
-            "o cuenta marcada por abuso (-48). Probá sin --headless y/o esperá un rato.",
+          "El login no dejó authtoken (credenciales, score de reCAPTCHA bajo, o abuso -48).",
         );
       }
       if (!(await tokenWorks(page, token))) {
@@ -180,32 +232,63 @@ async function main(): Promise<void> {
     const awsalb = cookies.find((c) => c.name === "AWSALB")?.value ?? "";
     const expMs = decodeJwtExpMs(token);
 
-    mkdirSync(dirname(SESSION_PATH), { recursive: true });
-    writeFileSync(
-      SESSION_PATH,
-      `${JSON.stringify(
-        {
-          token,
-          awsalb,
-          savedAt: new Date().toISOString(),
-          expiresAt: expMs ? new Date(expMs).toISOString() : null,
-        },
-        null,
-        2,
-      )}\n`,
-      "utf8",
-    );
-
-    console.log(`✓ Token ${reused ? "reusado de la sesión" : "obtenido"} y guardado en .firecrawl/session.json`);
-    console.log(`  ${token.slice(0, 12)}…${token.slice(-6)} (${token.length} chars)`);
+    console.log(`  ✓ Cuenta ${account.id} token ${reused ? "reusado" : "obtenido"} (${token.length} chars)`);
     if (expMs) {
       const days = Math.round((expMs - Date.now()) / 86_400_000);
-      console.log(`  expira: ${new Date(expMs).toLocaleString("es-CO")} (~${days} días)`);
+      console.log(`    expira: ${new Date(expMs).toLocaleString("es-CO")} (~${days} días)`);
     }
-    await pushToSupabase(token, awsalb, expMs);
+    await pushAccount(supabase, account.id, token, awsalb, expMs);
+    return true;
+  } catch (e) {
+    console.error(`  ✗ Cuenta ${account.id}: ${e instanceof Error ? e.message : e}`);
+    return false;
   } finally {
     await ctx.close();
   }
+}
+
+async function main(): Promise<void> {
+  loadEnvLocal();
+  const headless = process.argv.includes("--headless");
+  const onlyArg = process.argv.find((a) => a.startsWith("--only="));
+  const onlyId = onlyArg ? Number(onlyArg.split("=")[1]) : null;
+
+  let accounts = loadAccounts();
+  if (onlyId != null) accounts = accounts.filter((a) => a.id === onlyId);
+  if (!accounts.length) {
+    console.error(onlyId != null ? `No existe la cuenta id=${onlyId}` : "No hay cuentas.");
+    process.exit(1);
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabase = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
+
+  // Proxy por cuenta: fuente de verdad = easycancha_accounts.proxy_url.
+  const proxyById = new Map<number, string>();
+  if (supabase) {
+    const { data } = await supabase.from("easycancha_accounts").select("id, proxy_url");
+    for (const r of data ?? []) {
+      if (r.proxy_url) proxyById.set(r.id as number, r.proxy_url as string);
+    }
+  }
+
+  console.log(`Refrescando ${accounts.length} cuenta(s)…`);
+  let ok = 0;
+  for (let i = 0; i < accounts.length; i++) {
+    console.log(`\n=== Cuenta ${accounts[i].id} (${accounts[i].email}) ===`);
+    const proxy = parseProxy(proxyById.get(accounts[i].id) ?? "");
+    if (await refreshAccount(accounts[i], headless, supabase, proxy)) ok += 1;
+    // Espaciar logins para no gatillar la detección de abuso.
+    if (i < accounts.length - 1) {
+      const gap = ACCOUNT_GAP_MIN_MS + Math.random() * (ACCOUNT_GAP_MAX_MS - ACCOUNT_GAP_MIN_MS);
+      console.log(`  …esperando ${Math.round(gap / 1000)}s antes de la próxima cuenta`);
+      await sleep(gap);
+    }
+  }
+
+  console.log(`\nListo: ${ok}/${accounts.length} cuenta(s) refrescada(s).`);
+  if (ok === 0) process.exit(1);
 }
 
 main().catch((e) => {

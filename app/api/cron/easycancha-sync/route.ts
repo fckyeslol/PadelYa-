@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { syncAvailability } from "@/services/easycancha/sync";
+import { syncTick } from "@/services/easycancha/sync";
 
-// El sync hace 6 clubes x ~14 días de requests; dale margen.
+// Heartbeat: procesa solo las cuentas con turno vencido (a lo sumo 6 x ventana caliente).
 export const maxDuration = 60;
 
 async function handle(request: Request) {
@@ -12,8 +12,8 @@ async function handle(request: Request) {
   }
 
   try {
-    const summary = await syncAvailability();
-    return NextResponse.json({ message: "EasyCancha availability synced", ...summary });
+    const summary = await syncTick();
+    return NextResponse.json({ message: "EasyCancha sync tick", ...summary });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Cron failed";
     return NextResponse.json({ error: message }, { status: 400 });

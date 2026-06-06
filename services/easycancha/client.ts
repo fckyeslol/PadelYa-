@@ -3,13 +3,120 @@
  *
  * EasyCancha no tiene anti-bot, pero el API de turnos exige el set completo de
  * headers de navegador (Authorization + Cookie con authtoken/AWSALB + Origin/Referer);
- * con headers parciales devuelve 403. El token se refresca aparte
- * (scripts/easycancha-refresh-token.ts) y se guarda en la tabla easycancha_session.
+ * con headers parciales devuelve 403. Los tokens se refrescan aparte
+ * (scripts/easycancha-refresh-token.ts) y se guardan en la tabla easycancha_accounts:
+ * 6 cuentas que rotan para que la extracción quede espaciada y no parezca un bot.
  */
+// fetch + ProxyAgent del MISMO undici: pasar un ProxyAgent del paquete instalado al
+// fetch global (undici interno de Node) puede no reconocerse entre versiones.
+import { fetch as undiciFetch, ProxyAgent } from "undici";
 import { EASYCANCHA_BASE_URL, type EasycanchaClub } from "@/config/easycancha";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
-export type EasycanchaSession = { token: string; awsalb: string; expiresAt: string | null };
+export type EasycanchaSession = {
+  token: string;
+  awsalb: string;
+  expiresAt: string | null;
+  /** Proxy residencial sticky de esta cuenta (vacío = directo). */
+  proxyUrl?: string;
+};
+
+// Cache de ProxyAgent por URL: reusar la conexión en vez de crear uno por request.
+const proxyAgents = new Map<string, ProxyAgent>();
+function proxyDispatcher(proxyUrl: string | undefined): ProxyAgent | undefined {
+  if (!proxyUrl) return undefined;
+  let agent = proxyAgents.get(proxyUrl);
+  if (!agent) {
+    agent = new ProxyAgent(proxyUrl);
+    proxyAgents.set(proxyUrl, agent);
+  }
+  return agent;
+}
+
+/** Una cuenta del pool, con su estado de scheduling. */
+export type EasycanchaAccount = EasycanchaSession & {
+  id: number;
+  lastClubId: number | null;
+};
+
+type AccountRow = {
+  id: number;
+  token: string | null;
+  awsalb: string | null;
+  expires_at: string | null;
+  next_run_at: string | null;
+  last_club_id: number | null;
+  proxy_url: string | null;
+  active: boolean;
+};
+
+/** Token usable = no vacío y no expirado. */
+function sessionIsUsable(token: string | null, expiresAt: string | null): boolean {
+  if (!token) return false;
+  if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) return false;
+  return true;
+}
+
+/** Cuentas con turno vencido (next_run_at <= ahora), activas y con token vigente. */
+export async function getDueAccounts(): Promise<EasycanchaAccount[]> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("easycancha_accounts")
+    .select("id, token, awsalb, expires_at, next_run_at, last_club_id, proxy_url, active")
+    .eq("active", true);
+  if (error) throw new Error(`No pude leer easycancha_accounts: ${error.message}`);
+
+  const now = Date.now();
+  return (data as AccountRow[] | null ?? [])
+    .filter((r) => sessionIsUsable(r.token, r.expires_at))
+    .filter((r) => !r.next_run_at || new Date(r.next_run_at).getTime() <= now)
+    .map((r) => ({
+      id: r.id,
+      token: r.token as string,
+      awsalb: r.awsalb ?? "",
+      expiresAt: r.expires_at,
+      proxyUrl: r.proxy_url ?? "",
+      lastClubId: r.last_club_id,
+    }));
+}
+
+/** Una cuenta cualquiera con token vigente (para fetches on-demand). null si no hay. */
+export async function getAnyValidSession(): Promise<EasycanchaSession | null> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("easycancha_accounts")
+    .select("token, awsalb, expires_at, proxy_url")
+    .eq("active", true);
+  if (error) return null;
+
+  const usable = (data ?? []).filter((r) => sessionIsUsable(r.token, r.expires_at));
+  if (!usable.length) return null;
+  const pick = usable[Math.floor(Math.random() * usable.length)];
+  return {
+    token: pick.token as string,
+    awsalb: pick.awsalb ?? "",
+    expiresAt: pick.expires_at,
+    proxyUrl: pick.proxy_url ?? "",
+  };
+}
+
+/** Marca que una cuenta corrió y reprograma su próximo turno. */
+export async function markAccountRan(
+  accountId: number,
+  clubId: number,
+  nextRunAt: Date,
+): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+  await supabase
+    .from("easycancha_accounts")
+    .update({
+      last_run_at: new Date().toISOString(),
+      last_club_id: clubId,
+      next_run_at: nextRunAt.toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", accountId);
+}
 
 export type ParsedSlot = {
   clubId: number;
@@ -22,25 +129,6 @@ export type ParsedSlot = {
   isFree: boolean;
   availableForWaitlist: boolean;
 };
-
-/** Lee el token vigente de Supabase. Lanza si falta o expiró. */
-export async function getStoredSession(): Promise<EasycanchaSession> {
-  const supabase = getSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("easycancha_session")
-    .select("token, awsalb, expires_at")
-    .eq("id", 1)
-    .maybeSingle();
-
-  if (error) throw new Error(`No pude leer easycancha_session: ${error.message}`);
-  if (!data?.token) {
-    throw new Error("No hay token de EasyCancha. Corré: npm run easycancha:token");
-  }
-  if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) {
-    throw new Error("El token de EasyCancha expiró. Corré: npm run easycancha:token");
-  }
-  return { token: data.token, awsalb: data.awsalb ?? "", expiresAt: data.expires_at ?? null };
-}
 
 function buildHeaders(session: EasycanchaSession, clubId: number): Record<string, string> {
   const cookie = [
@@ -109,15 +197,18 @@ export async function fetchDaySlots(
   club: EasycanchaClub,
   date: string,
   session: EasycanchaSession,
+  timeoutMs = 15_000,
 ): Promise<ParsedSlot[]> {
   const anchor = ANCHOR_TIMES[Math.floor(Math.random() * ANCHOR_TIMES.length)];
   const url =
     `${EASYCANCHA_BASE_URL}/api/sports/7/clubs/${club.id}/timeslots` +
     `?date=${date}&time=${anchor}&timespan=${club.timespan}`;
 
-  const res = await fetch(url, {
+  // `dispatcher` rutea por el proxy residencial sticky de la cuenta (vacío = directo).
+  const res = await undiciFetch(url, {
     headers: buildHeaders(session, club.id),
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(timeoutMs),
+    dispatcher: proxyDispatcher(session.proxyUrl),
   });
   if (!res.ok) {
     throw new Error(`timeslots ${club.id} ${date}: HTTP ${res.status}`);

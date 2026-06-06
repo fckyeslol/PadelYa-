@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-MARKUP = 26_000
+MARKUP = 20_000
 ROOT = Path(__file__).resolve().parents[1]
 CSV_PATH = ROOT / "barranquilla_padel_prices.csv"
 OUT_PATH = ROOT / "config" / "pricing-slots.json"

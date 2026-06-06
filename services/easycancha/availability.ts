@@ -29,6 +29,10 @@ export type EasycanchaDayAvailability = {
 
 const NO_DATA: EasycanchaDayAvailability = { hasData: false, freeByTime: new Map() };
 
+// Si el sync se cae (cron apagado, cuenta bloqueada, etc.) NO gateamos con data vieja:
+// pasada esta antigüedad, tratamos la disponibilidad como "sin datos" ⇒ fail-open.
+const MAX_STALENESS_MS = 2 * 60 * 60 * 1000; // 2 horas
+
 /** Canchas libres en EasyCancha por horario, para una sede + fecha (1 query). */
 export async function getEasycanchaDayAvailability(
   venueName: string,
@@ -40,12 +44,16 @@ export async function getEasycanchaDayAvailability(
   const admin = getSupabaseAdminClient();
   const { data, error } = await admin
     .from("easycancha_slots")
-    .select("start_time, is_free")
+    .select("start_time, is_free, captured_at")
     .eq("club_id", clubId)
     .eq("slot_date", date);
 
   // error o cero filas ⇒ esa fecha no está sincronizada ⇒ fail-open.
   if (error || !data || data.length === 0) return NO_DATA;
+
+  // data vieja (sync caído) ⇒ no gatear con info stale ⇒ fail-open.
+  const freshest = Math.max(...data.map((r) => new Date(r.captured_at as string).getTime()));
+  if (Date.now() - freshest > MAX_STALENESS_MS) return NO_DATA;
 
   const freeByTime = new Map<string, number>();
   for (const row of data) {

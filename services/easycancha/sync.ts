@@ -1,26 +1,42 @@
 /**
  * Sync de disponibilidad de EasyCancha hacia Supabase + alertas por email.
  *
- * IMPORTANTE sobre el modelo de datos: el endpoint de EasyCancha devuelve SOLO los
- * turnos libres; los ocupados no aparecen (no vienen con un flag, simplemente faltan).
- * Por eso "libre/ocupado" se deriva por presencia/ausencia y se reconcilia contra lo
- * ya guardado:
- *   - presente ahora            -> is_free = true
- *   - guardado libre, ahora ausente -> is_free = false (se ocupó)
+ * MODELO MULTICUENTA (espaciado y aleatorio): 6 cuentas rotan. Un "heartbeat" (cron
+ * cada pocos min) llama a syncTick(), que procesa solo las cuentas con turno vencido.
+ * Cada cuenta entra a UN club por turno (elegido al azar pero sesgado al club con data
+ * más vieja), trae la ventana caliente (HOT_WINDOW_DAYS) y reprograma su próximo turno
+ * en 30/45/60 min al azar. Así el tráfico hacia EasyCancha no parece un bot metronómico.
+ *
+ * MODELO DE DATOS: el endpoint devuelve SOLO los turnos libres; los ocupados no aparecen
+ * (faltan, sin flag). Por eso "libre/ocupado" se deriva por presencia/ausencia y se
+ * reconcilia contra lo ya guardado:
+ *   - presente ahora                 -> is_free = true
+ *   - guardado libre, ahora ausente  -> is_free = false (se ocupó)
  *   - presente ahora y antes ocupado -> transición ocupado->libre (dispara alerta)
- *   - presente y nunca visto    -> primer avistamiento (sin alerta)
+ *   - presente y nunca visto         -> primer avistamiento (sin alerta)
  */
-import { EASYCANCHA_CLUBS } from "@/config/easycancha";
+import {
+  EASYCANCHA_CLUBS,
+  type EasycanchaClub,
+  getEasycanchaClub,
+  HOT_WINDOW_DAYS,
+  SYNC_INTERVAL_JITTER_MIN,
+  SYNC_INTERVALS_MIN,
+} from "@/config/easycancha";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sendSlotsAvailableEmail } from "@/services/notifications/email";
-import { fetchDaySlots, getStoredSession, type ParsedSlot } from "./client";
+import {
+  type EasycanchaSession,
+  fetchDaySlots,
+  getDueAccounts,
+  markAccountRan,
+  type ParsedSlot,
+} from "./client";
 
-const DEFAULT_DAYS = 14;
-// Sigilo: tráfico que no parezca un bot metronómico (EasyCancha no debe notar la extracción).
-const CONCURRENCY = 3;
-const STARTUP_JITTER_MS = 20_000; // arrancar desfasado del tick exacto del cron
+// Sigilo: espaciar requests dentro de un mismo turno (no en ráfaga).
 const REQ_JITTER_MIN_MS = 120;
 const REQ_JITTER_MAX_MS = 500;
+const MS_PER_MIN = 60_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -28,17 +44,10 @@ function sleep(ms: number): Promise<void> {
 function jitter(minMs: number, maxMs: number): Promise<void> {
   return sleep(minMs + Math.random() * (maxMs - minMs));
 }
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 export type SyncSummary = {
-  daysSynced: number;
+  accountsProcessed: number;
+  clubsSynced: number;
   slotsFree: number;
   becameBooked: number;
   freedTransitions: number;
@@ -54,8 +63,6 @@ type Watch = {
   notify_email: string;
 };
 
-type PrevSlot = { courtId: number; startTime: string; isFree: boolean };
-
 function slotKey(clubId: number, courtId: number, date: string, startTime: string): string {
   return `${clubId}|${courtId}|${date}|${startTime}`;
 }
@@ -68,6 +75,12 @@ function addDays(dateStr: string, n: number): string {
 
 function bogotaToday(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
+}
+
+/** Fechas de la ventana caliente: hoy .. hoy + (HOT_WINDOW_DAYS - 1), en Bogotá. */
+export function hotWindowDates(): string[] {
+  const start = bogotaToday();
+  return Array.from({ length: HOT_WINDOW_DAYS }, (_, i) => addDays(start, i));
 }
 
 /** 0=domingo … 6=sábado, igual que extract(dow) en Postgres. */
@@ -83,72 +96,117 @@ function watchMatches(w: Watch, slot: ParsedSlot): boolean {
   return true;
 }
 
-async function runPool<T>(items: T[], worker: (item: T) => Promise<void>): Promise<void> {
-  for (let i = 0; i < items.length; i += CONCURRENCY) {
-    await Promise.all(items.slice(i, i + CONCURRENCY).map(worker));
-  }
+/** Próximo turno: intervalo al azar de SYNC_INTERVALS_MIN ± jitter. */
+function nextRunAt(): Date {
+  const base = SYNC_INTERVALS_MIN[Math.floor(Math.random() * SYNC_INTERVALS_MIN.length)];
+  const jitterMin = (Math.random() * 2 - 1) * SYNC_INTERVAL_JITTER_MIN;
+  return new Date(Date.now() + (base + jitterMin) * MS_PER_MIN);
 }
 
-export async function syncAvailability(options: { days?: number } = {}): Promise<SyncSummary> {
-  const days = options.days ?? DEFAULT_DAYS;
+/**
+ * Elige un club al azar pero sesgado al de data más vieja (peso ∝ antigüedad).
+ * Clubs nunca vistos pesan al máximo. Evita repetir el último club de la cuenta si hay
+ * alternativas, para repartir mejor la cobertura.
+ */
+async function pickClubByStaleness(avoidClubId: number | null): Promise<EasycanchaClub> {
   const supabase = getSupabaseAdminClient();
-  const session = await getStoredSession();
-
-  const start = bogotaToday();
-  const dates = Array.from({ length: days }, (_, i) => addDays(start, i));
-  const end = dates[dates.length - 1];
-
-  // Estado previo (por club+fecha) para reconciliar presencia/ausencia.
-  const { data: prevRows } = await supabase
+  const today = bogotaToday();
+  const { data } = await supabase
     .from("easycancha_slots")
-    .select("club_id, court_id, slot_date, start_time, is_free")
-    .gte("slot_date", start)
-    .lte("slot_date", end);
+    .select("club_id, captured_at")
+    .gte("slot_date", today);
 
-  const prevByClubDate = new Map<string, PrevSlot[]>();
-  for (const r of prevRows ?? []) {
-    const k = `${r.club_id}|${r.slot_date}`;
-    const list = prevByClubDate.get(k) ?? [];
-    list.push({ courtId: r.court_id, startTime: r.start_time, isFree: r.is_free });
-    prevByClubDate.set(k, list);
+  const freshest = new Map<number, number>();
+  for (const r of data ?? []) {
+    const t = new Date(r.captured_at as string).getTime();
+    const cur = freshest.get(r.club_id as number) ?? 0;
+    if (t > cur) freshest.set(r.club_id as number, t);
   }
 
-  const summary: SyncSummary = {
-    daysSynced: days,
-    slotsFree: 0,
-    becameBooked: 0,
-    freedTransitions: 0,
-    alertsSent: 0,
-    errors: [],
-  };
-  const freed: ParsedSlot[] = [];
+  const NEVER_SEEN_MS = 7 * 24 * 60 * MS_PER_MIN; // peso máximo
+  const now = Date.now();
+  let candidates = EASYCANCHA_CLUBS.filter((c) => c.id !== avoidClubId);
+  if (candidates.length === 0) candidates = [...EASYCANCHA_CLUBS];
 
-  const jobs = shuffle(EASYCANCHA_CLUBS.flatMap((club) => dates.map((date) => ({ club, date }))));
+  const weighted = candidates.map((club) => {
+    const last = freshest.get(club.id);
+    const age = last == null ? NEVER_SEEN_MS : Math.max(1, now - last);
+    return { club, weight: age };
+  });
 
-  await sleep(Math.random() * STARTUP_JITTER_MS); // de-sync del tick exacto del cron
+  const total = weighted.reduce((s, w) => s + w.weight, 0);
+  let roll = Math.random() * total;
+  for (const w of weighted) {
+    roll -= w.weight;
+    if (roll <= 0) return w.club;
+  }
+  return weighted[weighted.length - 1].club;
+}
 
-  await runPool(jobs, async ({ club, date }) => {
-    await jitter(REQ_JITTER_MIN_MS, REQ_JITTER_MAX_MS); // espaciar requests, no en ráfaga
+/** Estado previo (libre/ocupado) de un club para un set de fechas, por key. */
+async function loadPrevForClubDates(
+  clubId: number,
+  dates: string[],
+): Promise<Map<string, boolean>> {
+  const supabase = getSupabaseAdminClient();
+  const { data } = await supabase
+    .from("easycancha_slots")
+    .select("court_id, slot_date, start_time, is_free")
+    .eq("club_id", clubId)
+    .in("slot_date", dates);
+
+  const prevFreeByKey = new Map<string, boolean>();
+  for (const r of data ?? []) {
+    prevFreeByKey.set(
+      slotKey(clubId, r.court_id as number, r.slot_date as string, r.start_time as string),
+      r.is_free as boolean,
+    );
+  }
+  return prevFreeByKey;
+}
+
+export type ClubSyncResult = {
+  freed: ParsedSlot[];
+  slotsFree: number;
+  becameBooked: number;
+  errors: string[];
+};
+
+/**
+ * Sincroniza UN club para un set de fechas con una sesión dada. Reusado por el tick
+ * (ventana caliente) y por el top-up on-demand (una sola fecha lejana).
+ * Devuelve los turnos liberados (ocupado->libre); el caller decide si dispara alertas.
+ */
+export async function syncClubForDates(
+  club: EasycanchaClub,
+  dates: string[],
+  session: EasycanchaSession,
+  options: { timeoutMs?: number; pace?: boolean } = {},
+): Promise<ClubSyncResult> {
+  const supabase = getSupabaseAdminClient();
+  const result: ClubSyncResult = { freed: [], slotsFree: 0, becameBooked: 0, errors: [] };
+  const prevFreeByKey = await loadPrevForClubDates(club.id, dates);
+
+  for (const date of dates) {
+    if (options.pace) await jitter(REQ_JITTER_MIN_MS, REQ_JITTER_MAX_MS);
+
     let slots: ParsedSlot[];
     try {
-      slots = await fetchDaySlots(club, date, session);
+      slots = await fetchDaySlots(club, date, session, options.timeoutMs);
     } catch (e) {
-      summary.errors.push(e instanceof Error ? e.message : String(e));
-      return;
+      result.errors.push(e instanceof Error ? e.message : String(e));
+      continue;
     }
 
-    const prev = prevByClubDate.get(`${club.id}|${date}`) ?? [];
-    const prevFreeByKey = new Map<string, boolean>();
-    for (const p of prev) {
-      prevFreeByKey.set(slotKey(club.id, p.courtId, date, p.startTime), p.isFree);
-    }
-    const presentKeys = new Set(slots.map((s) => slotKey(s.clubId, s.courtId, s.date, s.startTime)));
+    const presentKeys = new Set(
+      slots.map((s) => slotKey(s.clubId, s.courtId, s.date, s.startTime)),
+    );
     const capturedAt = new Date().toISOString();
 
     // 1) Presentes = libres. Detectar transición ocupado -> libre.
     for (const s of slots) {
       if (prevFreeByKey.get(slotKey(s.clubId, s.courtId, s.date, s.startTime)) === false) {
-        freed.push(s);
+        result.freed.push(s);
       }
     }
     if (slots.length) {
@@ -167,14 +225,20 @@ export async function syncAvailability(options: { days?: number } = {}): Promise
         })),
         { onConflict: "club_id,court_id,slot_date,start_time" },
       );
-      if (error) summary.errors.push(`upsert ${club.id} ${date}: ${error.message}`);
-      else summary.slotsFree += slots.length;
+      if (error) result.errors.push(`upsert ${club.id} ${date}: ${error.message}`);
+      else result.slotsFree += slots.length;
     }
 
-    // 2) Guardados como libres pero ahora ausentes = se ocuparon.
-    const nowBooked = prev.filter(
-      (p) => p.isFree && !presentKeys.has(slotKey(club.id, p.courtId, date, p.startTime)),
-    );
+    // 2) Guardados como libres en esta fecha pero ahora ausentes = se ocuparon.
+    const nowBooked: { courtId: number; startTime: string }[] = [];
+    for (const [key, wasFree] of prevFreeByKey) {
+      if (!wasFree) continue;
+      // key = club|court|date|start ; filtrar a esta fecha y ausencia actual.
+      const parts = key.split("|");
+      if (parts[2] !== date) continue;
+      if (presentKeys.has(key)) continue;
+      nowBooked.push({ courtId: Number(parts[1]), startTime: parts[3] });
+    }
     if (nowBooked.length) {
       const { error } = await supabase.from("easycancha_slots").upsert(
         nowBooked.map((p) => ({
@@ -187,36 +251,89 @@ export async function syncAvailability(options: { days?: number } = {}): Promise
         })),
         { onConflict: "club_id,court_id,slot_date,start_time" },
       );
-      if (error) summary.errors.push(`mark-booked ${club.id} ${date}: ${error.message}`);
-      else summary.becameBooked += nowBooked.length;
-    }
-  });
-
-  summary.freedTransitions = freed.length;
-
-  // 3) Alertas: agrupar turnos liberados por email de watch que matchea.
-  if (freed.length) {
-    const { data: watches } = await supabase
-      .from("easycancha_slot_watches")
-      .select("club_id, weekday, time_from, time_to, notify_email")
-      .eq("active", true);
-
-    if (watches?.length) {
-      const byEmail = new Map<string, ParsedSlot[]>();
-      for (const slot of freed) {
-        for (const w of watches as Watch[]) {
-          if (!watchMatches(w, slot)) continue;
-          const list = byEmail.get(w.notify_email) ?? [];
-          list.push(slot);
-          byEmail.set(w.notify_email, list);
-        }
-      }
-      for (const [email, slots] of byEmail) {
-        await sendSlotsAvailableEmail(email, slots);
-        summary.alertsSent += 1;
-      }
+      if (error) result.errors.push(`mark-booked ${club.id} ${date}: ${error.message}`);
+      else result.becameBooked += nowBooked.length;
     }
   }
 
+  return result;
+}
+
+/** Agrupa turnos liberados por email de watch que matchea y manda los avisos. */
+async function dispatchFreedAlerts(freed: ParsedSlot[]): Promise<number> {
+  if (!freed.length) return 0;
+  const supabase = getSupabaseAdminClient();
+  const { data: watches } = await supabase
+    .from("easycancha_slot_watches")
+    .select("club_id, weekday, time_from, time_to, notify_email")
+    .eq("active", true);
+  if (!watches?.length) return 0;
+
+  const byEmail = new Map<string, ParsedSlot[]>();
+  for (const slot of freed) {
+    for (const w of watches as Watch[]) {
+      if (!watchMatches(w, slot)) continue;
+      const list = byEmail.get(w.notify_email) ?? [];
+      list.push(slot);
+      byEmail.set(w.notify_email, list);
+    }
+  }
+  let sent = 0;
+  for (const [email, slots] of byEmail) {
+    await sendSlotsAvailableEmail(email, slots);
+    sent += 1;
+  }
+  return sent;
+}
+
+/**
+ * Un tick del heartbeat: procesa las cuentas con turno vencido. Cada una entra a un
+ * club (sesgado al más viejo), trae la ventana caliente y reprograma su próximo turno.
+ */
+export async function syncTick(): Promise<SyncSummary> {
+  const summary: SyncSummary = {
+    accountsProcessed: 0,
+    clubsSynced: 0,
+    slotsFree: 0,
+    becameBooked: 0,
+    freedTransitions: 0,
+    alertsSent: 0,
+    errors: [],
+  };
+
+  const due = await getDueAccounts();
+  if (!due.length) return summary;
+
+  const dates = hotWindowDates();
+  const allFreed: ParsedSlot[] = [];
+
+  // Secuencial entre cuentas: cada cuenta es un "usuario" distinto y no queremos 6
+  // ráfagas simultáneas. El jitter por request vive dentro de syncClubForDates.
+  for (const account of due) {
+    const club = await pickClubByStaleness(account.lastClubId);
+    const session: EasycanchaSession = {
+      token: account.token,
+      awsalb: account.awsalb,
+      expiresAt: account.expiresAt,
+    };
+
+    const res = await syncClubForDates(club, dates, session, { pace: true });
+    summary.accountsProcessed += 1;
+    summary.clubsSynced += 1;
+    summary.slotsFree += res.slotsFree;
+    summary.becameBooked += res.becameBooked;
+    summary.errors.push(...res.errors);
+    allFreed.push(...res.freed);
+
+    await markAccountRan(account.id, club.id, nextRunAt());
+  }
+
+  summary.freedTransitions = allFreed.length;
+  summary.alertsSent = await dispatchFreedAlerts(allFreed);
   return summary;
+}
+
+/** Util para logs/diagnóstico: nombre del club por id. */
+export function clubLabel(clubId: number): string {
+  return getEasycanchaClub(clubId)?.name ?? `club ${clubId}`;
 }

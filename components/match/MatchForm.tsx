@@ -162,35 +162,40 @@ export function MatchForm() {
     }
     let cancelled = false;
     setAvailabilityLoading(true);
-    fetch(
-      `/api/venues/slot-availability?venueName=${encodeURIComponent(venueName.trim())}&date=${encodeURIComponent(matchDate)}`,
-    )
-      .then((res) => res.json())
-      .then(
-        (data: {
-          bookableTimes?: string[];
-          freeCourtsByTime?: Record<string, number>;
-          totalCourts?: number;
-        }) => {
-          if (!cancelled) {
-            setBookableTimes(new Set(data.bookableTimes ?? []));
-            setFreeCourtsByTime(data.freeCourtsByTime ?? {});
-            setTotalCourts(data.totalCourts ?? 0);
-          }
-        },
+    // Debounce: si el usuario clickea varias fechas seguidas, solo consultamos donde se
+    // detiene (~400ms). Evita disparar un fetch (y un posible top-up) por cada click.
+    const timer = setTimeout(() => {
+      fetch(
+        `/api/venues/slot-availability?venueName=${encodeURIComponent(venueName.trim())}&date=${encodeURIComponent(matchDate)}`,
       )
-      .catch(() => {
-        if (!cancelled) {
-          setBookableTimes(new Set());
-          setFreeCourtsByTime({});
-          setTotalCourts(0);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setAvailabilityLoading(false);
-      });
+        .then((res) => res.json())
+        .then(
+          (data: {
+            bookableTimes?: string[];
+            freeCourtsByTime?: Record<string, number>;
+            totalCourts?: number;
+          }) => {
+            if (!cancelled) {
+              setBookableTimes(new Set(data.bookableTimes ?? []));
+              setFreeCourtsByTime(data.freeCourtsByTime ?? {});
+              setTotalCourts(data.totalCourts ?? 0);
+            }
+          },
+        )
+        .catch(() => {
+          if (!cancelled) {
+            setBookableTimes(new Set());
+            setFreeCourtsByTime({});
+            setTotalCourts(0);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setAvailabilityLoading(false);
+        });
+    }, 400);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [venueName, matchDate, isRuleBased]);
 

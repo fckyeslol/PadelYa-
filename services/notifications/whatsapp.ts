@@ -31,6 +31,9 @@ const TEMPLATES = {
 /** Language code of the approved templates (must match Meta). */
 const TEMPLATE_LANG = "es";
 
+/** Graph API version. Keep current — old versions get deprecated ~2 yrs after release. */
+const GRAPH_API_VERSION = "v23.0";
+
 const SKILL_LABELS: Record<string, string> = {
   beginner: "Principiante",
   intermediate: "Intermedio",
@@ -54,6 +57,15 @@ function getOwnerPhone(): string | null {
   return process.env.OWNER_WHATSAPP_PHONE ?? null;
 }
 
+/**
+ * The business sender number (digits only). WhatsApp rejects sending a message
+ * from a number to itself, so we skip any recipient equal to it. Set
+ * WA_BUSINESS_PHONE to the "De" number (e.g. 573159867166).
+ */
+function getBusinessPhone(): string {
+  return (process.env.WA_BUSINESS_PHONE ?? "").replace(/\D/g, "");
+}
+
 /** Sends one approved template message. Throws on API error. */
 async function sendTemplate(
   to: string,
@@ -63,8 +75,16 @@ async function sendTemplate(
   const env = getMetaWaEnv();
   if (!env) return; // silently skip if not configured
 
-  // Meta requires phone without leading + — just digits with country code.
-  const phone = to.replace(/^\+/, "");
+  // Meta requires digits only (country code, no +, no spaces/dashes).
+  const phone = to.replace(/\D/g, "");
+  if (!phone) return;
+
+  // Can't send from the business number to itself — Meta rejects it.
+  const businessPhone = getBusinessPhone();
+  if (businessPhone && phone === businessPhone) {
+    console.warn("[WhatsApp] skip self-send: recipient equals business sender number");
+    return;
+  }
 
   const components: Record<string, unknown>[] = [];
   if (opts.bodyParams.length) {
@@ -83,7 +103,7 @@ async function sendTemplate(
   }
 
   const res = await fetch(
-    `https://graph.facebook.com/v20.0/${env.phoneNumberId}/messages`,
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/${env.phoneNumberId}/messages`,
     {
       method: "POST",
       headers: {

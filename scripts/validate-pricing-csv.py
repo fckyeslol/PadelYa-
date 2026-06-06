@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-MARKUP = 20_000
+MARKUP = 26_000
 ROOT = Path(__file__).resolve().parents[1]
 CSV_PATH = ROOT / "barranquilla_padel_prices.csv"
 JSON_PATH = ROOT / "config" / "pricing-slots.json"

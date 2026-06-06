@@ -1,8 +1,8 @@
 """Declarative: set La Jaula evening pricing blocks in the CSV.
 
 Each BLOCK lists slot times and the RAW court price; the pricing generator
-adds the $26k markup, so final court price = raw + 26_000 and the per-player
-fee = (raw + 26_000) / 4.
+adds the $20k markup, so final court price = raw + 20_000 and the per-player
+fee = (raw + 20_000) / 4.
 
 Idempotent: drops every La Jaula row in [START_DATE..END_DATE] whose slot is
 managed by any block, then re-adds clean rows. Re-run after editing BLOCKS,
@@ -87,6 +87,6 @@ print(f"Dropped {dropped} stale La Jaula managed rows in range.")
 print(f"Added {len(new_rows)} La Jaula rows "
       f"({START_DATE}..{END_DATE}, {len(managed)} slots/day).")
 for b in BLOCKS:
-    final = b["raw"] + 26_000
+    final = b["raw"] + 20_000
     print(f"  {b['slots'][0]}–{b['slots'][-1]}: raw {b['raw']} "
           f"-> {final} court / {final // 4} player")

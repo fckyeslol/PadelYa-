@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
         destination: "https://www.padelya.co/:path*",
         permanent: true,
       },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "padelya.co" }],
+        destination: "https://www.padelya.co/:path*",
+        permanent: true,
+      },
     ];
   },
   images: {

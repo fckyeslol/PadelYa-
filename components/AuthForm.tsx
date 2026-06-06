@@ -40,6 +40,9 @@ function mapAuthError(message: string): string {
   if (lower.includes("signup") && lower.includes("disabled")) {
     return "El registro está deshabilitado. Contacta al administrador.";
   }
+  if (lower.includes("pkce") || lower.includes("code verifier")) {
+    return "Tu sesión expiró o el enlace se abrió en otro navegador. Intenta ingresar de nuevo.";
+  }
   return message;
 }
 

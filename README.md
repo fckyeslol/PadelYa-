@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PadelYa 🎾
 
-## Getting Started
+**PadelYa matches padel players by level and books their courts — so you never miss a game.**
 
-First, run the development server:
+Padel is 2-on-2: you need exactly four people, and beginners rarely have three others at their level ready to play. PadelYa fills the match with players near your level and handles the court booking.
 
+🔗 **Live:** [padelya.co](https://padelya.co)
+
+## What it does
+- Matches players by skill level and availability into a full 4-player game
+- Books courts through an integration with the **easycancha** booking platform
+- Charges a small fee per player on top of the booking
+
+## Tech stack
+- **Next.js** (App Router) + **TypeScript**
+- **Supabase** (Postgres + auth) — see `supabase/`
+- Integrations & business logic in `services/`; shared code in `lib/` and `hooks/`
+- **Vitest** test suite in `tests/`
+
+## Getting started
 ```bash
+npm install
+# add your Supabase + integration keys to .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Then open http://localhost:3000.
+
+## Project structure
+```
+app/         Next.js routes (App Router)
+components/   UI components
+services/     integrations (easycancha) & business logic
+lib/ hooks/   shared utilities & React hooks
+supabase/     schema & client
+tests/        Vitest tests
+docs/         product & design notes
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Status
+Live with real users — **34 active users** and **500K COP** in revenue in the first 4 months, backed by an angel investment from TSSI.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+Built by [Mateo Pirela](https://github.com/fckyeslol) · [mateo-five.vercel.app](https://mateo-five.vercel.app)

@@ -76,6 +76,83 @@ describe("getCourtCopFromRules — x3-padel-club", () => {
   });
 });
 
+describe("getCourtCopFromRules — la-jaula", () => {
+  const FRIDAY = "2026-06-05";
+
+  it("includes la-jaula in RULE_BASED_VENUE_IDS", () => {
+    expect(RULE_BASED_VENUE_IDS).toContain("la-jaula");
+  });
+
+  describe("weekday (Mon-Thu) 90min", () => {
+    it("returns 50000 at 05:00", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "05:00", 90)).toBe(50_000);
+    });
+    it("returns 60000 at 06:30", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "06:30", 90)).toBe(60_000);
+    });
+    it("returns 51000 at 15:00 (afternoon)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "15:00", 90)).toBe(51_000);
+    });
+    it("returns 125000 at 19:00 (prime night)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "19:00", 90)).toBe(125_000);
+    });
+    it("returns 88000 at 22:00 (late night)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "22:00", 90)).toBe(88_000);
+    });
+    it("returns null during midday gap (12:00)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "12:00", 90)).toBeNull();
+    });
+  });
+
+  describe("friday 90min", () => {
+    it("returns 125000 at 19:00", () => {
+      expect(getCourtCopFromRules("la-jaula", FRIDAY, "19:00", 90)).toBe(125_000);
+    });
+    it("returns 110000 at 20:30 (cheaper than Mon-Thu)", () => {
+      expect(getCourtCopFromRules("la-jaula", FRIDAY, "20:30", 90)).toBe(110_000);
+    });
+    it("returns 88000 at 22:00", () => {
+      expect(getCourtCopFromRules("la-jaula", FRIDAY, "22:00", 90)).toBe(88_000);
+    });
+  });
+
+  describe("saturday 90min", () => {
+    it("returns 50000 in early morning", () => {
+      expect(getCourtCopFromRules("la-jaula", SATURDAY, "06:00", 90)).toBe(50_000);
+    });
+    it("returns 81000 rest of day", () => {
+      expect(getCourtCopFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(81_000);
+    });
+    it("returns 81000 in the evening", () => {
+      expect(getCourtCopFromRules("la-jaula", SATURDAY, "19:00", 90)).toBe(81_000);
+    });
+  });
+
+  describe("weekday 60min", () => {
+    it("returns 34000 early morning", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "05:00", 60)).toBe(34_000);
+    });
+    it("returns 40000 at 06:30", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "07:00", 60)).toBe(40_000);
+    });
+  });
+
+  describe("player fee includes surcharge", () => {
+    it("saturday 90min rest-of-day: 81000/4 + 1500 = 21750", () => {
+      expect(getPlayerFeeFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(
+        Math.round(81_000 / 4) + PLAYER_FEE_SURCHARGE_COP,
+      );
+    });
+  });
+});
+
+describe("friday fallback for venues without friday rules", () => {
+  const FRIDAY = "2026-06-05";
+  it("ace-padel-club uses weekday rules on Friday", () => {
+    expect(getCourtCopFromRules("ace-padel-club", FRIDAY, "10:00", 60)).toBe(50_000);
+  });
+});
+
 describe("getCourtCopFromRules — unknown venue", () => {
   it("returns null", () => {
     expect(getCourtCopFromRules("unknown-venue", MONDAY, "10:00", 60)).toBeNull();

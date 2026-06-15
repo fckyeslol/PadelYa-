@@ -1,4 +1,4 @@
-export const RULE_BASED_VENUE_IDS = ["ace-padel-club", "x3-padel-club"] as const;
+export const RULE_BASED_VENUE_IDS = ["ace-padel-club", "x3-padel-club", "la-jaula"] as const;
 export type RuleBasedVenueId = (typeof RULE_BASED_VENUE_IDS)[number];
 
 /**
@@ -10,9 +10,9 @@ export type RuleBasedVenueId = (typeof RULE_BASED_VENUE_IDS)[number];
 export const PLAYER_FEE_SURCHARGE_COP = 1500;
 
 type TimeRange = { from: string; to: string; courtCop: number };
-type DayType = "weekday" | "saturday" | "sunday";
+type DayType = "weekday" | "friday" | "saturday" | "sunday";
 
-const RULES: Record<string, Record<DayType, Partial<Record<60 | 90, TimeRange[]>>>> = {
+const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90, TimeRange[]>>>>> = {
   "ace-padel-club": {
     weekday: {
       60: [
@@ -80,6 +80,58 @@ const RULES: Record<string, Record<DayType, Partial<Record<60 | 90, TimeRange[]>
       ],
     },
   },
+  /**
+   * La Jaula Padel Barranquilla — precios oficiales de la cancha (junio 2026).
+   * Entre semana Lun-Jue y Viernes tienen noches distintas.
+   * Fin de semana: mañana $50k (90min) / $34k (60min), resto $81k (90min).
+   */
+  "la-jaula": {
+    weekday: {
+      60: [
+        { from: "05:00", to: "06:30", courtCop: 34_000 },
+        { from: "06:30", to: "10:00", courtCop: 40_000 },
+      ],
+      90: [
+        { from: "05:00", to: "06:30", courtCop: 50_000 },
+        { from: "06:30", to: "10:00", courtCop: 60_000 },
+        { from: "15:00", to: "19:00", courtCop: 51_000 },
+        { from: "19:00", to: "22:00", courtCop: 125_000 },
+        { from: "22:00", to: "24:00", courtCop: 88_000 },
+      ],
+    },
+    friday: {
+      60: [
+        { from: "05:00", to: "06:30", courtCop: 34_000 },
+        { from: "06:30", to: "10:00", courtCop: 40_000 },
+      ],
+      90: [
+        { from: "05:00", to: "06:30", courtCop: 50_000 },
+        { from: "06:30", to: "10:00", courtCop: 60_000 },
+        { from: "15:00", to: "19:00", courtCop: 51_000 },
+        { from: "19:00", to: "20:30", courtCop: 125_000 },
+        { from: "20:30", to: "22:00", courtCop: 110_000 },
+        { from: "22:00", to: "24:00", courtCop: 88_000 },
+      ],
+    },
+    saturday: {
+      60: [
+        { from: "05:00", to: "08:00", courtCop: 34_000 },
+      ],
+      90: [
+        { from: "05:00", to: "08:00", courtCop: 50_000 },
+        { from: "08:00", to: "24:00", courtCop: 81_000 },
+      ],
+    },
+    sunday: {
+      60: [
+        { from: "05:00", to: "08:00", courtCop: 34_000 },
+      ],
+      90: [
+        { from: "05:00", to: "08:00", courtCop: 50_000 },
+        { from: "08:00", to: "24:00", courtCop: 81_000 },
+      ],
+    },
+  },
 };
 
 function toMinutes(t: string): number {
@@ -91,6 +143,7 @@ function dayType(dateStr: string): DayType {
   const dow = new Date(`${dateStr}T12:00:00`).getDay();
   if (dow === 0) return "sunday";
   if (dow === 6) return "saturday";
+  if (dow === 5) return "friday";
   return "weekday";
 }
 
@@ -100,7 +153,10 @@ export function getCourtCopFromRules(
   time: string,
   durationMinutes: 60 | 90,
 ): number | null {
-  const ranges = RULES[venueId]?.[dayType(date)]?.[durationMinutes];
+  const dt = dayType(date);
+  // Fallback: if venue has no "friday" rules, use "weekday"
+  const ranges = RULES[venueId]?.[dt]?.[durationMinutes]
+    ?? (dt === "friday" ? RULES[venueId]?.["weekday"]?.[durationMinutes] : undefined);
   if (!ranges) return null;
   const t = toMinutes(time);
   for (const r of ranges) {

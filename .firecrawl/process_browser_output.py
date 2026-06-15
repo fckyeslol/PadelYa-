@@ -19,7 +19,7 @@ BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 PROJ_DIR   = os.path.join(BASE_DIR, "..")
 CSV_OUT    = os.path.join(PROJ_DIR, "barranquilla_padel_prices.csv")
 JSON_OUT   = os.path.join(PROJ_DIR, "config", "pricing-slots.json")
-MARKUP_COP = 20_000
+MARKUP_COP = 22_500
 
 CLUBS = [
     {"id": 1125, "venue_id": "padel-zenter-del-rio",    "name": "PADEL ZENTER DEL RIO"},

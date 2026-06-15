@@ -7,7 +7,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const MARKUP = 20_000;
+const MARKUP = 22_500;
 const ROOT = path.resolve(__dirname, "..");
 const CSV_PATH = path.join(ROOT, "barranquilla_padel_prices.csv");
 const OUT_PATH = path.join(ROOT, "config", "pricing-slots.json");

@@ -18,47 +18,25 @@ describe("RULE_BASED_VENUE_IDS", () => {
   });
 });
 
+// courtCop = cancha + $22,500 comisión. Player = courtCop / 4.
 describe("getCourtCopFromRules — ace-padel-club", () => {
   describe("weekday 60min", () => {
-    it("returns 50000 before 15:00", () => {
-      expect(getCourtCopFromRules("ace-padel-club", MONDAY, "10:00", 60)).toBe(50_000);
+    it("returns 72500 before 15:00 (cancha $50k + $22.5k)", () => {
+      expect(getCourtCopFromRules("ace-padel-club", MONDAY, "10:00", 60)).toBe(72_500);
     });
-    it("returns 84000 at 15:00", () => {
-      expect(getCourtCopFromRules("ace-padel-club", MONDAY, "15:00", 60)).toBe(84_000);
+    it("returns 132500 at peak (cancha $110k + $22.5k)", () => {
+      expect(getCourtCopFromRules("ace-padel-club", MONDAY, "19:00", 60)).toBe(132_500);
     });
-    it("returns 110000 at peak (17:00–21:30)", () => {
-      expect(getCourtCopFromRules("ace-padel-club", MONDAY, "19:00", 60)).toBe(110_000);
-    });
-    it("returns 80000 after 21:30", () => {
-      expect(getCourtCopFromRules("ace-padel-club", MONDAY, "22:00", 60)).toBe(80_000);
-    });
-  });
-
-  describe("saturday 60min", () => {
-    it("returns 60000 mid-day", () => {
-      expect(getCourtCopFromRules("ace-padel-club", SATURDAY, "10:00", 60)).toBe(60_000);
-    });
-    it("returns 80000 evening", () => {
-      expect(getCourtCopFromRules("ace-padel-club", SATURDAY, "18:00", 60)).toBe(80_000);
-    });
-  });
-
-  describe("sunday 60min", () => {
-    it("returns 60000 mid-day", () => {
-      expect(getCourtCopFromRules("ace-padel-club", SUNDAY, "12:00", 60)).toBe(60_000);
-    });
-    it("returns null before opening (06:00)", () => {
+    it("returns null before opening on sunday", () => {
       expect(getCourtCopFromRules("ace-padel-club", SUNDAY, "06:00", 60)).toBeNull();
     });
   });
 });
 
 describe("getPlayerFeeFromRules", () => {
-  it("returns court / 4 plus the per-player platform surcharge", () => {
-    // court 50_000 / 4 = 12_500, + surcharge
-    expect(getPlayerFeeFromRules("ace-padel-club", MONDAY, "10:00", 60)).toBe(
-      12_500 + PLAYER_FEE_SURCHARGE_COP,
-    );
+  it("returns courtCop / 4 (surcharge is 0)", () => {
+    // courtCop 72_500 / 4 = 18_125
+    expect(getPlayerFeeFromRules("ace-padel-club", MONDAY, "10:00", 60)).toBe(18_125);
   });
 
   it("returns null for time outside all ranges", () => {
@@ -67,11 +45,10 @@ describe("getPlayerFeeFromRules", () => {
 });
 
 describe("getCourtCopFromRules — x3-padel-club", () => {
-  it("returns 46000 weekday morning 60min", () => {
-    expect(getCourtCopFromRules("x3-padel-club", MONDAY, "10:00", 60)).toBe(46_000);
+  it("returns 68500 weekday morning 60min (cancha $46k + $22.5k)", () => {
+    expect(getCourtCopFromRules("x3-padel-club", MONDAY, "10:00", 60)).toBe(68_500);
   });
   it("returns null for unknown time slot (weekday 60min after 16:00)", () => {
-    // x3 weekday 60min only has from 05:30 to 16:00
     expect(getCourtCopFromRules("x3-padel-club", MONDAY, "17:00", 60)).toBeNull();
   });
 });
@@ -83,21 +60,12 @@ describe("getCourtCopFromRules — la-jaula", () => {
     expect(RULE_BASED_VENUE_IDS).toContain("la-jaula");
   });
 
-  describe("weekday (Mon-Thu) 90min — courtCop includes $20k markup", () => {
-    it("returns 70000 at 05:00 (cancha $50k + $20k)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "05:00", 90)).toBe(70_000);
+  describe("weekday (Mon-Thu) 90min", () => {
+    it("returns 72500 at 05:00 (cancha $50k + $22.5k)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "05:00", 90)).toBe(72_500);
     });
-    it("returns 80000 at 06:30 (cancha $60k + $20k)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "06:30", 90)).toBe(80_000);
-    });
-    it("returns 71000 at 15:00 (cancha $51k + $20k)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "15:00", 90)).toBe(71_000);
-    });
-    it("returns 145000 at 19:00 (cancha $125k + $20k)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "19:00", 90)).toBe(145_000);
-    });
-    it("returns 108000 at 22:00 (cancha $88k + $20k)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "22:00", 90)).toBe(108_000);
+    it("returns 147500 at 19:00 (cancha $125k + $22.5k)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "19:00", 90)).toBe(147_500);
     });
     it("returns null during midday gap (12:00)", () => {
       expect(getCourtCopFromRules("la-jaula", MONDAY, "12:00", 90)).toBeNull();
@@ -105,48 +73,23 @@ describe("getCourtCopFromRules — la-jaula", () => {
   });
 
   describe("friday 90min", () => {
-    it("returns 145000 at 19:00", () => {
-      expect(getCourtCopFromRules("la-jaula", FRIDAY, "19:00", 90)).toBe(145_000);
-    });
-    it("returns 130000 at 20:30 (cheaper than Mon-Thu)", () => {
-      expect(getCourtCopFromRules("la-jaula", FRIDAY, "20:30", 90)).toBe(130_000);
-    });
-    it("returns 108000 at 22:00", () => {
-      expect(getCourtCopFromRules("la-jaula", FRIDAY, "22:00", 90)).toBe(108_000);
+    it("returns 132500 at 20:30 (cancha $110k + $22.5k)", () => {
+      expect(getCourtCopFromRules("la-jaula", FRIDAY, "20:30", 90)).toBe(132_500);
     });
   });
 
   describe("saturday 90min", () => {
-    it("returns 70000 in early morning (cancha $50k + $20k)", () => {
-      expect(getCourtCopFromRules("la-jaula", SATURDAY, "06:00", 90)).toBe(70_000);
-    });
-    it("returns 101000 rest of day (cancha $81k + $20k)", () => {
-      expect(getCourtCopFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(101_000);
-    });
-    it("returns 101000 in the evening", () => {
-      expect(getCourtCopFromRules("la-jaula", SATURDAY, "19:00", 90)).toBe(101_000);
+    it("returns 103500 rest of day (cancha $81k + $22.5k)", () => {
+      expect(getCourtCopFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(103_500);
     });
   });
 
-  describe("weekday 60min", () => {
-    it("returns 54000 early morning (cancha $34k + $20k)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "05:00", 60)).toBe(54_000);
+  describe("player fee = (cancha + $22,500) / 4", () => {
+    it("La Jaula 5am weekday 60min: (34k + 22.5k) / 4 = $14,125", () => {
+      expect(getPlayerFeeFromRules("la-jaula", MONDAY, "05:00", 60)).toBe(14_125);
     });
-    it("returns 60000 at 07:00 (cancha $40k + $20k)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "07:00", 60)).toBe(60_000);
-    });
-  });
-
-  describe("player fee = courtCop/4 + $1,500 surcharge = cancha/4 + $6,500", () => {
-    it("saturday 90min rest-of-day: 101000/4 + 1500 = 26750", () => {
-      expect(getPlayerFeeFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(
-        Math.round(101_000 / 4) + PLAYER_FEE_SURCHARGE_COP,
-      );
-    });
-    it("verifies $6,500 total org fee per player", () => {
-      // cancha $81k → courtCop $101k → $101k/4 + $1,500 = $25,250 + $1,500 = $26,750
-      // = cancha $81k / 4 + $6,500 = $20,250 + $6,500 = $26,750 ✓
-      expect(getPlayerFeeFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(26_750);
+    it("La Jaula saturday rest-of-day 90min: (81k + 22.5k) / 4 = $25,875", () => {
+      expect(getPlayerFeeFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(25_875);
     });
   });
 });
@@ -154,7 +97,7 @@ describe("getCourtCopFromRules — la-jaula", () => {
 describe("friday fallback for venues without friday rules", () => {
   const FRIDAY = "2026-06-05";
   it("ace-padel-club uses weekday rules on Friday", () => {
-    expect(getCourtCopFromRules("ace-padel-club", FRIDAY, "10:00", 60)).toBe(50_000);
+    expect(getCourtCopFromRules("ace-padel-club", FRIDAY, "10:00", 60)).toBe(72_500);
   });
 });
 

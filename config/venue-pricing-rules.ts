@@ -4,7 +4,7 @@ export type RuleBasedVenueId = (typeof RULE_BASED_VENUE_IDS)[number];
 /**
  * Recargo fijo de plataforma por jugador, añadido sobre (precio cancha / 4).
  * Se aplica en los dos puntos donde se calcula la tarifa por jugador:
- * `getPlayerFeeFromRules` (Ace/X3) y `getPlayerFeeCop` (Casa Padel + EasyCancha),
+ * `getPlayerFeeFromRules` (Ace/X3/La Jaula) y `getPlayerFeeCop` (Casa Padel + EasyCancha),
  * de modo que TODOS los partidos suben este monto por persona.
  */
 export const PLAYER_FEE_SURCHARGE_COP = 1500;
@@ -82,53 +82,54 @@ const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90, Time
   },
   /**
    * La Jaula Padel Barranquilla — precios oficiales de la cancha (junio 2026).
-   * Entre semana Lun-Jue y Viernes tienen noches distintas.
-   * Fin de semana: mañana $50k (90min) / $34k (60min), resto $81k (90min).
+   * courtCop = precio real de cancha + $20k markup (igual que CSV venues),
+   * para que getPlayerFeeFromRules (courtCop/4 + $1,500) dé la comisión de $6,500/jugador.
+   * Ejemplo: cancha $81k → courtCop $101k → $101k/4 + $1,500 = $26,750/jugador.
    */
   "la-jaula": {
     weekday: {
       60: [
-        { from: "05:00", to: "06:30", courtCop: 34_000 },
-        { from: "06:30", to: "10:00", courtCop: 40_000 },
+        { from: "05:00", to: "06:30", courtCop: 54_000 },   // cancha $34k + $20k
+        { from: "06:30", to: "10:00", courtCop: 60_000 },   // cancha $40k + $20k
       ],
       90: [
-        { from: "05:00", to: "06:30", courtCop: 50_000 },
-        { from: "06:30", to: "10:00", courtCop: 60_000 },
-        { from: "15:00", to: "19:00", courtCop: 51_000 },
-        { from: "19:00", to: "22:00", courtCop: 125_000 },
-        { from: "22:00", to: "24:00", courtCop: 88_000 },
+        { from: "05:00", to: "06:30", courtCop: 70_000 },   // cancha $50k + $20k
+        { from: "06:30", to: "10:00", courtCop: 80_000 },   // cancha $60k + $20k
+        { from: "15:00", to: "19:00", courtCop: 71_000 },   // cancha $51k + $20k
+        { from: "19:00", to: "22:00", courtCop: 145_000 },  // cancha $125k + $20k
+        { from: "22:00", to: "24:00", courtCop: 108_000 },  // cancha $88k + $20k
       ],
     },
     friday: {
       60: [
-        { from: "05:00", to: "06:30", courtCop: 34_000 },
-        { from: "06:30", to: "10:00", courtCop: 40_000 },
+        { from: "05:00", to: "06:30", courtCop: 54_000 },
+        { from: "06:30", to: "10:00", courtCop: 60_000 },
       ],
       90: [
-        { from: "05:00", to: "06:30", courtCop: 50_000 },
-        { from: "06:30", to: "10:00", courtCop: 60_000 },
-        { from: "15:00", to: "19:00", courtCop: 51_000 },
-        { from: "19:00", to: "20:30", courtCop: 125_000 },
-        { from: "20:30", to: "22:00", courtCop: 110_000 },
-        { from: "22:00", to: "24:00", courtCop: 88_000 },
+        { from: "05:00", to: "06:30", courtCop: 70_000 },
+        { from: "06:30", to: "10:00", courtCop: 80_000 },
+        { from: "15:00", to: "19:00", courtCop: 71_000 },
+        { from: "19:00", to: "20:30", courtCop: 145_000 },  // cancha $125k + $20k
+        { from: "20:30", to: "22:00", courtCop: 130_000 },  // cancha $110k + $20k
+        { from: "22:00", to: "24:00", courtCop: 108_000 },
       ],
     },
     saturday: {
       60: [
-        { from: "05:00", to: "08:00", courtCop: 34_000 },
+        { from: "05:00", to: "08:00", courtCop: 54_000 },
       ],
       90: [
-        { from: "05:00", to: "08:00", courtCop: 50_000 },
-        { from: "08:00", to: "24:00", courtCop: 81_000 },
+        { from: "05:00", to: "08:00", courtCop: 70_000 },
+        { from: "08:00", to: "24:00", courtCop: 101_000 },  // cancha $81k + $20k
       ],
     },
     sunday: {
       60: [
-        { from: "05:00", to: "08:00", courtCop: 34_000 },
+        { from: "05:00", to: "08:00", courtCop: 54_000 },
       ],
       90: [
-        { from: "05:00", to: "08:00", courtCop: 50_000 },
-        { from: "08:00", to: "24:00", courtCop: 81_000 },
+        { from: "05:00", to: "08:00", courtCop: 70_000 },
+        { from: "08:00", to: "24:00", courtCop: 101_000 },
       ],
     },
   },

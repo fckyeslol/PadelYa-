@@ -83,21 +83,21 @@ describe("getCourtCopFromRules — la-jaula", () => {
     expect(RULE_BASED_VENUE_IDS).toContain("la-jaula");
   });
 
-  describe("weekday (Mon-Thu) 90min", () => {
-    it("returns 50000 at 05:00", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "05:00", 90)).toBe(50_000);
+  describe("weekday (Mon-Thu) 90min — courtCop includes $20k markup", () => {
+    it("returns 70000 at 05:00 (cancha $50k + $20k)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "05:00", 90)).toBe(70_000);
     });
-    it("returns 60000 at 06:30", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "06:30", 90)).toBe(60_000);
+    it("returns 80000 at 06:30 (cancha $60k + $20k)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "06:30", 90)).toBe(80_000);
     });
-    it("returns 51000 at 15:00 (afternoon)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "15:00", 90)).toBe(51_000);
+    it("returns 71000 at 15:00 (cancha $51k + $20k)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "15:00", 90)).toBe(71_000);
     });
-    it("returns 125000 at 19:00 (prime night)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "19:00", 90)).toBe(125_000);
+    it("returns 145000 at 19:00 (cancha $125k + $20k)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "19:00", 90)).toBe(145_000);
     });
-    it("returns 88000 at 22:00 (late night)", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "22:00", 90)).toBe(88_000);
+    it("returns 108000 at 22:00 (cancha $88k + $20k)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "22:00", 90)).toBe(108_000);
     });
     it("returns null during midday gap (12:00)", () => {
       expect(getCourtCopFromRules("la-jaula", MONDAY, "12:00", 90)).toBeNull();
@@ -105,43 +105,48 @@ describe("getCourtCopFromRules — la-jaula", () => {
   });
 
   describe("friday 90min", () => {
-    it("returns 125000 at 19:00", () => {
-      expect(getCourtCopFromRules("la-jaula", FRIDAY, "19:00", 90)).toBe(125_000);
+    it("returns 145000 at 19:00", () => {
+      expect(getCourtCopFromRules("la-jaula", FRIDAY, "19:00", 90)).toBe(145_000);
     });
-    it("returns 110000 at 20:30 (cheaper than Mon-Thu)", () => {
-      expect(getCourtCopFromRules("la-jaula", FRIDAY, "20:30", 90)).toBe(110_000);
+    it("returns 130000 at 20:30 (cheaper than Mon-Thu)", () => {
+      expect(getCourtCopFromRules("la-jaula", FRIDAY, "20:30", 90)).toBe(130_000);
     });
-    it("returns 88000 at 22:00", () => {
-      expect(getCourtCopFromRules("la-jaula", FRIDAY, "22:00", 90)).toBe(88_000);
+    it("returns 108000 at 22:00", () => {
+      expect(getCourtCopFromRules("la-jaula", FRIDAY, "22:00", 90)).toBe(108_000);
     });
   });
 
   describe("saturday 90min", () => {
-    it("returns 50000 in early morning", () => {
-      expect(getCourtCopFromRules("la-jaula", SATURDAY, "06:00", 90)).toBe(50_000);
+    it("returns 70000 in early morning (cancha $50k + $20k)", () => {
+      expect(getCourtCopFromRules("la-jaula", SATURDAY, "06:00", 90)).toBe(70_000);
     });
-    it("returns 81000 rest of day", () => {
-      expect(getCourtCopFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(81_000);
+    it("returns 101000 rest of day (cancha $81k + $20k)", () => {
+      expect(getCourtCopFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(101_000);
     });
-    it("returns 81000 in the evening", () => {
-      expect(getCourtCopFromRules("la-jaula", SATURDAY, "19:00", 90)).toBe(81_000);
+    it("returns 101000 in the evening", () => {
+      expect(getCourtCopFromRules("la-jaula", SATURDAY, "19:00", 90)).toBe(101_000);
     });
   });
 
   describe("weekday 60min", () => {
-    it("returns 34000 early morning", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "05:00", 60)).toBe(34_000);
+    it("returns 54000 early morning (cancha $34k + $20k)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "05:00", 60)).toBe(54_000);
     });
-    it("returns 40000 at 06:30", () => {
-      expect(getCourtCopFromRules("la-jaula", MONDAY, "07:00", 60)).toBe(40_000);
+    it("returns 60000 at 07:00 (cancha $40k + $20k)", () => {
+      expect(getCourtCopFromRules("la-jaula", MONDAY, "07:00", 60)).toBe(60_000);
     });
   });
 
-  describe("player fee includes surcharge", () => {
-    it("saturday 90min rest-of-day: 81000/4 + 1500 = 21750", () => {
+  describe("player fee = courtCop/4 + $1,500 surcharge = cancha/4 + $6,500", () => {
+    it("saturday 90min rest-of-day: 101000/4 + 1500 = 26750", () => {
       expect(getPlayerFeeFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(
-        Math.round(81_000 / 4) + PLAYER_FEE_SURCHARGE_COP,
+        Math.round(101_000 / 4) + PLAYER_FEE_SURCHARGE_COP,
       );
+    });
+    it("verifies $6,500 total org fee per player", () => {
+      // cancha $81k → courtCop $101k → $101k/4 + $1,500 = $25,250 + $1,500 = $26,750
+      // = cancha $81k / 4 + $6,500 = $20,250 + $6,500 = $26,750 ✓
+      expect(getPlayerFeeFromRules("la-jaula", SATURDAY, "10:00", 90)).toBe(26_750);
     });
   });
 });

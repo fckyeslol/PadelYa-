@@ -7,9 +7,14 @@ import {
   loadMatchesForCourts,
 } from "@/services/venue-portal/availability";
 import { getEasycanchaDayAvailability } from "@/services/easycancha/availability";
+import { fetchRealtimeAvailability } from "@/services/easycancha/realtime";
 import { ensureFreshAvailability } from "@/services/easycancha/on-demand";
 import { hotWindowDates } from "@/services/easycancha/sync";
-import { hasCsvPricingForVenueName } from "@/config/pricing";
+import {
+  hasCsvPricingForVenueName,
+  isRuleBasedVenueName,
+  getAvailableTimeSlotsWithDuration,
+} from "@/config/pricing";
 
 /**
  * Horarios reservables para una sede + fecha.
@@ -21,12 +26,18 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const venueName = searchParams.get("venueName")?.trim();
     const date = searchParams.get("date");
+    const durationParam = searchParams.get("duration");
+    const durationMinutes: 60 | 90 =
+      durationParam === "60" ? 60 : 90;
 
     if (!venueName || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json({ error: "venueName y date requeridos" }, { status: 400 });
     }
 
-    if (!hasCsvPricingForVenueName(venueName)) {
+    const isRuleBased = isRuleBasedVenueName(venueName);
+    const hasCsv = hasCsvPricingForVenueName(venueName);
+
+    if (!hasCsv && !isRuleBased) {
       return NextResponse.json({ bookableTimes: [], freeCourtsByTime: {}, totalCourts: 0 });
     }
 
@@ -37,21 +48,31 @@ export async function GET(request: Request) {
 
     const courts = await listVenueCourts(info.id);
     const courtIds = courts.map((c) => c.id);
-    const times = getBookableTimeSlotsForVenue(info.id, date);
 
-    // Load blocks + existing matches en paralelo.
+    // Horarios con precio: para rule-based usa las reglas, para CSV usa el CSV.
+    const times = isRuleBased
+      ? getAvailableTimeSlotsWithDuration(venueName, date, durationMinutes)
+      : getBookableTimeSlotsForVenue(info.id, date);
+
     const [blocks, matches] = await Promise.all([
       loadBlocksForCourts(courtIds, date),
       loadMatchesForCourts(courtIds, date),
     ]);
 
-    // EasyCancha: la ventana caliente la mantiene el cron; para fechas más lejanas sin
-    // data fresca, top-up on-demand (con bucket + dedup; fail-open si no se puede).
+    // EasyCancha availability: try sync data first, then realtime fallback.
     let ecAvail = await getEasycanchaDayAvailability(venueName, date);
     if (!ecAvail.hasData && !hotWindowDates().includes(date)) {
       await ensureFreshAvailability(venueName, date);
       ecAvail = await getEasycanchaDayAvailability(venueName, date);
     }
+
+    // If sync has no data, try realtime fetch directly from EasyCancha API.
+    let realtimeFree: Map<string, number> | null = null;
+    if (!ecAvail.hasData) {
+      realtimeFree = await fetchRealtimeAvailability(info.id, date, durationMinutes);
+    }
+
+    const hasEcData = ecAvail.hasData || realtimeFree !== null;
 
     const freeCourtsByTime: Record<string, number> = {};
     const bookableTimes: string[] = [];
@@ -65,11 +86,15 @@ export async function GET(request: Request) {
         if (hasMatch) matchesAtTime++;
         if (!blocks.has(key) && !hasMatch) free++;
       }
-      // Tope EasyCancha (si hay datos): no ofrecer más cupos que canchas libres reales.
-      if (ecAvail.hasData) {
-        const ecCap = Math.max(0, (ecAvail.freeByTime.get(time) ?? 0) - matchesAtTime);
+
+      if (hasEcData) {
+        const ecFree = ecAvail.hasData
+          ? (ecAvail.freeByTime.get(time) ?? 0)
+          : (realtimeFree!.get(time) ?? 0);
+        const ecCap = Math.max(0, ecFree - matchesAtTime);
         free = Math.min(free, ecCap);
       }
+
       freeCourtsByTime[time] = free;
       if (free > 0) bookableTimes.push(time);
     }

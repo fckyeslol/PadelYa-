@@ -102,7 +102,7 @@ function slotsForVenueAndDate(
   dateValue: string,
   bookableTimes: Set<string> | null,
   durationMinutes: 60 | 90,
-  isRuleBased: boolean,
+  _isRuleBased: boolean,
 ) {
   const priced = getAvailableTimeSlotsWithDuration(venueName, dateValue, durationMinutes);
   if (!priced.length) return [];
@@ -110,11 +110,9 @@ function slotsForVenueAndDate(
   const allowed = new Set(priced);
   let base = slotsForDate(dateValue).filter((s) => allowed.has(s.value));
 
-  // Rule-based venues (Ace, X3) don't use the EasyCancha availability API
-  if (!isRuleBased) {
-    if (bookableTimes === null) return [];
-    base = base.filter((s) => bookableTimes.has(s.value));
-  }
+  // All EasyCancha venues filter by real availability (sync or realtime)
+  if (bookableTimes === null) return [];
+  base = base.filter((s) => bookableTimes.has(s.value));
 
   return base;
 }
@@ -155,18 +153,15 @@ export function MatchForm() {
   const isRuleBased = isRuleBasedVenueName(venueName);
 
   useEffect(() => {
-    // Rule-based venues don't use the EasyCancha availability API
-    if (!venueName.trim() || !matchDate || isRuleBased) {
+    if (!venueName.trim() || !matchDate) {
       setBookableTimes(null);
       return;
     }
     let cancelled = false;
     setAvailabilityLoading(true);
-    // Debounce: si el usuario clickea varias fechas seguidas, solo consultamos donde se
-    // detiene (~400ms). Evita disparar un fetch (y un posible top-up) por cada click.
     const timer = setTimeout(() => {
       fetch(
-        `/api/venues/slot-availability?venueName=${encodeURIComponent(venueName.trim())}&date=${encodeURIComponent(matchDate)}`,
+        `/api/venues/slot-availability?venueName=${encodeURIComponent(venueName.trim())}&date=${encodeURIComponent(matchDate)}&duration=${durationMinutes}`,
       )
         .then((res) => res.json())
         .then(
@@ -197,7 +192,7 @@ export function MatchForm() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [venueName, matchDate, isRuleBased]);
+  }, [venueName, matchDate, durationMinutes]);
 
   const hasPricedVenue = hasPricingForVenueName(venueName);
   const availableSlots =

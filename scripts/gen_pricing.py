@@ -2,7 +2,7 @@
 import csv
 import json
 import re
-from datetime import datetime
+import unicodedata
 from pathlib import Path
 
 MARKUP = 22_500
@@ -18,6 +18,17 @@ VENUE_MAP = {
     "X3 Padel Club": "x3-padel-club",
     "Ace Padel Club": "ace-padel-club",
 }
+
+
+def normalize(s: str) -> str:
+    """Sin acentos, sin mayúsculas: el CSV escribe 'Padel Park', el map 'Pádel Park'."""
+    decomposed = unicodedata.normalize("NFKD", s)
+    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return stripped.casefold().strip()
+
+
+# Lookup tolerante a variantes de acento/mayúscula del nombre del club.
+VENUE_MAP_NORM = {normalize(name): vid for name, vid in VENUE_MAP.items()}
 
 
 def parse_price(s: str) -> int:
@@ -39,7 +50,7 @@ calendar_dates: set[str] = set()
 with CSV_PATH.open(newline="", encoding="utf-8") as f:
     for row in csv.DictReader(f):
         club = row["Club Name"].strip()
-        vid = VENUE_MAP.get(club)
+        vid = VENUE_MAP_NORM.get(normalize(club))
         if not vid:
             continue
         date = row["Date"].strip()

@@ -84,8 +84,9 @@ function slotsForDate(dateValue: string) {
   });
 }
 
-const SHOWN_VENUES = new Set(["Casa Padel", "X3 Pádel Club", "La Jaula"]);
-const BAQ_VENUES = PRICED_VENUE_NAMES.filter((v) => SHOWN_VENUES.has(v));
+// Todas las sedes con tarifa (CSV EasyCancha + reglas + Casa Padel). Pádel Park no tiene
+// tarifa cargada, así que no aparece hasta que tenga pricing.
+const BAQ_VENUES = PRICED_VENUE_NAMES;
 
 function playerFeeForSlot(
   venueName: string,
@@ -273,7 +274,7 @@ export function MatchForm() {
           })}
         </div>
         <p style={{ fontSize: "0.75rem", color: "var(--text-3)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
-          Tarifas EasyCancha, Casa Padel, Ace Padel Club y X3 Pádel Club.
+          Tarifas según EasyCancha y reglas de cada sede.
         </p>
       </div>
 

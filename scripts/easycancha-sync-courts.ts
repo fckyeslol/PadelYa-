@@ -37,12 +37,24 @@ async function main() {
   console.log(apply ? "== APLICANDO ==" : "== DRY-RUN (usá --apply para ejecutar) ==");
 
   for (const club of EASYCANCHA_CLUBS) {
-    // Canchas reales según EasyCancha = court_id distintos vistos.
-    const { data: slots } = await supabase
-      .from("easycancha_slots")
-      .select("court_id")
-      .eq("club_id", club.id);
-    const ecCourtIds = new Set((slots ?? []).map((s) => s.court_id));
+    // Canchas reales según EasyCancha = court_id distintos vistos. Paginamos: el API
+    // topa en 1000 filas por respuesta y un club con muchas fechas/turnos lo supera,
+    // así que sin paginar se subcuentan las canchas.
+    const ecCourtIds = new Set<number>();
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data: slots, error } = await supabase
+        .from("easycancha_slots")
+        .select("court_id")
+        .eq("club_id", club.id)
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.log(`  ERROR leyendo slots de ${club.venueId}: ${error.message}`);
+        break;
+      }
+      for (const s of slots ?? []) ecCourtIds.add(s.court_id);
+      if (!slots || slots.length < PAGE) break;
+    }
     const ecCount = ecCourtIds.size;
 
     // Canchas activas que ya tiene PadelYa para esa sede.

@@ -100,14 +100,19 @@ export async function getAnyValidSession(): Promise<EasycanchaSession | null> {
   };
 }
 
-/** Marca que una cuenta corrió y reprograma su próximo turno. */
+/**
+ * Marca que una cuenta corrió y reprograma su próximo turno. Devuelve `true` si el
+ * update entró. El caller DEBE llamar esto ANTES del fetch (claim): si reprogramar
+ * falla, no se debe usar la cuenta este tick, porque su next_run_at quedaría vencido y
+ * el heartbeat la volvería a elegir cada 5 min (martilleo contra EasyCancha).
+ */
 export async function markAccountRan(
   accountId: number,
   clubId: number,
   nextRunAt: Date,
-): Promise<void> {
+): Promise<boolean> {
   const supabase = getSupabaseAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("easycancha_accounts")
     .update({
       last_run_at: new Date().toISOString(),
@@ -116,6 +121,69 @@ export async function markAccountRan(
       updated_at: new Date().toISOString(),
     })
     .eq("id", accountId);
+  return !error;
+}
+
+/**
+ * Invalida el token de una cuenta (expires_at = ahora) cuando EasyCancha lo rechaza
+ * (HTTP 401/403). Así queda "no usable" y el chequeo de salud la reporta como caída.
+ */
+export async function invalidateAccountToken(accountId: number): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+  await supabase
+    .from("easycancha_accounts")
+    .update({
+      expires_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", accountId);
+}
+
+/** Estado de salud de una cuenta activa, para detectar y avisar caídas. */
+export type AccountHealth = {
+  id: number;
+  label: string;
+  usable: boolean;
+  expiresAt: string | null;
+  downAlertedAt: string | null;
+};
+
+/** Salud de todas las cuentas activas: usable = token presente y no vencido. */
+export async function getAccountsHealth(): Promise<AccountHealth[]> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("easycancha_accounts")
+    .select("id, label, token, expires_at, down_alerted_at")
+    .eq("active", true);
+  if (error) throw new Error(`No pude leer salud de easycancha_accounts: ${error.message}`);
+
+  return (data ?? []).map((r) => ({
+    id: r.id as number,
+    label: (r.label as string) || `cuenta ${r.id}`,
+    usable: sessionIsUsable(r.token as string | null, r.expires_at as string | null),
+    expiresAt: r.expires_at as string | null,
+    downAlertedAt: r.down_alerted_at as string | null,
+  }));
+}
+
+/** Sella `down_alerted_at = ahora` (ya se avisó que estas cuentas están caídas). */
+export async function markAccountsDownAlerted(ids: number[]): Promise<void> {
+  if (!ids.length) return;
+  const supabase = getSupabaseAdminClient();
+  await supabase
+    .from("easycancha_accounts")
+    .update({ down_alerted_at: new Date().toISOString() })
+    .in("id", ids);
+}
+
+/** Limpia `down_alerted_at` (las cuentas se recuperaron; alerta resuelta). */
+export async function clearAccountsDownAlerted(ids: number[]): Promise<void> {
+  if (!ids.length) return;
+  const supabase = getSupabaseAdminClient();
+  await supabase
+    .from("easycancha_accounts")
+    .update({ down_alerted_at: null })
+    .in("id", ids);
 }
 
 export type ParsedSlot = {

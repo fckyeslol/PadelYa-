@@ -20,16 +20,26 @@ import {
   type EasycanchaClub,
   getEasycanchaClub,
   HOT_WINDOW_DAYS,
+  MORNING_RESUME_SPREAD_MIN,
+  QUIET_HOURS_END,
+  QUIET_HOURS_START,
   SYNC_INTERVAL_JITTER_MIN,
   SYNC_INTERVALS_MIN,
 } from "@/config/easycancha";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { sendSlotsAvailableEmail } from "@/services/notifications/email";
 import {
+  sendEasycanchaAccountsDownEmail,
+  sendSlotsAvailableEmail,
+} from "@/services/notifications/email";
+import {
+  clearAccountsDownAlerted,
   type EasycanchaSession,
   fetchDaySlots,
+  getAccountsHealth,
   getDueAccounts,
+  invalidateAccountToken,
   markAccountRan,
+  markAccountsDownAlerted,
   type ParsedSlot,
 } from "./client";
 
@@ -52,8 +62,15 @@ export type SyncSummary = {
   becameBooked: number;
   freedTransitions: number;
   alertsSent: number;
+  /** Cuentas activas sin token usable al cierre del tick (token vencido o rechazado). */
+  accountsDown: number;
   errors: string[];
 };
+
+/** ¿El error es un rechazo de auth de EasyCancha (token inválido)? -> invalidar cuenta. */
+function isAuthRejection(errorMsg: string): boolean {
+  return /HTTP 40[13]\b/.test(errorMsg);
+}
 
 type Watch = {
   club_id: number | null;
@@ -96,11 +113,44 @@ function watchMatches(w: Watch, slot: ParsedSlot): boolean {
   return true;
 }
 
-/** Próximo turno: intervalo al azar de SYNC_INTERVALS_MIN ± jitter. */
+// Colombia es UTC-5 todo el año (sin horario de verano), así que basta un offset fijo.
+const BOGOTA_OFFSET_MS = -5 * 60 * MS_PER_MIN;
+
+/** Hora local Bogotá (0-23) de una fecha. */
+function bogotaHourOf(d: Date): number {
+  return new Date(d.getTime() + BOGOTA_OFFSET_MS).getUTCHours();
+}
+
+/** ¿La fecha cae en la ventana de silencio de madrugada (Bogotá)? */
+function isQuietHour(d: Date): boolean {
+  const h = bogotaHourOf(d);
+  return h >= QUIET_HOURS_START && h < QUIET_HOURS_END;
+}
+
+/**
+ * Si la fecha cae en la ventana de silencio, la empuja al fin de la ventana (QUIET_HOURS_END
+ * Bogotá de ese día) + un spread aleatorio, para que las cuentas reanuden escalonadas y no
+ * todas juntas a las 6am. Fuera de la ventana la devuelve intacta.
+ */
+function pushPastQuietWindow(d: Date): Date {
+  if (!isQuietHour(d)) return d;
+  // Desplazar para que los campos UTC se lean como hora-pared de Bogotá, fijar 06:00, volver.
+  const b = new Date(d.getTime() + BOGOTA_OFFSET_MS);
+  b.setUTCHours(QUIET_HOURS_END, 0, 0, 0);
+  const resumeUtc =
+    b.getTime() - BOGOTA_OFFSET_MS + Math.random() * MORNING_RESUME_SPREAD_MIN * MS_PER_MIN;
+  return new Date(resumeUtc);
+}
+
+/**
+ * Próximo turno: intervalo al azar de SYNC_INTERVALS_MIN ± jitter. Si cae en la madrugada
+ * (ventana de silencio Bogotá), se reprograma al amanecer, escalonado.
+ */
 function nextRunAt(): Date {
   const base = SYNC_INTERVALS_MIN[Math.floor(Math.random() * SYNC_INTERVALS_MIN.length)];
   const jitterMin = (Math.random() * 2 - 1) * SYNC_INTERVAL_JITTER_MIN;
-  return new Date(Date.now() + (base + jitterMin) * MS_PER_MIN);
+  const candidate = new Date(Date.now() + (base + jitterMin) * MS_PER_MIN);
+  return pushPastQuietWindow(candidate);
 }
 
 /**
@@ -298,11 +348,22 @@ export async function syncTick(): Promise<SyncSummary> {
     becameBooked: 0,
     freedTransitions: 0,
     alertsSent: 0,
+    accountsDown: 0,
     errors: [],
   };
 
   const due = await getDueAccounts();
-  if (!due.length) return summary;
+
+  // Pausa de madrugada (Bogotá): no scrapeamos. Reprogramamos las cuentas vencidas al fin
+  // de la ventana (escalonadas vía nextRunAt) para que reanuden de a poco, no en ráfaga.
+  // La salud igual se reporta: querés enterarte de un token caído aunque sea de noche.
+  if (isQuietHour(new Date())) {
+    for (const account of due) {
+      await markAccountRan(account.id, account.lastClubId ?? EASYCANCHA_CLUBS[0].id, nextRunAt());
+    }
+    await reportAccountHealth(summary);
+    return summary;
+  }
 
   const dates = hotWindowDates();
   const allFreed: ParsedSlot[] = [];
@@ -311,10 +372,23 @@ export async function syncTick(): Promise<SyncSummary> {
   // ráfagas simultáneas. El jitter por request vive dentro de syncClubForDates.
   for (const account of due) {
     const club = await pickClubByStaleness(account.lastClubId);
+
+    // Claim ANTES del fetch: reprogramar el próximo turno primero. Si esto falla, no
+    // usamos la cuenta este tick — de lo contrario quedaría "due" y el heartbeat la
+    // re-elegiría cada 5 min, martillando EasyCancha.
+    const claimed = await markAccountRan(account.id, club.id, nextRunAt());
+    if (!claimed) {
+      summary.errors.push(`No pude reprogramar cuenta ${account.id}; la salto este tick`);
+      continue;
+    }
+
     const session: EasycanchaSession = {
       token: account.token,
       awsalb: account.awsalb,
       expiresAt: account.expiresAt,
+      // Sin esto, el sync sale por la IP del server y se pierde el proxy residencial
+      // sticky de la cuenta (las 6 se correlacionarían por IP).
+      proxyUrl: account.proxyUrl,
     };
 
     const res = await syncClubForDates(club, dates, session, { pace: true });
@@ -325,12 +399,47 @@ export async function syncTick(): Promise<SyncSummary> {
     summary.errors.push(...res.errors);
     allFreed.push(...res.freed);
 
-    await markAccountRan(account.id, club.id, nextRunAt());
+    // EasyCancha rechazó el token (401/403) -> invalidarlo para que el chequeo de salud
+    // lo reporte como caído y dispare la alerta al equipo.
+    if (res.errors.some(isAuthRejection)) {
+      await invalidateAccountToken(account.id);
+    }
   }
 
   summary.freedTransitions = allFreed.length;
   summary.alertsSent = await dispatchFreedAlerts(allFreed);
+  await reportAccountHealth(summary);
   return summary;
+}
+
+/**
+ * Chequea la salud de todas las cuentas activas y avisa al equipo cuando alguna queda
+ * caída (token vencido o rechazado). Deduplica con down_alerted_at: avisa una vez al
+ * caer y limpia la marca cuando la cuenta se recupera. Nunca rompe el tick (fail-soft).
+ */
+async function reportAccountHealth(summary: SyncSummary): Promise<void> {
+  let health: Awaited<ReturnType<typeof getAccountsHealth>>;
+  try {
+    health = await getAccountsHealth();
+  } catch (e) {
+    summary.errors.push(e instanceof Error ? e.message : String(e));
+    return;
+  }
+
+  summary.accountsDown = health.filter((a) => !a.usable).length;
+
+  const newlyDown = health.filter((a) => !a.usable && !a.downAlertedAt);
+  const recovered = health.filter((a) => a.usable && a.downAlertedAt);
+
+  if (newlyDown.length) {
+    await sendEasycanchaAccountsDownEmail(
+      newlyDown.map((a) => ({ id: a.id, label: a.label, expiresAt: a.expiresAt })),
+    );
+    await markAccountsDownAlerted(newlyDown.map((a) => a.id));
+  }
+  if (recovered.length) {
+    await clearAccountsDownAlerted(recovered.map((a) => a.id));
+  }
 }
 
 /** Util para logs/diagnóstico: nombre del club por id. */

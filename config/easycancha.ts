@@ -23,6 +23,18 @@ export const SYNC_INTERVALS_MIN = [30, 45, 60] as const;
 /** Jitter extra (± min) sobre el intervalo elegido, para no ser metronómico. */
 export const SYNC_INTERVAL_JITTER_MIN = 5;
 
+/**
+ * Ventana de silencio (madrugada Bogotá): el heartbeat NO scrapea entre estas horas para
+ * darle a las cuentas un ritmo diurno humano (nadie consulta disponibilidad a las 3am todos
+ * los días). Hora local Colombia (UTC-5, sin DST). Rango [start, end): 1 = 01:00, 6 = 06:00.
+ * El top-up on-demand (disparado por un usuario real) NO se pausa.
+ */
+export const QUIET_HOURS_START = 1;
+export const QUIET_HOURS_END = 6;
+
+/** Al reanudar tras la ventana, repartir el arranque de las cuentas en esta franja (min). */
+export const MORNING_RESUME_SPREAD_MIN = 60;
+
 /** Top-up on-demand: timeout corto (la creación de partido no debe colgarse). */
 export const ON_DEMAND_TIMEOUT_MS = 4_000;
 

@@ -251,12 +251,20 @@ async function main(): Promise<void> {
   loadEnvLocal();
   const headless = process.argv.includes("--headless");
   const onlyArg = process.argv.find((a) => a.startsWith("--only="));
-  const onlyId = onlyArg ? Number(onlyArg.split("=")[1]) : null;
+  // --only acepta uno o varios ids separados por coma (p.ej. --only=2,5), como los lista
+  // la alerta de cuentas caídas.
+  const onlyIds = onlyArg
+    ? onlyArg
+        .split("=")[1]
+        .split(",")
+        .map((s) => Number(s.trim()))
+        .filter((n) => Number.isInteger(n))
+    : null;
 
   let accounts = loadAccounts();
-  if (onlyId != null) accounts = accounts.filter((a) => a.id === onlyId);
+  if (onlyIds?.length) accounts = accounts.filter((a) => onlyIds.includes(a.id));
   if (!accounts.length) {
-    console.error(onlyId != null ? `No existe la cuenta id=${onlyId}` : "No hay cuentas.");
+    console.error(onlyIds?.length ? `No existe ninguna cuenta ${onlyIds.join(",")}` : "No hay cuentas.");
     process.exit(1);
   }
 

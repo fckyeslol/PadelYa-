@@ -404,6 +404,86 @@ export async function sendNewMatchBroadcastEmail(input: NewMatchEmailInput) {
   }
 }
 
+export type DownAccount = {
+  id: number;
+  label: string;
+  expiresAt: string | null;
+};
+
+/**
+ * Avisa al equipo (OWNER_EMAIL) cuando una o más cuentas de EasyCancha quedan caídas
+ * (token vencido o rechazado). Sin cuentas vigentes el scraping se queda sin datos, así
+ * que esto es una alarma operativa: hay que correr el refresh de token de esas cuentas.
+ */
+export async function sendEasycanchaAccountsDownEmail(accounts: DownAccount[]) {
+  const resend = getResendEnv();
+  // OWNER_EMAIL admite varias direcciones separadas por coma.
+  const recipients = (process.env.OWNER_EMAIL ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (!resend || recipients.length === 0 || accounts.length === 0) return;
+
+  const rows = accounts
+    .map((a) => {
+      const when = a.expiresAt
+        ? new Date(a.expiresAt).toLocaleString("es-CO", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "America/Bogota",
+          })
+        : "—";
+      return `<tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">#${a.id}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${escapeHtml(a.label)}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${escapeHtml(when)}</td>
+      </tr>`;
+    })
+    .join("");
+
+  const ids = accounts.map((a) => a.id).join(",");
+  const count = accounts.length;
+  const subject =
+    count === 1
+      ? "⚠️ Cuenta de EasyCancha caída — refrescar token"
+      : `⚠️ ${count} cuentas de EasyCancha caídas — refrescar token`;
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resend.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: resend.from,
+        to: recipients,
+        subject,
+        html: `
+          <div style="font-family: Arial, sans-serif; color:#111827; line-height:1.5; max-width:560px;">
+            <h2 style="margin:0 0 12px;">${count === 1 ? "Una cuenta de EasyCancha quedó caída" : `${count} cuentas de EasyCancha quedaron caídas`}</h2>
+            <p style="margin:0 0 14px;">Su token está vencido o EasyCancha lo rechazó. Mientras estén caídas, el scraping pierde cobertura. Hay que refrescar el token:</p>
+            <table style="border-collapse:collapse;width:100%;font-size:14px;">
+              <thead>
+                <tr style="text-align:left;color:#6b7280;">
+                  <th style="padding:6px 10px;">Cuenta</th>
+                  <th style="padding:6px 10px;">Label</th>
+                  <th style="padding:6px 10px;">Token venció</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <p style="margin:16px 0 0; color:#6b7280; font-size:13px;">Para reactivarlas, corré:</p>
+            <pre style="margin:6px 0 0; padding:10px; background:#f3f4f6; border-radius:8px; font-size:13px; overflow:auto;">npx tsx scripts/easycancha-refresh-token.ts --only=${escapeHtml(ids)}</pre>
+          </div>
+        `,
+      }),
+    });
+  } catch {
+    // El aviso nunca debe romper el sync.
+  }
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")

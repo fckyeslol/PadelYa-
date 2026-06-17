@@ -29,7 +29,7 @@ export default async function ConfirmCourtPage({ params }: Props) {
   // If already activated, go to the match page
   if (match.status !== "pending_court") redirect(`/matches/${matchId}`);
 
-  const displayFee = resolveDisplayFeeCop(match.venueName, match.scheduledAt);
+  const displayFee = resolveDisplayFeeCop(match.venueName, match.scheduledAt, match.durationMinutes);
   const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(match.venueName + " Barranquilla")}`;
 
   return (

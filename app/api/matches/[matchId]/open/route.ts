@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createCheckoutForMatch } from "@/services/payments/service";
 import { notifyAllUsersNewMatch, notifyHostMatchCreated } from "@/services/notifications/whatsapp";
+import { sendNewMatchBroadcastEmail } from "@/services/notifications/email";
 
 const schema = z.object({
   courtReference: z.string().min(1).max(200).optional(),
@@ -96,6 +97,27 @@ export async function POST(request: Request, { params }: Props) {
       });
     } catch (err) {
       console.error("[WhatsApp] notifyAllUsersNewMatch failed", err);
+    }
+
+    // Email broadcast to all registered users
+    try {
+      const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      const emails = (authUsers?.users ?? [])
+        .filter((u) => u.id !== user.id && u.email)
+        .map((u) => u.email!);
+
+      if (emails.length > 0) {
+        await sendNewMatchBroadcastEmail({
+          to: emails,
+          venueName,
+          scheduledAt,
+          skillLevel,
+          feeCop,
+          matchId,
+        });
+      }
+    } catch (err) {
+      console.error("[Email] broadcast failed", err);
     }
 
     // Organizers don't take a player slot — skip checkout entirely.

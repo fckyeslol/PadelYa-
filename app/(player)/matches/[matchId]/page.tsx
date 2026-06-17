@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const date = new Date(match.scheduledAt).toLocaleDateString("es-CO", { dateStyle: "medium" });
   const skill = SKILL_META[match.skillLevel] ?? match.skillLevel;
-  const metaFee = resolveDisplayFeeCop(match.venueName, match.scheduledAt);
+  const metaFee = resolveDisplayFeeCop(match.venueName, match.scheduledAt, match.durationMinutes);
   const feeLine =
     metaFee != null
       ? `Únete por $${metaFee.toLocaleString("es-CO")} COP`
@@ -189,7 +189,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const isOpen = match!.status === "open";
   const isCompleted = match!.status === "completed";
   const isConfirmed = match!.status === "confirmed";
-  const displayFee = resolveDisplayFeeCop(match!.venueName, match!.scheduledAt) ?? match!.orgFeeCop ?? null;
+  const displayFee = resolveDisplayFeeCop(match!.venueName, match!.scheduledAt, match!.durationMinutes) ?? match!.orgFeeCop ?? null;
   const hasCsvFee = displayFee != null && displayFee > 0;
   const paidCount = players.filter((p) => p.status === "paid").length;
   const occupiedCount = players.filter(

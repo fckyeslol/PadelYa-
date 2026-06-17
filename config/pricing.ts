@@ -162,9 +162,9 @@ export function resolveOrgFeeCopForMatch(venueName: string, scheduledAt: string)
   return fee;
 }
 
-export function resolveDisplayFeeCop(venueName: string, scheduledAt: string): number | null {
+export function resolveDisplayFeeCop(venueName: string, scheduledAt: string, durationMinutes: 60 | 90 = 90): number | null {
   const { date, time } = bogotaDateAndTime(scheduledAt);
-  return getPlayerFeeByVenueName(venueName, date, time);
+  return getPlayerFeeByVenueNameWithDuration(venueName, date, time, durationMinutes);
 }
 
 export function isRuleBasedVenueId(venueId: string): boolean {

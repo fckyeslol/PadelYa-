@@ -63,6 +63,7 @@ export interface Match {
   skillLevel: SkillLevel;
   maxPlayers: number;
   orgFeeCop: number;
+  durationMinutes: 60 | 90;
   status: MatchStatus;
   notes?: string | null;
   cancelReason?: string | null;

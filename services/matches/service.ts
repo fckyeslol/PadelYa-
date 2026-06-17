@@ -17,6 +17,7 @@ type MatchRow = {
   skill_level: Match["skillLevel"];
   max_players: number;
   org_fee_cop: number;
+  duration_minutes: number;
   status: Match["status"];
   notes: string | null;
   cancel_reason: string | null;
@@ -34,6 +35,7 @@ function mapMatch(row: MatchRow): Match {
     skillLevel: row.skill_level,
     maxPlayers: row.max_players,
     orgFeeCop: row.org_fee_cop,
+    durationMinutes: (row.duration_minutes === 60 ? 60 : 90) as 60 | 90,
     status: row.status,
     notes: row.notes,
     cancelReason: row.cancel_reason,
@@ -52,7 +54,7 @@ export async function listOpenMatches(filters?: {
   let query = admin
     .from("matches")
     .select(
-      "id, host_player_id, venue_name, scheduled_at, join_deadline, skill_level, max_players, org_fee_cop, status, notes, cancel_reason, court_reference, created_at, match_players(player_id, status)",
+      "id, host_player_id, venue_name, scheduled_at, join_deadline, skill_level, max_players, org_fee_cop, duration_minutes, status, notes, cancel_reason, court_reference, created_at, match_players(player_id, status)",
     )
     .in("status", ["open", "full", "confirmed"])
     .gt("scheduled_at", nowIso)
@@ -102,7 +104,7 @@ export async function getMatchById(matchId: string): Promise<Match | null> {
   const { data, error } = await supabase
     .from("matches")
     .select(
-      "id, host_player_id, venue_name, scheduled_at, join_deadline, skill_level, max_players, org_fee_cop, status, notes, cancel_reason, court_reference, created_at",
+      "id, host_player_id, venue_name, scheduled_at, join_deadline, skill_level, max_players, org_fee_cop, duration_minutes, status, notes, cancel_reason, court_reference, created_at",
     )
     .eq("id", matchId)
     .maybeSingle();
@@ -157,7 +159,7 @@ export async function createMatch(input: CreateMatchInput): Promise<Match> {
       notes: input.notes ?? null,
     })
     .select(
-      "id, host_player_id, venue_name, scheduled_at, join_deadline, skill_level, max_players, org_fee_cop, status, notes, cancel_reason, court_reference, created_at",
+      "id, host_player_id, venue_name, scheduled_at, join_deadline, skill_level, max_players, org_fee_cop, duration_minutes, status, notes, cancel_reason, court_reference, created_at",
     )
     .single();
 

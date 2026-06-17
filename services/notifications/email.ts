@@ -333,6 +333,77 @@ export async function sendCourtBookingEmail(h: CourtBookingHandoff) {
   }
 }
 
+export type NewMatchEmailInput = {
+  to: string[];
+  venueName: string;
+  scheduledAt: string | null;
+  skillLevel: string;
+  feeCop: number;
+  matchId: string;
+};
+
+const SKILL_LABELS_EMAIL: Record<string, string> = {
+  beginner: "Principiante",
+  intermediate: "Intermedio",
+  advanced: "Avanzado",
+};
+
+export async function sendNewMatchBroadcastEmail(input: NewMatchEmailInput) {
+  const resend = getResendEnv();
+  if (!resend || input.to.length === 0) return;
+
+  const when = input.scheduledAt
+    ? new Date(input.scheduledAt).toLocaleString("es-CO", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Fecha por confirmar";
+  const level = SKILL_LABELS_EMAIL[input.skillLevel] ?? input.skillLevel;
+  const price = formatCop(input.feeCop);
+  const matchUrl = `${resend.appUrl}/matches/${input.matchId}`;
+
+  const BATCH = 49;
+  for (let i = 0; i < input.to.length; i += BATCH) {
+    const slice = input.to.slice(i, i + BATCH);
+    await Promise.all(
+      slice.map((email) =>
+        fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resend.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: resend.from,
+            to: [email],
+            subject: `Nuevo partido disponible en ${input.venueName} · PadelYa!`,
+            html: `
+              <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5; max-width: 480px;">
+                <h2 style="margin: 0 0 12px;">¡Hay un nuevo partido!</h2>
+                <p style="margin: 0 0 14px;">Se publicó un partido de pádel. ¿Te animas?</p>
+                <div style="margin: 14px 0; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px;">
+                  <p style="margin: 0 0 6px;"><strong>Cancha:</strong> ${escapeHtml(input.venueName)}</p>
+                  <p style="margin: 0 0 6px;"><strong>Fecha:</strong> ${escapeHtml(when)}</p>
+                  <p style="margin: 0 0 6px;"><strong>Nivel:</strong> ${escapeHtml(level)}</p>
+                  <p style="margin: 0;"><strong>Precio:</strong> ${escapeHtml(price)} / jugador</p>
+                </div>
+                <p style="margin: 16px 0 0;">
+                  <a href="${matchUrl}" style="display: inline-block; background: #1e3a6e; color: #ffffff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    Ver partido →
+                  </a>
+                </p>
+                <p style="margin: 12px 0 0; color: #9ca3af; font-size: 12px;">
+                  Recibes este correo porque tienes una cuenta en PadelYa.
+                </p>
+              </div>
+            `,
+          }),
+        }).catch(() => {})
+      )
+    );
+  }
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")

@@ -46,7 +46,7 @@ export async function FeaturedMatchesSection() {
           {featured.map((match) => {
             const spotsLeft = (match.maxPlayers ?? 4) - match.paidCount;
             const fee =
-              resolveDisplayFeeCop(match.venueName, match.scheduledAt);
+              resolveDisplayFeeCop(match.venueName, match.scheduledAt, match.durationMinutes);
 
             return (
               <Link

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { VenuePhoto } from "@/components/venue/VenuePhoto";
 import { listOpenMatches } from "@/services/matches/service";
-import { formatDateTime } from "@/utils/dates";
+import { formatDateTimeRange } from "@/utils/dates";
 import { formatCop } from "@/utils/currency";
 import { resolveDisplayFeeCop } from "@/config/pricing";
 
@@ -70,7 +70,7 @@ export async function FeaturedMatchesSection() {
                     {match.venueName}
                   </h3>
                   <p className="landing-match-meta">
-                    {formatDateTime(match.scheduledAt)}
+                    {formatDateTimeRange(match.scheduledAt, match.durationMinutes)}
                   </p>
                   <p className="landing-match-tag" style={{ marginTop: "0.5rem" }}>
                     {SKILL_LABEL[match.skillLevel] ?? match.skillLevel} ·{" "}

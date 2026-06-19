@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import {
   getAvailableTimeSlotsWithDuration,
+  getAvailableDurationsForVenue,
   getPlayerFeeByVenueNameWithDuration,
   hasPricingForVenueName,
   isRuleBasedVenueName,
@@ -152,6 +153,17 @@ export function MatchForm() {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
   const isRuleBased = isRuleBasedVenueName(venueName);
+  const availableDurations = getAvailableDurationsForVenue(venueName);
+
+  useEffect(() => {
+    if (availableDurations.length === 1 && durationMinutes !== availableDurations[0]) {
+      setDurationMinutes(availableDurations[0]);
+      setMatchTime("");
+    } else if (availableDurations.length > 1 && !availableDurations.includes(durationMinutes)) {
+      setDurationMinutes(availableDurations[0]);
+      setMatchTime("");
+    }
+  }, [venueName]);
 
   useEffect(() => {
     if (!venueName.trim() || !matchDate) {
@@ -278,12 +290,12 @@ export function MatchForm() {
         </p>
       </div>
 
-      {/* ── Duración (rule-based) ────────────────────── */}
-      {isRuleBased ? (
+      {/* ── Duración ────────────────────────────────── */}
+      {availableDurations.length > 0 ? (
         <div style={ROW}>
           <p style={LABEL}>Duración del partido</p>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            {([60, 90] as const).map((dur) => {
+            {availableDurations.map((dur) => {
               const selected = durationMinutes === dur;
               return (
                 <button

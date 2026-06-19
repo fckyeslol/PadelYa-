@@ -5,7 +5,7 @@ import { VenuePhoto } from "@/components/venue/VenuePhoto";
 import { getVenueImage } from "@/config/venues";
 import type { MatchPreview } from "@/types/domain";
 import { formatCop } from "@/utils/currency";
-import { formatDateTime } from "@/utils/dates";
+import { formatDateTimeRange } from "@/utils/dates";
 
 const SKILL_COLOR: Record<string, string> = {
   beginner:     "var(--success)",
@@ -80,7 +80,7 @@ export function MatchCard({ match }: { match: MatchPreview }) {
               {match.venueName}
             </h3>
             <p style={{ color: "var(--text-3)", fontSize: "0.8rem" }}>
-              {formatDateTime(match.scheduledAt)}
+              {formatDateTimeRange(match.scheduledAt, match.durationMinutes)}
             </p>
           </div>
           <MatchStatusBadge status={match.status} />

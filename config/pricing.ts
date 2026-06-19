@@ -3,6 +3,7 @@ import { BARRANQUILLA_VENUES, getVenueInfo } from "@/config/venues";
 import {
   RULE_BASED_VENUE_IDS,
   getPlayerFeeFromRules,
+  getAvailableDurations,
   PLAYER_FEE_SURCHARGE_COP,
 } from "@/config/venue-pricing-rules";
 
@@ -178,6 +179,14 @@ export function isRuleBasedVenueName(venueName: string): boolean {
 
 export function hasPricingForVenueName(venueName: string): boolean {
   return hasCsvPricingForVenueName(venueName) || isRuleBasedVenueName(venueName);
+}
+
+export function getAvailableDurationsForVenue(venueName: string): (60 | 90)[] {
+  const info = getVenueInfo(venueName);
+  if (!info) return [];
+  if (isRuleBasedVenueId(info.id)) return getAvailableDurations(info.id);
+  if (hasCsvPricingForVenueId(info.id)) return [90];
+  return [];
 }
 
 export function getAvailableTimeSlotsWithDuration(

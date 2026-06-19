@@ -19,7 +19,7 @@ import { getCurrentProfile } from "@/services/profiles/service";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveDisplayFeeCop } from "@/config/pricing";
 import { formatCop } from "@/utils/currency";
-import { formatDateTime } from "@/utils/dates";
+import { formatDateTimeRange } from "@/utils/dates";
 import { MatchChat } from "@/components/match/MatchChat";
 import { MatchResultForm } from "@/components/match/MatchResultForm";
 
@@ -324,7 +324,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
                   {match!.venueName}
                 </h1>
                 <p style={{ color: "var(--text-2)", fontSize: "0.9rem" }} suppressHydrationWarning>
-                  {formatDateTime(match!.scheduledAt)}
+                  {formatDateTimeRange(match!.scheduledAt, match!.durationMinutes)}
                 </p>
               </div>
               <MatchStatusBadge status={match!.status} />
@@ -569,6 +569,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
             matchId={match!.id}
             venueName={match!.venueName}
             scheduledAt={match!.scheduledAt}
+            durationMinutes={match!.durationMinutes}
             orgFeeCop={displayFee ?? match!.orgFeeCop}
             spotsLeft={(match!.maxPlayers ?? 4) - occupiedCount}
             isParticipant={isParticipant}

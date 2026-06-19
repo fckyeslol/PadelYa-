@@ -163,7 +163,7 @@ export function resolveOrgFeeCopForMatch(venueName: string, scheduledAt: string)
   return fee;
 }
 
-export function resolveDisplayFeeCop(venueName: string, scheduledAt: string, durationMinutes: 60 | 90 = 90): number | null {
+export function resolveDisplayFeeCop(venueName: string, scheduledAt: string, durationMinutes: 60 | 90 | 120 = 90): number | null {
   const { date, time } = bogotaDateAndTime(scheduledAt);
   return getPlayerFeeByVenueNameWithDuration(venueName, date, time, durationMinutes);
 }
@@ -181,39 +181,52 @@ export function hasPricingForVenueName(venueName: string): boolean {
   return hasCsvPricingForVenueName(venueName) || isRuleBasedVenueName(venueName);
 }
 
-export function getAvailableDurationsForVenue(venueName: string): (60 | 90)[] {
+export function getAvailableDurationsForVenue(venueName: string): (60 | 90 | 120)[] {
   const info = getVenueInfo(venueName);
   if (!info) return [];
-  if (isRuleBasedVenueId(info.id)) return getAvailableDurations(info.id);
-  if (hasCsvPricingForVenueId(info.id)) return [90];
-  return [];
+  const durations = new Set<60 | 90 | 120>();
+  if (isRuleBasedVenueId(info.id)) {
+    for (const d of getAvailableDurations(info.id)) durations.add(d);
+  }
+  if (CSV_VENUE_IDS.includes(info.id)) durations.add(90);
+  if (info.id === CASA_PADEL_VENUE_ID) durations.add(90);
+  if (durations.size === 0) return [];
+  return [...durations].sort((a, b) => a - b);
 }
 
 export function getAvailableTimeSlotsWithDuration(
   venueName: string,
   date: string,
-  durationMinutes: 60 | 90,
+  durationMinutes: 60 | 90 | 120,
 ): string[] {
   const info = getVenueInfo(venueName);
   if (!info) return [];
   if (isRuleBasedVenueId(info.id)) {
-    return STANDARD_SLOT_TIMES.filter(
+    const ruleSlots = STANDARD_SLOT_TIMES.filter(
       (time) => getPlayerFeeFromRules(info.id, date, time, durationMinutes) !== null,
     );
+    if (ruleSlots.length > 0) return ruleSlots;
   }
-  return getAvailableTimeSlots(info.id, date);
+  if (CSV_VENUE_IDS.includes(info.id) || info.id === CASA_PADEL_VENUE_ID) {
+    return getAvailableTimeSlots(info.id, date);
+  }
+  return [];
 }
 
 export function getPlayerFeeByVenueNameWithDuration(
   venueName: string,
   date: string,
   time: string,
-  durationMinutes: 60 | 90,
+  durationMinutes: 60 | 90 | 120,
 ): number | null {
   const info = getVenueInfo(venueName);
   if (!info) return null;
   if (isRuleBasedVenueId(info.id)) {
-    return getPlayerFeeFromRules(info.id, date, time, durationMinutes);
+    const ruleFee = getPlayerFeeFromRules(info.id, date, time, durationMinutes);
+    if (ruleFee !== null) return ruleFee;
   }
-  return getPlayerFeeCop(info.id, date, time);
+  if (CSV_VENUE_IDS.includes(info.id) || info.id === CASA_PADEL_VENUE_ID) {
+    return getPlayerFeeCop(info.id, date, time);
+  }
+  return null;
 }

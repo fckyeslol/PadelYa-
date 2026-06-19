@@ -76,7 +76,7 @@ function clubForVenueId(venueId: string): EasycanchaClub | undefined {
 export async function fetchRealtimeAvailability(
   venueId: string,
   date: string,
-  durationMinutes: 60 | 90 = 90,
+  durationMinutes: 60 | 90 | 120 = 90,
 ): Promise<Map<string, number> | null> {
   const env = getRealtimeEnv();
   if (!env) return null;

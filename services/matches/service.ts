@@ -35,7 +35,7 @@ function mapMatch(row: MatchRow): Match {
     skillLevel: row.skill_level,
     maxPlayers: row.max_players,
     orgFeeCop: row.org_fee_cop,
-    durationMinutes: (row.duration_minutes === 60 ? 60 : 90) as 60 | 90,
+    durationMinutes: (row.duration_minutes === 120 ? 120 : row.duration_minutes === 60 ? 60 : 90) as 60 | 90 | 120,
     status: row.status,
     notes: row.notes,
     cancelReason: row.cancel_reason,

@@ -13,7 +13,7 @@ export function formatDateTime(value: string): string {
  */
 export function formatDateTimeRange(
   scheduledAt: string,
-  durationMinutes: 60 | 90,
+  durationMinutes: 60 | 90 | 120,
 ): string {
   const start = new Date(scheduledAt);
   const end = new Date(start.getTime() + durationMinutes * 60_000);

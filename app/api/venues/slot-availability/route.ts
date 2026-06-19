@@ -27,8 +27,8 @@ export async function GET(request: Request) {
     const venueName = searchParams.get("venueName")?.trim();
     const date = searchParams.get("date");
     const durationParam = searchParams.get("duration");
-    const durationMinutes: 60 | 90 =
-      durationParam === "60" ? 60 : 90;
+    const durationMinutes: 60 | 90 | 120 =
+      durationParam === "60" ? 60 : durationParam === "120" ? 120 : 90;
 
     if (!venueName || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json({ error: "venueName y date requeridos" }, { status: 400 });

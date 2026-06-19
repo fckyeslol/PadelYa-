@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getMatchById } from "@/services/matches/service";
-import { formatDateTime } from "@/utils/dates";
+import { formatDateTimeRange } from "@/utils/dates";
 import { resolveDisplayFeeCop } from "@/config/pricing";
 import { formatCop } from "@/utils/currency";
 import { ConfirmCourtForm } from "./ConfirmCourtForm";
@@ -100,7 +100,7 @@ export default async function ConfirmCourtPage({ params }: Props) {
             {match.venueName}
           </p>
           <p style={{ color: "var(--text-2)", fontSize: "0.875rem" }}>
-            {formatDateTime(match.scheduledAt)}
+            {formatDateTimeRange(match.scheduledAt, match.durationMinutes)}
           </p>
           <p
             style={{

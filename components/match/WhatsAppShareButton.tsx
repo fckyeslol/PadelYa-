@@ -1,11 +1,12 @@
 "use client";
 
-import { formatDateTime } from "@/utils/dates";
+import { formatDateTimeRange } from "@/utils/dates";
 
 interface Props {
   matchId: string;
   venueName: string;
   scheduledAt: string;
+  durationMinutes: 60 | 90;
   orgFeeCop: number;
   spotsLeft: number;
   isParticipant: boolean;
@@ -23,6 +24,7 @@ export function WhatsAppShareButton({
   matchId,
   venueName,
   scheduledAt,
+  durationMinutes,
   orgFeeCop,
   spotsLeft,
   isParticipant,
@@ -35,7 +37,7 @@ export function WhatsAppShareButton({
     const url = `${origin}/matches/${matchId}`;
     const message = [
       `Partido de pádel en ${venueName}`,
-      `${formatDateTime(scheduledAt)}`,
+      `${formatDateTimeRange(scheduledAt, durationMinutes)}`,
       `${fmt(orgFeeCop)} / jugador`,
       `${spotsText}`,
       ``,

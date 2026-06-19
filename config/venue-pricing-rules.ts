@@ -1,4 +1,4 @@
-export const RULE_BASED_VENUE_IDS = ["ace-padel-club", "x3-padel-club", "la-jaula"] as const;
+export const RULE_BASED_VENUE_IDS = ["ace-padel-club", "x3-padel-club", "la-jaula", "padel-zenter-del-rio", "padel-zenter-la-arenosa"] as const;
 export type RuleBasedVenueId = (typeof RULE_BASED_VENUE_IDS)[number];
 
 /**
@@ -134,6 +134,94 @@ const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90, Time
       ],
     },
   },
+  /**
+   * Padel Zenter del Río — precios EasyCancha (junio 2026).
+   * Solo 90 min (no ofrecen 60 min). courtCop = cancha + $22,500.
+   */
+  "padel-zenter-del-rio": {
+    weekday: {
+      90: [
+        { from: "06:00", to: "12:00", courtCop: 82_500 },    // cancha $60k
+        { from: "12:00", to: "12:30", courtCop: 75_000 },    // cancha $52.5k
+        { from: "12:30", to: "13:00", courtCop: 67_500 },    // cancha $45k
+        { from: "13:00", to: "17:00", courtCop: 60_000 },    // cancha $37.5k
+        { from: "17:00", to: "18:30", courtCop: 112_500 },   // cancha $90k
+        { from: "18:30", to: "21:30", courtCop: 162_500 },   // cancha $140k
+        { from: "21:30", to: "23:00", courtCop: 122_500 },   // cancha $100k
+      ],
+    },
+    saturday: {
+      90: [
+        { from: "06:00", to: "08:00", courtCop: 103_500 },   // cancha $81k
+        { from: "11:00", to: "11:30", courtCop: 89_000 },    // cancha $66.5k
+        { from: "11:30", to: "12:00", courtCop: 74_500 },    // cancha $52k
+        { from: "12:00", to: "16:00", courtCop: 60_000 },    // cancha $37.5k
+        { from: "18:00", to: "19:00", courtCop: 97_500 },    // cancha $75k
+        { from: "19:00", to: "19:30", courtCop: 92_500 },    // cancha $70k
+        { from: "19:30", to: "20:00", courtCop: 87_500 },    // cancha $65k
+        { from: "20:00", to: "21:30", courtCop: 82_500 },    // cancha $60k
+      ],
+    },
+    sunday: {
+      90: [
+        { from: "08:00", to: "11:00", courtCop: 97_500 },    // cancha $75k
+        { from: "11:00", to: "11:30", courtCop: 92_500 },    // cancha $70k
+        { from: "11:30", to: "12:00", courtCop: 87_500 },    // cancha $65k
+        { from: "12:00", to: "16:00", courtCop: 82_500 },    // cancha $60k
+        { from: "16:00", to: "16:30", courtCop: 87_500 },    // cancha $65k
+        { from: "16:30", to: "17:00", courtCop: 92_500 },    // cancha $70k
+        { from: "17:00", to: "19:00", courtCop: 97_500 },    // cancha $75k
+        { from: "19:00", to: "19:30", courtCop: 92_500 },    // cancha $70k
+        { from: "19:30", to: "20:00", courtCop: 87_500 },    // cancha $65k
+        { from: "20:00", to: "21:30", courtCop: 82_500 },    // cancha $60k
+      ],
+    },
+  },
+  /**
+   * Padel Zenter La Arenosa — precios EasyCancha (junio 2026).
+   * Solo 90 min. courtCop = cancha + $22,500.
+   */
+  "padel-zenter-la-arenosa": {
+    weekday: {
+      90: [
+        { from: "06:00", to: "08:00", courtCop: 94_500 },    // cancha $72k
+        { from: "08:00", to: "08:30", courtCop: 92_500 },    // cancha $70k
+        { from: "08:30", to: "09:00", courtCop: 90_500 },    // cancha $68k
+        { from: "09:00", to: "12:00", courtCop: 88_500 },    // cancha $66k
+        { from: "12:00", to: "12:30", courtCop: 79_000 },    // cancha $56.5k
+        { from: "12:30", to: "13:00", courtCop: 69_500 },    // cancha $47k
+        { from: "13:00", to: "17:00", courtCop: 60_000 },    // cancha $37.5k
+        { from: "17:00", to: "18:30", courtCop: 122_500 },   // cancha $100k
+        { from: "18:30", to: "21:30", courtCop: 162_500 },   // cancha $140k
+        { from: "21:30", to: "23:00", courtCop: 122_500 },   // cancha $100k
+      ],
+    },
+    saturday: {
+      90: [
+        { from: "06:00", to: "07:00", courtCop: 103_500 },   // cancha $81k
+        { from: "11:30", to: "12:00", courtCop: 74_500 },    // cancha $52k
+        { from: "12:00", to: "16:00", courtCop: 60_000 },    // cancha $37.5k
+        { from: "17:30", to: "19:00", courtCop: 97_500 },    // cancha $75k
+        { from: "19:00", to: "19:30", courtCop: 92_500 },    // cancha $70k
+        { from: "19:30", to: "20:00", courtCop: 87_500 },    // cancha $65k
+        { from: "20:00", to: "21:30", courtCop: 82_500 },    // cancha $60k
+      ],
+    },
+    sunday: {
+      90: [
+        { from: "08:00", to: "11:00", courtCop: 103_500 },   // cancha $81k
+        { from: "11:00", to: "11:30", courtCop: 96_500 },    // cancha $74k
+        { from: "11:30", to: "12:00", courtCop: 89_500 },    // cancha $67k
+        { from: "12:00", to: "16:00", courtCop: 82_500 },    // cancha $60k
+        { from: "16:00", to: "16:30", courtCop: 89_500 },    // cancha $67k
+        { from: "16:30", to: "17:00", courtCop: 96_500 },    // cancha $74k
+        { from: "17:00", to: "19:00", courtCop: 103_500 },   // cancha $81k
+        { from: "19:00", to: "19:30", courtCop: 96_500 },    // cancha $74k
+        { from: "19:30", to: "20:00", courtCop: 89_500 },    // cancha $67k
+        { from: "20:00", to: "21:30", courtCop: 82_500 },    // cancha $60k
+      ],
+    },
+  },
 };
 
 function toMinutes(t: string): number {
@@ -165,6 +253,17 @@ export function getCourtCopFromRules(
     if (t >= toMinutes(r.from) && t < toMinutes(r.to)) return r.courtCop;
   }
   return null;
+}
+
+export function getAvailableDurations(venueId: string): (60 | 90)[] {
+  const venue = RULES[venueId];
+  if (!venue) return [];
+  const durations = new Set<60 | 90>();
+  for (const dayRules of Object.values(venue)) {
+    if (dayRules?.[60]?.length) durations.add(60);
+    if (dayRules?.[90]?.length) durations.add(90);
+  }
+  return [...durations].sort();
 }
 
 export function getPlayerFeeFromRules(

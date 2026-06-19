@@ -6,7 +6,7 @@ interface Props {
   matchId: string;
   venueName: string;
   scheduledAt: string;
-  durationMinutes: 60 | 90;
+  durationMinutes: 60 | 90 | 120;
   orgFeeCop: number;
   spotsLeft: number;
   isParticipant: boolean;

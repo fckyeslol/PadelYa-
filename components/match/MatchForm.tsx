@@ -93,7 +93,7 @@ function playerFeeForSlot(
   venueName: string,
   date: string,
   time: string,
-  durationMinutes: 60 | 90,
+  durationMinutes: 60 | 90 | 120,
 ): number | null {
   if (!venueName.trim()) return null;
   return getPlayerFeeByVenueNameWithDuration(venueName.trim(), date, time, durationMinutes);
@@ -103,7 +103,7 @@ function slotsForVenueAndDate(
   venueName: string,
   dateValue: string,
   bookableTimes: Set<string> | null,
-  durationMinutes: 60 | 90,
+  durationMinutes: 60 | 90 | 120,
   _isRuleBased: boolean,
 ) {
   const priced = getAvailableTimeSlotsWithDuration(venueName, dateValue, durationMinutes);
@@ -138,7 +138,7 @@ const LABEL: React.CSSProperties = {
 
 export function MatchForm() {
   const [venueName, setVenueName] = useState("");
-  const [durationMinutes, setDurationMinutes] = useState<60 | 90>(90);
+  const [durationMinutes, setDurationMinutes] = useState<60 | 90 | 120>(90);
   const [matchDate, setMatchDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
   const [showAllTimes, setShowAllTimes] = useState(false);
@@ -318,7 +318,7 @@ export function MatchForm() {
                     transition: "border-color 0.1s, background 0.1s, color 0.1s",
                   }}
                 >
-                  {dur === 60 ? "1 hora" : "1.5 horas"}
+                  {dur === 60 ? "1 hora" : dur === 90 ? "1.5 horas" : "2 horas"}
                 </button>
               );
             })}

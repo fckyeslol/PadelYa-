@@ -1,0 +1,29 @@
+name: Scheduled cron jobs
+
+on:
+  schedule:
+    # Every 10 minutes
+    - cron: "*/10 * * * *"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  run-crons:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel unfilled matches + auto-void payments
+        run: |
+          curl -s -X POST "${{ secrets.APP_URL }}/api/cron/cancel-unfilled" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
+
+      - name: Expire stale pending payments
+        run: |
+          curl -s -X POST "${{ secrets.APP_URL }}/api/cron/expire-pending-payments" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
+
+      - name: Complete past matches
+        run: |
+          curl -s -X POST "${{ secrets.APP_URL }}/api/cron/complete-past-matches" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"

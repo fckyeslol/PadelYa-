@@ -146,8 +146,17 @@ const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90 | 120
         { from: "05:00", to: "08:00", courtCop: 56_500 },   // cancha $34k
       ],
       90: [
-        { from: "05:00", to: "08:00", courtCop: 72_500 },   // cancha $50k
-        { from: "08:00", to: "24:00", courtCop: 103_500 },  // cancha $81k
+        { from: "05:00", to: "05:30", courtCop: 72_500 },   // cancha $50k
+        { from: "05:30", to: "06:00", courtCop: 82_500 },   // cancha $60k
+        { from: "06:00", to: "06:30", courtCop: 92_500 },   // cancha $70k
+        { from: "06:30", to: "11:00", courtCop: 103_500 },  // cancha $81k
+        { from: "11:00", to: "14:00", courtCop: 72_500 },   // cancha $50k
+        { from: "14:00", to: "14:30", courtCop: 72_500 },   // cancha $50k
+        { from: "14:30", to: "15:00", courtCop: 82_500 },   // cancha $60k
+        { from: "15:00", to: "15:30", courtCop: 92_500 },   // cancha $70k
+        { from: "15:30", to: "19:00", courtCop: 103_500 },  // cancha $81k
+        { from: "19:00", to: "22:00", courtCop: 176_500 },  // cancha $154k
+        { from: "22:00", to: "24:00", courtCop: 110_500 },  // cancha $88k
       ],
     },
     sunday: {
@@ -155,8 +164,17 @@ const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90 | 120
         { from: "05:00", to: "08:00", courtCop: 56_500 },
       ],
       90: [
-        { from: "05:00", to: "08:00", courtCop: 72_500 },
-        { from: "08:00", to: "24:00", courtCop: 103_500 },
+        { from: "05:00", to: "05:30", courtCop: 72_500 },   // cancha $50k
+        { from: "05:30", to: "06:00", courtCop: 82_500 },   // cancha $60k
+        { from: "06:00", to: "06:30", courtCop: 92_500 },   // cancha $70k
+        { from: "06:30", to: "11:00", courtCop: 103_500 },  // cancha $81k
+        { from: "11:00", to: "14:00", courtCop: 72_500 },   // cancha $50k
+        { from: "14:00", to: "14:30", courtCop: 72_500 },   // cancha $50k
+        { from: "14:30", to: "15:00", courtCop: 82_500 },   // cancha $60k
+        { from: "15:00", to: "15:30", courtCop: 92_500 },   // cancha $70k
+        { from: "15:30", to: "19:00", courtCop: 103_500 },  // cancha $81k
+        { from: "19:00", to: "22:00", courtCop: 176_500 },  // cancha $154k
+        { from: "22:00", to: "24:00", courtCop: 110_500 },  // cancha $88k
       ],
     },
   },

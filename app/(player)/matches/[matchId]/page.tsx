@@ -211,6 +211,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
     !isOrganizerHost &&
     hasCsvFee;
   const canChat =
+    profile?.role === "organizer" ||
     match!.hostPlayerId === user?.id ||
     (!!myPlayer &&
       (myPlayer.status === "paid" || myPlayer.status === "pending_payment"));

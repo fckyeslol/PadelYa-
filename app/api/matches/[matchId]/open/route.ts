@@ -124,7 +124,7 @@ export async function POST(request: Request, { params }: Props) {
     // Regular hosts get a pre-created checkout so they can pay on the match page.
     if (!isOrganizerHost) {
       try {
-        await createCheckoutForMatch(matchId, { isHost: true });
+        await createCheckoutForMatch(matchId);
       } catch {
         // Non-fatal — host can pay from the match page
       }

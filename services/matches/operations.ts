@@ -26,7 +26,10 @@ export async function getPlayersForMatch(matchId: string): Promise<MatchPlayerRo
     admin
       .from("match_players")
       .select(
-        "id, player_id, is_host, status, joined_at, guest_name, invited_by_player_id, profiles(full_name, avatar_url)",
+        // Pin the profiles embed to the player_id FK: match_players now has a
+        // second column referencing profiles (invited_by_player_id), so an
+        // unqualified profiles(...) embed is ambiguous (PostgREST 300).
+        "id, player_id, is_host, status, joined_at, guest_name, invited_by_player_id, profiles!match_players_player_id_fkey(full_name, avatar_url)",
       )
       .eq("match_id", matchId)
       .order("joined_at", { ascending: true }),

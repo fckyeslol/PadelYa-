@@ -52,10 +52,19 @@ interface CheckoutParams {
   redirectUrl: string;
 }
 
+interface GuestInput {
+  name: string;
+  phone: string;
+}
+
 interface Props {
   matchId: string;
   orgFeeCop?: number;
   autoStart?: boolean;
+  /** Whether this checkout also pays the buyer's own slot. Default true (individual flow). */
+  includeSelf?: boolean;
+  /** Non-registered guests whose slots this checkout funds. */
+  guests?: GuestInput[];
 }
 
 type Step = "idle" | "confirm" | "initiating" | "paying" | "success" | "pending_payment";
@@ -68,7 +77,14 @@ function funnelStep(step: Step): FunnelStepKey {
   return "summary";
 }
 
-export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) {
+export function WompiCheckout({
+  matchId,
+  orgFeeCop,
+  autoStart = false,
+  includeSelf = true,
+  guests = [],
+}: Props) {
+  const slotCount = (includeSelf ? 1 : 0) + guests.length;
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
@@ -121,7 +137,8 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
     );
   }
 
-  const totalLabel = formatCop(orgFeeCop);
+  const totalCop = orgFeeCop * Math.max(slotCount, 1);
+  const totalLabel = formatCop(totalCop);
   const activeFunnelStep = funnelStep(step);
 
   /** Step 1: fetch checkout params from server. */
@@ -134,7 +151,7 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
       const res = await fetch("/api/payments/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId }),
+        body: JSON.stringify({ matchId, includeSelf, guests }),
       });
       const data = (await res.json()) as CheckoutParams & { error?: string };
       if (!res.ok || !data.reference) {
@@ -148,7 +165,7 @@ export function WompiCheckout({ matchId, orgFeeCop, autoStart = false }: Props) 
     } finally {
       checkoutInFlightRef.current = false;
     }
-  }, [matchId]);
+  }, [matchId, includeSelf, guests]);
 
   /** Step 2: open Wompi widget once params and script are ready. */
   useEffect(() => {

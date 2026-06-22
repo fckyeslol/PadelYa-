@@ -81,17 +81,45 @@ export interface MatchPreview extends Match {
 export interface MatchPlayer {
   id: string;
   matchId: string;
-  playerId: string;
+  /** Null when the slot belongs to a non-registered guest. */
+  playerId: string | null;
   isHost: boolean;
   status: MatchPlayerStatus;
   joinedAt: string;
+  // Guest slots (non-registered invitees). See docs/specs/jugadores-invitados.md
+  guestName?: string | null;
+  guestPhone?: string | null;
+  /** Registered player who invited and pays for this guest. */
+  invitedByPlayerId?: string | null;
+  /** Set when a guest claims this slot by registering with the same phone. */
+  claimedAt?: string | null;
+}
+
+/** Groups one or more match-player slots paid in a single Wompi transaction. */
+export interface PaymentIntent {
+  id: string;
+  matchId: string;
+  paidByPlayerId: string;
+  amountCop: number;
+  currency: "COP";
+  provider: "wompi";
+  status: "pending" | "approved" | "declined" | "voided" | "refunded";
+  wompiReference?: string | null;
+  wompiTransactionId?: string | null;
+  paymentMethod?: string | null;
+  idempotencyKey: string;
+  createdAt: string;
+  approvedAt?: string | null;
 }
 
 export interface Payment {
   id: string;
   matchPlayerId: string;
   matchId: string;
-  playerId: string;
+  /** Null when the funded slot belongs to a guest (no profile). */
+  playerId: string | null;
+  /** Parent intent grouping this allocation (null for legacy individual rows). */
+  paymentIntentId?: string | null;
   amountCop: number;
   currency: "COP";
   provider: "wompi" | "mercadopago";

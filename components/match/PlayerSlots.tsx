@@ -14,13 +14,19 @@ const STATUS_DOT: Record<string, string> = {
   pending_payment: "slot-dot-pending",
 };
 
+function isGuestSlot(player: MatchPlayerRow): boolean {
+  return !player.player_id && !!player.guest_name;
+}
+
 function getDisplayName(player: MatchPlayerRow) {
+  if (isGuestSlot(player)) return sanitizeDisplayName(player.guest_name, "Invitado");
   return sanitizeDisplayName(player.profiles?.full_name, "Jugador");
 }
 
 function slotContent(player: MatchPlayerRow | null, index: number) {
   const name = player ? getDisplayName(player) : "";
   const avatarUrl = player?.profiles?.avatar_url ?? null;
+  const guest = player ? isGuestSlot(player) : false;
 
   return (
     <>
@@ -49,6 +55,14 @@ function slotContent(player: MatchPlayerRow | null, index: number) {
               {player.is_host ? (
                 <span style={{ color: "var(--text-3)", fontWeight: 500, marginLeft: "0.35rem" }}>
                   · Anfitrión
+                </span>
+              ) : guest && player.invited_by_name ? (
+                <span style={{ color: "var(--text-3)", fontWeight: 500, marginLeft: "0.35rem" }}>
+                  · invitado por {player.invited_by_name}
+                </span>
+              ) : guest ? (
+                <span style={{ color: "var(--text-3)", fontWeight: 500, marginLeft: "0.35rem" }}>
+                  · invitado
                 </span>
               ) : null}
             </>
@@ -100,9 +114,10 @@ export function PlayerSlots({ players }: { players: MatchPlayerRow[] }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
       {slots.map((player, index) => {
-        const filled = Boolean(player?.player_id);
+        const filled = Boolean(player?.player_id || player?.guest_name);
 
-        if (filled && player) {
+        // Registered players link to their public profile; guests have none.
+        if (player?.player_id) {
           return (
             <Link
               key={player.id}
@@ -116,7 +131,7 @@ export function PlayerSlots({ players }: { players: MatchPlayerRow[] }) {
         }
 
         return (
-          <div key={index} style={slotStyle(false)}>
+          <div key={player?.id ?? index} style={slotStyle(filled)}>
             {slotContent(player, index)}
           </div>
         );

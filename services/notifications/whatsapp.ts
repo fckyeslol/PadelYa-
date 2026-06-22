@@ -310,7 +310,7 @@ export async function notifyMatchFull(params: {
   const supabase = getSupabaseAdminClient();
   const { data } = await supabase
     .from("match_players")
-    .select("player_id, profiles(phone, whatsapp_phone)")
+    .select("player_id, profiles!match_players_player_id_fkey(phone, whatsapp_phone)")
     .eq("match_id", params.matchId)
     .eq("status", "paid");
 

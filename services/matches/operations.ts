@@ -1,13 +1,19 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { voidWompiTransaction } from "@/services/payments/service";
 
 export type MatchPlayerRow = {
   id: string;
-  player_id: string;
+  /** Null for guest (non-registered) slots. */
+  player_id: string | null;
   is_host: boolean;
   status: string;
   joined_at: string | null;
+  /** Guest display name (when player_id is null). Never includes the phone. */
+  guest_name: string | null;
+  /** Profile id of the registered player who invited/paid for a guest. */
+  invited_by_player_id: string | null;
+  /** Display name of the registered player who invited/paid for a guest. */
+  invited_by_name: string | null;
   profiles: { full_name: string | null; avatar_url: string | null } | null;
 };
 
@@ -19,13 +25,37 @@ export async function getPlayersForMatch(matchId: string): Promise<MatchPlayerRo
     admin.from("matches").select("host_player_id").eq("id", matchId).maybeSingle(),
     admin
       .from("match_players")
-      .select("id, player_id, is_host, status, joined_at, profiles(full_name, avatar_url)")
+      .select(
+        // Pin the profiles embed to the player_id FK: match_players now has a
+        // second column referencing profiles (invited_by_player_id), so an
+        // unqualified profiles(...) embed is ambiguous (PostgREST 300).
+        "id, player_id, is_host, status, joined_at, guest_name, invited_by_player_id, profiles!match_players_player_id_fkey(full_name, avatar_url)",
+      )
       .eq("match_id", matchId)
       .order("joined_at", { ascending: true }),
   ]);
 
   if (matchError) throw matchError;
   if (error) throw error;
+
+  // Resolve inviter display names for guest slots (never expose guest phone).
+  const inviterIds = [
+    ...new Set(
+      (rows ?? [])
+        .map((row) => row.invited_by_player_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const inviterNames = new Map<string, string>();
+  if (inviterIds.length) {
+    const { data: inviters } = await admin
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", inviterIds);
+    for (const inviter of inviters ?? []) {
+      inviterNames.set(inviter.id, inviter.full_name ?? "");
+    }
+  }
 
   const players: MatchPlayerRow[] = (rows ?? []).map((row) => {
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
@@ -35,14 +65,25 @@ export async function getPlayersForMatch(matchId: string): Promise<MatchPlayerRo
       is_host: row.is_host ?? false,
       status: row.status,
       joined_at: row.joined_at,
+      guest_name: row.guest_name ?? null,
+      invited_by_player_id: row.invited_by_player_id ?? null,
+      invited_by_name: row.invited_by_player_id
+        ? inviterNames.get(row.invited_by_player_id) ?? null
+        : null,
       profiles: profile
         ? { full_name: profile.full_name ?? null, avatar_url: profile.avatar_url ?? null }
         : null,
     };
   });
 
+  // Inject the host into the roster when they have no ACTIVE slot. A host whose
+  // pre-checkout expired keeps a cancelled match_players row, which PlayerSlots
+  // hides — without this check the host would vanish from their own match.
   const hostId = match?.host_player_id;
-  if (hostId && !players.some((p) => p.player_id === hostId)) {
+  const hostHasActiveSlot = players.some(
+    (p) => p.player_id === hostId && (p.status === "paid" || p.status === "pending_payment"),
+  );
+  if (hostId && !hostHasActiveSlot) {
     const { data: hostProfile } = await admin
       .from("profiles")
       .select("full_name, avatar_url, role")
@@ -58,6 +99,9 @@ export async function getPlayersForMatch(matchId: string): Promise<MatchPlayerRo
         is_host: true,
         status: "paid",
         joined_at: null,
+        guest_name: null,
+        invited_by_player_id: null,
+        invited_by_name: null,
         profiles: hostProfile
           ? { full_name: hostProfile.full_name ?? null, avatar_url: hostProfile.avatar_url ?? null }
           : null,
@@ -351,6 +395,95 @@ export async function cancelMatchAsOrganizer(matchId: string, reason: string) {
     match_id: matchId,
     properties: { reason },
   });
+}
+
+/**
+ * Cancels a guest (non-registered) slot. Only the inviter or the match host may
+ * do it. The refund goes to whoever PAID (the payment_intent payer), never to
+ * the guest (INV-6). Combined Wompi transactions can't be partially voided, so
+ * the refund is recorded as pending_manual for the slot's amount.
+ */
+export async function cancelGuestSpot(
+  matchId: string,
+  guestMatchPlayerId: string,
+  requesterId: string,
+) {
+  const supabase = getSupabaseAdminClient();
+
+  const { data: slot, error: slotError } = await supabase
+    .from("match_players")
+    .select("id, match_id, player_id, invited_by_player_id, status")
+    .eq("id", guestMatchPlayerId)
+    .maybeSingle();
+  if (slotError || !slot) throw slotError ?? new Error("Cupo de invitado no encontrado");
+  if (slot.match_id !== matchId) throw new Error("El cupo no pertenece a este partido.");
+  if (slot.player_id) throw new Error("Este cupo no es de un invitado.");
+  if (!["pending_payment", "paid"].includes(slot.status)) {
+    throw new Error("Este cupo ya no está activo.");
+  }
+
+  const { data: match, error: matchError } = await supabase
+    .from("matches")
+    .select("status, scheduled_at, host_player_id")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (matchError || !match) throw matchError ?? new Error("Partido no encontrado");
+
+  const isInviter = slot.invited_by_player_id === requesterId;
+  const isHost = match.host_player_id === requesterId;
+  if (!isInviter && !isHost) {
+    throw new Error("Solo quien invitó o el organizador puede cancelar este cupo.");
+  }
+
+  const hoursBeforeStart =
+    (new Date(match.scheduled_at).getTime() - Date.now()) / (1000 * 60 * 60);
+  const isLate = match.status === "full" || hoursBeforeStart < 3;
+  const now = new Date().toISOString();
+
+  const { error: cancelError } = await supabase
+    .from("match_players")
+    .update({ status: isLate ? "cancelled_late" : "cancelled", cancelled_at: now })
+    .eq("id", slot.id);
+  if (cancelError) throw cancelError;
+
+  if (!isLate) {
+    const { data: payment } = await supabase
+      .from("payments")
+      .select("id, amount_cop")
+      .eq("match_player_id", slot.id)
+      .eq("status", "approved")
+      .maybeSingle();
+    if (payment) {
+      const { error: refundError } = await supabase.from("refunds").upsert(
+        {
+          payment_id: payment.id,
+          amount_cop: payment.amount_cop,
+          status: "pending_manual",
+          reason: "guest_cancelled_by_inviter",
+        },
+        { onConflict: "payment_id" },
+      );
+      if (refundError) throw refundError;
+    }
+  }
+
+  const { data: paidRows } = await supabase
+    .from("match_players")
+    .select("id")
+    .eq("match_id", matchId)
+    .eq("status", "paid");
+  if (match.status === "full" && (paidRows?.length ?? 0) < 4) {
+    await supabase.from("matches").update({ status: "open", filled_at: null }).eq("id", matchId);
+  }
+
+  await supabase.from("analytics_events").insert({
+    event_name: "guest_cancelled",
+    user_id: requesterId,
+    match_id: matchId,
+    properties: { is_late: isLate, guest_match_player_id: slot.id },
+  });
+
+  return { isLate };
 }
 
 export async function cancelPlayerSpot(matchId: string, playerId: string) {

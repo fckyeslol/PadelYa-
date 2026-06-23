@@ -6,6 +6,8 @@ import { CancelSpotButton } from "@/components/match/CancelSpotButton";
 import { MatchRealtimeRefresher } from "@/components/match/MatchRealtimeRefresher";
 import { MatchStatusBadge } from "@/components/match/MatchStatusBadge";
 import { PlayerSlots } from "@/components/match/PlayerSlots";
+import { AddGuestSection } from "@/components/match/AddGuestSection";
+import { CancelGuestButton } from "@/components/match/CancelGuestButton";
 import { OrganizerMatchActions } from "@/components/organizer/OrganizerMatchActions";
 import { NoShowMarkControl } from "@/components/organizer/NoShowMarkControl";
 import { PaymentStatusBanner } from "@/components/payment/PaymentStatusBanner";
@@ -201,8 +203,8 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const hasPendingPaymentSlot = myPlayer?.status === "pending_payment";
   const hasConfirmedSpot = myPlayer?.status === "paid";
   // Organizer hosts create matches but don't occupy a player slot.
-  const isOrganizerHost =
-    user?.id === match!.hostPlayerId && profile?.role === "organizer";
+  const isHostUser = user?.id === match!.hostPlayerId;
+  const isOrganizerHost = isHostUser && profile?.role === "organizer";
   const canJoin =
     isOpen &&
     paidCount < 4 &&
@@ -210,6 +212,29 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
     !hasPendingPaymentSlot &&
     !isOrganizerHost &&
     hasCsvFee;
+  // ── Guest invites (combined checkout) ──────────────────────────────
+  const availableSlots = (match!.maxPlayers ?? 4) - occupiedCount;
+  // When the inviter has no slot (and isn't an organizer host), they pay their
+  // own slot together with the guests in one transaction.
+  const inviteIncludeSelf = !myPlayer && !isOrganizerHost;
+  const maxGuests = Math.min(3, inviteIncludeSelf ? availableSlots - 1 : availableSlots);
+  const canInviteGuests =
+    !!user &&
+    isOpen &&
+    hasCsvFee &&
+    maxGuests >= 1 &&
+    (hasConfirmedSpot || isHostUser || inviteIncludeSelf);
+
+  // Guests the current user invited (and can still cancel).
+  const myGuests = players.filter(
+    (p) =>
+      !p.player_id &&
+      !!p.guest_name &&
+      p.invited_by_player_id === user?.id &&
+      (p.status === "paid" || p.status === "pending_payment"),
+  );
+  const canManageGuests = (isOpen || match!.status === "full") && myGuests.length > 0;
+
   const canChat =
     profile?.role === "organizer" ||
     match!.hostPlayerId === user?.id ||
@@ -539,6 +564,55 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
             </div>
           )}
         </Section>
+
+        {/* Invitar jugadores no registrados */}
+        {canInviteGuests && (
+          <Section title="Invitar jugadores">
+            <AddGuestSection
+              matchId={match!.id}
+              feeCop={displayFee!}
+              maxGuests={maxGuests}
+              includeSelf={inviteIncludeSelf}
+            />
+          </Section>
+        )}
+
+        {/* Tus invitados (gestionar / cancelar) */}
+        {canManageGuests && (
+          <Section title="Tus invitados">
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {myGuests.map((guest) => (
+                <div
+                  key={guest.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "0.75rem",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "10px",
+                    padding: "0.6rem 0.875rem",
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-dm-sans)" }}>
+                      {guest.guest_name}
+                    </p>
+                    <p style={{ fontSize: "0.72rem", color: "var(--text-3)", fontFamily: "var(--font-dm-sans)" }}>
+                      {guest.status === "paid" ? "Confirmado" : "Pendiente de pago"}
+                    </p>
+                  </div>
+                  <CancelGuestButton
+                    matchId={match!.id}
+                    guestMatchPlayerId={guest.id}
+                    guestName={guest.guest_name ?? "invitado"}
+                  />
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
 
         {/* Chat del partido */}
         {canChat && (

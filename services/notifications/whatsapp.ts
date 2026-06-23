@@ -26,6 +26,8 @@ const TEMPLATES = {
   matchFull: "partido_lleno",
   /** reserva_cancha · body: [venue, when, price, courts] · sin botón · Utility */
   courtToBook: "reserva_cancha",
+  /** invitado_agregado · body: [guestName, inviterName, venue, date] · button: matchId · Utility */
+  guestAdded: "invitado_agregado",
 } as const;
 
 /** Language code of the approved templates (must match Meta). */
@@ -308,7 +310,7 @@ export async function notifyMatchFull(params: {
   const supabase = getSupabaseAdminClient();
   const { data } = await supabase
     .from("match_players")
-    .select("player_id, profiles(phone, whatsapp_phone)")
+    .select("player_id, profiles!match_players_player_id_fkey(phone, whatsapp_phone)")
     .eq("match_id", params.matchId)
     .eq("status", "paid");
 
@@ -325,6 +327,30 @@ export async function notifyMatchFull(params: {
   if (ownerPhone) phones.push(ownerPhone);
 
   await sendTemplateToMany(phones, TEMPLATES.matchFull, opts);
+}
+
+/**
+ * Avisa a un jugador NO registrado que fue agregado a un partido y su cupo está
+ * pago. Template: invitado_agregado. Se envía directo al teléfono del invitado
+ * (no requiere perfil). Falla en silencio si la plantilla aún no está aprobada.
+ */
+export async function notifyGuestAdded(params: {
+  guestPhone: string;
+  guestName: string;
+  inviterName: string;
+  matchId: string;
+  venueName: string;
+  scheduledAt: string | null;
+}): Promise<void> {
+  await safeSendTemplate(params.guestPhone, TEMPLATES.guestAdded, {
+    bodyParams: [
+      params.guestName,
+      params.inviterName,
+      params.venueName,
+      formatMatchDate(params.scheduledAt),
+    ],
+    buttonUrlSuffix: params.matchId,
+  });
 }
 
 /**

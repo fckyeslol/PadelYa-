@@ -76,8 +76,14 @@ export async function getPlayersForMatch(matchId: string): Promise<MatchPlayerRo
     };
   });
 
+  // Inject the host into the roster when they have no ACTIVE slot. A host whose
+  // pre-checkout expired keeps a cancelled match_players row, which PlayerSlots
+  // hides — without this check the host would vanish from their own match.
   const hostId = match?.host_player_id;
-  if (hostId && !players.some((p) => p.player_id === hostId)) {
+  const hostHasActiveSlot = players.some(
+    (p) => p.player_id === hostId && (p.status === "paid" || p.status === "pending_payment"),
+  );
+  if (hostId && !hostHasActiveSlot) {
     const { data: hostProfile } = await admin
       .from("profiles")
       .select("full_name, avatar_url, role")

@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CancellationPolicyNotice } from "@/components/match/CancellationPolicyNotice";
-import { CancelSpotButton } from "@/components/match/CancelSpotButton";
 import { MatchRealtimeRefresher } from "@/components/match/MatchRealtimeRefresher";
 import { MatchStatusBadge } from "@/components/match/MatchStatusBadge";
 import { PlayerSlots } from "@/components/match/PlayerSlots";
@@ -218,12 +217,12 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   // own slot together with the guests in one transaction.
   const inviteIncludeSelf = !myPlayer && !isOrganizerHost;
   const maxGuests = Math.min(3, inviteIncludeSelf ? availableSlots - 1 : availableSlots);
-  const canInviteGuests =
-    !!user &&
-    isOpen &&
-    hasCsvFee &&
-    maxGuests >= 1 &&
-    (hasConfirmedSpot || isHostUser || inviteIncludeSelf);
+  // Separate "invite" section is ONLY for users who already paid their slot or
+  // are an organizer host (no own slot to combine). Unpaid users invite through
+  // the join flow below, which pays own slot + guests in ONE transaction — so
+  // nobody ends up paying twice (own + guest separately).
+  const canInviteSeparately =
+    !!user && isOpen && hasCsvFee && maxGuests >= 1 && (hasConfirmedSpot || isOrganizerHost);
 
   // Guests the current user invited (and can still cancel).
   const myGuests = players.filter(
@@ -502,23 +501,14 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
                 />
               </div>
             ) : canJoin ? (
-              /* ── Auth user ──────────────────────────────── */
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-                <MatchPaymentCheckout
-                  matchId={match!.id}
-                  orgFeeCop={displayFee}
-                  autoStart={shouldAutoStartPayment}
-                />
-                {isParticipant && (
-                  <div style={{ marginTop: "0.25rem" }}>
-                    <CancelSpotButton
-                      matchId={match!.id}
-                      scheduledAt={match!.scheduledAt}
-                      matchStatus={match!.status}
-                    />
-                  </div>
-                )}
-              </div>
+              /* ── Auth user: reserva tu cupo (y, opcional, invita) en UN pago ── */
+              <AddGuestSection
+                matchId={match!.id}
+                feeCop={displayFee!}
+                maxGuests={maxGuests}
+                includeSelf
+                autoStart={shouldAutoStartPayment}
+              />
             ) : hasConfirmedSpot ? (
               <div
                 style={{
@@ -565,14 +555,15 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
           )}
         </Section>
 
-        {/* Invitar jugadores no registrados */}
-        {canInviteGuests && (
+        {/* Invitar jugadores no registrados (solo para quien ya pagó / host organizador;
+            los no pagos invitan dentro del flujo de unirse, en un solo pago). */}
+        {canInviteSeparately && (
           <Section title="Invitar jugadores">
             <AddGuestSection
               matchId={match!.id}
               feeCop={displayFee!}
               maxGuests={maxGuests}
-              includeSelf={inviteIncludeSelf}
+              includeSelf={false}
             />
           </Section>
         )}

@@ -21,7 +21,7 @@ export default function PrivacyPage() {
       </div>
 
       <Section title="1. Datos que recolectamos">
-        Al usar PadelYa! recolectamos: nombre y apellido, correo electrónico, número de teléfono, foto de perfil (opcional), nivel de juego, historial de partidos y pagos, y eventos de interacción dentro de la plataforma. Si pagas con Mercado Pago, ellos procesan los datos de tu método de pago — nosotros solo recibimos confirmación de la transacción.
+        Al usar PadelYa! recolectamos: nombre y apellido, correo electrónico, número de teléfono, foto de perfil (opcional), nivel de juego, historial de partidos y pagos, y eventos de interacción dentro de la plataforma. Si pagas con Wompi, ellos procesan los datos de tu método de pago — nosotros solo recibimos confirmación de la transacción.
       </Section>
 
       <Section title="2. Cómo usamos tus datos">
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="3. Compartición de datos">
-        No vendemos ni alquilamos tus datos. Compartimos información con terceros únicamente cuando es necesario para operar el servicio: Supabase (base de datos e infraestructura), Mercado Pago (procesamiento de pagos), Resend (envío de correos transaccionales), y Vercel (hosting). Todos están sujetos a sus propias políticas de privacidad.
+        No vendemos ni alquilamos tus datos. Compartimos información con terceros únicamente cuando es necesario para operar el servicio: Supabase (base de datos e infraestructura), Wompi (procesamiento de pagos), Resend (envío de correos transaccionales), y Vercel (hosting). Todos están sujetos a sus propias políticas de privacidad.
       </Section>
 
       <Section title="4. Datos visibles para otros usuarios">

@@ -125,11 +125,6 @@ export function TrustStrip() {
   );
 }
 
-/** @deprecated Use WompiBadge inside WompiCheckout instead. */
-export function MercadoPagoBadge() {
-  return null;
-}
-
 export function PrimaryButton({
   children,
   onClick,

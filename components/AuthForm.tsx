@@ -9,11 +9,24 @@ import { getClientAuthCallbackUrl } from "@/utils/auth-url";
 
 type Mode = "login" | "signup" | "forgot";
 
-/** Normaliza un celular colombiano a E.164 sin "+": 573001234567. Null si inválido. */
-function normalizeCoPhone(raw: string): string | null {
+/**
+ * Normaliza un teléfono a E.164 sin "+": "573001234567", "56912345678", etc.
+ * - Celular colombiano local (10 dígitos que arrancan en 3) → se le antepone 57.
+ * - Para números de otros países, inclúyelos con su código de país (con o sin "+"),
+ *   ej. "+56 9 1234 5678". E.164 admite 8–15 dígitos.
+ * Devuelve null si no parece un número válido.
+ */
+function normalizePhone(raw: string): string | null {
+  const hasPlus = raw.trim().startsWith("+");
   const digits = raw.replace(/\D/g, "");
+  // Formato internacional explícito: el usuario escribió +<código>…
+  if (hasPlus) {
+    return digits.length >= 8 && digits.length <= 15 ? digits : null;
+  }
+  // Celular colombiano local sin código (caso más común): 10 dígitos que arrancan en 3.
   if (digits.length === 10 && digits.startsWith("3")) return `57${digits}`;
-  if (digits.length === 12 && digits.startsWith("57")) return digits;
+  // Número que ya trae código de país (CO u otro): 11–15 dígitos.
+  if (digits.length >= 11 && digits.length <= 15) return digits;
   return null;
 }
 
@@ -95,9 +108,11 @@ export function AuthForm({
       setError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
-    const normalizedPhone = normalizeCoPhone(phone);
+    const normalizedPhone = normalizePhone(phone);
     if (!normalizedPhone) {
-      setError("Ingresa un celular colombiano válido (10 dígitos, ej. 300 123 4567).");
+      setError(
+        "Ingresa un celular válido. Si no es de Colombia, inclúyelo con código de país (ej. +56 9 1234 5678).",
+      );
       return;
     }
     startTransition(async () => {
@@ -236,7 +251,7 @@ export function AuthForm({
     password.length >= 8 &&
     firstName.trim().length > 0 &&
     lastName.trim().length > 0 &&
-    normalizeCoPhone(phone) !== null &&
+    normalizePhone(phone) !== null &&
     !pending;
   const canForgot = email.trim().length > 0 && !pending;
 
@@ -401,7 +416,7 @@ export function AuthForm({
             <input
               id="auth-phone"
               type="tel"
-              inputMode="numeric"
+              inputMode="tel"
               placeholder="300 123 4567"
               className="input-base"
               value={phone}
@@ -417,7 +432,8 @@ export function AuthForm({
                 lineHeight: 1.4,
               }}
             >
-              Te avisamos por WhatsApp cuando alguien se una y cuando tu partido se complete.
+              Te avisamos por WhatsApp cuando alguien se una y cuando tu partido se complete. ¿No
+              eres de Colombia? Escribe tu número con código de país, ej. +56 9 1234 5678.
             </p>
           </div>
         )}

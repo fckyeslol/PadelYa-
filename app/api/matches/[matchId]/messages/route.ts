@@ -24,6 +24,15 @@ async function canSendMessage(
   if (!match) return false;
   if (match.host_player_id === userId) return true;
 
+  // Organizers (admins) can use any match chat, even when they are neither the
+  // host nor an enrolled player. Mirrors the `canChat` gate in the match page.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.role === "organizer") return true;
+
   const { data: player } = await supabase
     .from("match_players")
     .select("status")

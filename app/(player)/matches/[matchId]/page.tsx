@@ -15,6 +15,8 @@ import { MatchPaymentCheckout } from "@/components/payment/MatchPaymentCheckout"
 
 import { WhatsAppShareButton } from "@/components/match/WhatsAppShareButton";
 import { getPlayersForMatch } from "@/services/matches/operations";
+import { getMatchContactsForOrganizer } from "@/services/matches/organizer-contacts";
+import { OrganizerContactList } from "@/components/organizer/OrganizerContactList";
 import { getMatchById } from "@/services/matches/service";
 import { getCurrentProfile } from "@/services/profiles/service";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -241,6 +243,12 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
       (myPlayer.status === "paid" || myPlayer.status === "pending_payment"));
   const canRecordResult = (isCompleted || isConfirmed) && canChat;
 
+  // Organizer-only: contact list (names + phones) to call/WhatsApp players.
+  const isOrganizer = profile?.role === "organizer";
+  const organizerContacts = isOrganizer
+    ? await getMatchContactsForOrganizer(match!.id)
+    : [];
+
   const eventJsonLd = isOpen
     ? {
         "@context": "https://schema.org",
@@ -392,6 +400,16 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
             Toca el nombre de un jugador para ver su perfil público y conectar.
           </p>
         </Section>
+
+        {/* Organizer-only contact list */}
+        {isOrganizer && (
+          <Section
+            title="Contactos del partido"
+            subtitle="Solo visible para organizadores · teléfonos para llamar o escribir por WhatsApp"
+          >
+            <OrganizerContactList contacts={organizerContacts} />
+          </Section>
+        )}
 
         {/* Join / payment */}
         <Section>

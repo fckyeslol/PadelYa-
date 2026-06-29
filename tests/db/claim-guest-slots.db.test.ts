@@ -12,7 +12,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { Client } from "pg";
+import type { Client } from "pg";
+import { createIsolatedDb } from "../helpers/pg-db";
 
 const url = process.env.TEST_DATABASE_URL;
 const d = url ? describe : describe.skip;
@@ -29,10 +30,10 @@ const MATCH2 = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
 d("claim_guest_slots (real SQL against Postgres)", () => {
   let db: Client;
+  let dropDb: () => Promise<void>;
 
   beforeAll(async () => {
-    db = new Client({ connectionString: url });
-    await db.connect();
+    ({ client: db, drop: dropDb } = await createIsolatedDb("claim"));
     // Supabase-only roles referenced by the migration's REVOKE (no IF NOT EXISTS
     // for CREATE ROLE in Postgres → create them defensively).
     for (const r of ["anon", "authenticated"]) {
@@ -64,7 +65,7 @@ d("claim_guest_slots (real SQL against Postgres)", () => {
   });
 
   afterAll(async () => {
-    await db?.end();
+    await dropDb?.();
   });
 
   beforeEach(async () => {

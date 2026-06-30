@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import {
-  getAvailableTimeSlotsWithDuration,
   getAvailableDurationsForVenue,
   getPlayerFeeByVenueNameWithDuration,
   hasPricingForVenueName,
-  isRuleBasedVenueName,
   PRICED_VENUE_NAMES,
 } from "@/config/pricing";
 import { formatCop } from "@/utils/currency";
@@ -99,24 +97,11 @@ function playerFeeForSlot(
   return getPlayerFeeByVenueNameWithDuration(venueName.trim(), date, time, durationMinutes);
 }
 
-function slotsForVenueAndDate(
-  venueName: string,
-  dateValue: string,
-  bookableTimes: Set<string> | null,
-  durationMinutes: 60 | 90 | 120,
-  _isRuleBased: boolean,
-) {
-  const priced = getAvailableTimeSlotsWithDuration(venueName, dateValue, durationMinutes);
-  if (!priced.length) return [];
-
-  const allowed = new Set(priced);
-  let base = slotsForDate(dateValue).filter((s) => allowed.has(s.value));
-
-  // All EasyCancha venues filter by real availability (sync or realtime)
+// Horarios reservables = los que devuelve el endpoint (precio EN VIVO/reglas ∩
+// disponibilidad real de EasyCancha), intersectados con la grilla del día (filtra pasados).
+function slotsForVenueAndDate(dateValue: string, bookableTimes: Set<string> | null) {
   if (bookableTimes === null) return [];
-  base = base.filter((s) => bookableTimes.has(s.value));
-
-  return base;
+  return slotsForDate(dateValue).filter((s) => bookableTimes.has(s.value));
 }
 
 const ROW: React.CSSProperties = {
@@ -149,11 +134,19 @@ export function MatchForm() {
   const [pending, startTransition] = useTransition();
   const [bookableTimes, setBookableTimes] = useState<Set<string> | null>(null);
   const [freeCourtsByTime, setFreeCourtsByTime] = useState<Record<string, number>>({});
+  const [feeByTime, setFeeByTime] = useState<Record<string, number>>({});
   const [totalCourts, setTotalCourts] = useState(0);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
-  const isRuleBased = isRuleBasedVenueName(venueName);
   const availableDurations = getAvailableDurationsForVenue(venueName);
+
+  // Tarifa por horario: prioriza el precio EN VIVO del endpoint; cae a reglas (sync)
+  // mientras carga o si no hubo dato en vivo. Live == reglas hoy, así que es seamless.
+  const feeForSlot = useCallback(
+    (time: string): number | null =>
+      feeByTime[time] ?? playerFeeForSlot(venueName, matchDate, time, durationMinutes),
+    [feeByTime, venueName, matchDate, durationMinutes],
+  );
 
   useEffect(() => {
     if (availableDurations.length === 1 && durationMinutes !== availableDurations[0]) {
@@ -182,10 +175,12 @@ export function MatchForm() {
             bookableTimes?: string[];
             freeCourtsByTime?: Record<string, number>;
             totalCourts?: number;
+            feeByTime?: Record<string, number>;
           }) => {
             if (!cancelled) {
               setBookableTimes(new Set(data.bookableTimes ?? []));
               setFreeCourtsByTime(data.freeCourtsByTime ?? {});
+              setFeeByTime(data.feeByTime ?? {});
               setTotalCourts(data.totalCourts ?? 0);
             }
           },
@@ -194,6 +189,7 @@ export function MatchForm() {
           if (!cancelled) {
             setBookableTimes(new Set());
             setFreeCourtsByTime({});
+            setFeeByTime({});
             setTotalCourts(0);
           }
         })
@@ -210,12 +206,10 @@ export function MatchForm() {
   const hasPricedVenue = hasPricingForVenueName(venueName);
   const availableSlots =
     venueName.trim() && matchDate
-      ? slotsForVenueAndDate(venueName, matchDate, bookableTimes, durationMinutes, isRuleBased)
+      ? slotsForVenueAndDate(matchDate, bookableTimes)
       : [];
   const selectedPlayerFee =
-    matchDate && matchTime && hasPricedVenue
-      ? playerFeeForSlot(venueName, matchDate, matchTime, durationMinutes)
-      : null;
+    matchDate && matchTime && hasPricedVenue ? feeForSlot(matchTime) : null;
   const canSubmit =
     hasPricedVenue && matchDate && matchTime && selectedPlayerFee != null && !pending;
 
@@ -440,7 +434,7 @@ export function MatchForm() {
               const available = availableSlots.some((s) => s.value === t);
               if (!available) return null;
               const selected = matchTime === t;
-              const slotFee = playerFeeForSlot(venueName, matchDate, t, durationMinutes);
+              const slotFee = feeForSlot(t);
               if (slotFee == null) return null;
               return (
                 <button
@@ -481,7 +475,7 @@ export function MatchForm() {
               <div style={{ display: "flex", gap: "0.4rem", overflowX: "auto", paddingBottom: "4px", scrollbarWidth: "thin" }}>
                 {availableSlots.map((s) => {
                   const selected = matchTime === s.value;
-                  const slotFee = playerFeeForSlot(venueName, matchDate, s.value, durationMinutes);
+                  const slotFee = feeForSlot(s.value);
                   if (slotFee == null) return null;
                   return (
                     <button

@@ -10,8 +10,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "pricing:generate": "python scripts/gen_pricing.py",
-    "pricing:validate": "python scripts/validate-pricing-csv.py",
     "pricing:backfill": "npx tsx scripts/backfill-org-fees.ts",
     "matches:fix-zenter": "npx tsx scripts/fix-invalid-zenter-matches.ts",
     "easycancha:token": "npx tsx scripts/easycancha-refresh-token.ts",

@@ -9,6 +9,14 @@ export type RuleBasedVenueId = (typeof RULE_BASED_VENUE_IDS)[number];
  */
 export const PLAYER_FEE_SURCHARGE_COP = 0;
 
+/**
+ * Comisión fija de plataforma sumada al precio de cancha crudo de EasyCancha.
+ * El precio scrapeado en `easycancha_slots.price_cop` es la cancha SIN comisión;
+ * `price_cop + COURT_MARKUP_COP` = courtCop (igual que los `courtCop` de las reglas,
+ * que ya la traen incluida). Player = courtCop / 4.
+ */
+export const COURT_MARKUP_COP = 22_500;
+
 type TimeRange = { from: string; to: string; courtCop: number };
 type DayType = "weekday" | "friday" | "saturday" | "sunday";
 

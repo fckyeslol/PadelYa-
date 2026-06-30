@@ -498,9 +498,13 @@ export async function cancelPlayerSpot(matchId: string, playerId: string) {
     throw matchError ?? new Error("Match not found");
   }
 
+  if (match.status === "full") {
+    throw new Error("No puedes cancelar tu cupo cuando el partido está completo.");
+  }
+
   const hoursBeforeStart =
     (new Date(match.scheduled_at).getTime() - Date.now()) / (1000 * 60 * 60);
-  const isLate = match.status === "full" || hoursBeforeStart < 3;
+  const isLate = hoursBeforeStart < 3;
   const now = new Date().toISOString();
 
   const { data: matchPlayer, error: matchPlayerError } = await supabase

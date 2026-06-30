@@ -17,7 +17,29 @@ export function CancelSpotButton({ matchId, scheduledAt, matchStatus }: Props) {
   const hoursLeft = scheduledAt
     ? (new Date(scheduledAt).getTime() - Date.now()) / (1000 * 60 * 60)
     : Infinity;
-  const isLate = matchStatus === "full" || hoursLeft < 3;
+  const isFull = matchStatus === "full";
+  const isLate = isFull || hoursLeft < 3;
+
+  if (isFull) {
+    return (
+      <div
+        style={{
+          background: "rgba(239,68,68,0.05)",
+          border: "1px solid rgba(239,68,68,0.2)",
+          borderRadius: "12px",
+          padding: "1rem",
+          display: "flex",
+          gap: "0.5rem",
+          alignItems: "flex-start",
+        }}
+      >
+        <span style={{ fontSize: "1rem" }}>🔒</span>
+        <p style={{ fontSize: "0.82rem", color: "var(--text-2)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+          El partido está completo. No es posible cancelar tu cupo una vez el partido se llena.
+        </p>
+      </div>
+    );
+  }
 
   function cancelSpot() {
     startTransition(async () => {

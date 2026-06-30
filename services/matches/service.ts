@@ -1,5 +1,6 @@
 import { APP_CONFIG } from "@/config/business";
-import { bogotaDateAndTime, getPlayerFeeByVenueNameWithDuration } from "@/config/pricing";
+import { bogotaDateAndTime } from "@/config/pricing";
+import { resolvePlayerFeeCop } from "@/services/easycancha/pricing";
 import { assertVenueHasCourtForSlot } from "@/services/venue-portal/availability";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -139,8 +140,10 @@ export async function createMatch(input: CreateMatchInput): Promise<Match> {
 
   const durationMinutes = input.durationMinutes ?? 90;
   const { date, time } = bogotaDateAndTime(input.scheduledAt);
+  // Tarifa autoritativa: precio EN VIVO de easycancha_slots; cae a reglas si el scraping
+  // está caído o la fecha/duración no tiene captura. Se persiste en org_fee_cop (snapshot).
   const orgFeeCop =
-    getPlayerFeeByVenueNameWithDuration(input.venueName, date, time, durationMinutes) ??
+    (await resolvePlayerFeeCop(input.venueName, date, time, durationMinutes)) ??
     APP_CONFIG.defaultFeeCop;
 
   const { data, error } = await supabase

@@ -9,11 +9,13 @@ import {
 import { getEasycanchaDayAvailability } from "@/services/easycancha/availability";
 import { fetchRealtimeAvailability } from "@/services/easycancha/realtime";
 import { ensureFreshAvailability } from "@/services/easycancha/on-demand";
+import { getLivePlayerFeesByTime } from "@/services/easycancha/pricing";
 import { hotWindowDates } from "@/services/easycancha/sync";
 import {
   hasCsvPricingForVenueName,
   isRuleBasedVenueName,
   getAvailableTimeSlotsWithDuration,
+  getPlayerFeeByVenueNameWithDuration,
 } from "@/config/pricing";
 
 /**
@@ -49,10 +51,16 @@ export async function GET(request: Request) {
     const courts = await listVenueCourts(info.id);
     const courtIds = courts.map((c) => c.id);
 
-    // Horarios con precio: para rule-based usa las reglas, para CSV usa el CSV.
-    const times = isRuleBased
-      ? getAvailableTimeSlotsWithDuration(venueName, date, durationMinutes)
-      : getBookableTimeSlotsForVenue(info.id, date);
+    // Tarifas EN VIVO por horario (vacío si la duración no es el timespan nativo o el sync
+    // está caído). Cuando hay dato en vivo, ÉL define los horarios candidatos; si no, caen
+    // a las reglas (rule-based) o a horarios fijos (Casa Padel).
+    const liveFees = await getLivePlayerFeesByTime(venueName, date, durationMinutes);
+    const times =
+      liveFees.size > 0
+        ? [...liveFees.keys()]
+        : isRuleBased
+          ? getAvailableTimeSlotsWithDuration(venueName, date, durationMinutes)
+          : getBookableTimeSlotsForVenue(info.id, date);
 
     const [blocks, matches] = await Promise.all([
       loadBlocksForCourts(courtIds, date),
@@ -101,10 +109,21 @@ export async function GET(request: Request) {
 
     bookableTimes.sort((a, b) => a.localeCompare(b));
 
+    // Tarifa por horario: precio EN VIVO de easycancha_slots; cae a reglas si no hay
+    // captura fresca para esa duración/fecha. Misma lógica que el cobro al crear partido.
+    const feeByTime: Record<string, number> = {};
+    for (const time of bookableTimes) {
+      const fee =
+        liveFees.get(time) ??
+        getPlayerFeeByVenueNameWithDuration(venueName, date, time, durationMinutes);
+      if (fee != null) feeByTime[time] = fee;
+    }
+
     return NextResponse.json({
       bookableTimes,
       freeCourtsByTime,
       totalCourts: courts.length,
+      feeByTime,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error";

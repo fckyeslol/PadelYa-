@@ -9,7 +9,6 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["config/**", "utils/**", "lib/auth/**"],
-      exclude: ["config/pricing-slots.json"],
     },
   },
 });

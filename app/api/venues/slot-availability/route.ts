@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 import { getVenueInfo } from "@/config/venues";
 import {
-  getBookableTimeSlotsForVenue,
   listVenueCourts,
   loadBlocksForCourts,
   loadMatchesForCourts,
 } from "@/services/venue-portal/availability";
-import {
-  hasCsvPricingForVenueName,
-  isRuleBasedVenueName,
-  getAvailableTimeSlotsWithDuration,
-  getPlayerFeeByVenueNameWithDuration,
-} from "@/config/pricing";
+import { hasCsvPricingForVenueName, isRuleBasedVenueName } from "@/config/pricing";
+import { resolveVenueSlots } from "@/services/pricing/resolver";
 
 /**
  * Horarios reservables para una sede + fecha.
@@ -51,11 +46,10 @@ export async function GET(request: Request) {
     const courts = await listVenueCourts(info.id);
     const courtIds = courts.map((c) => c.id);
 
-    const times = isRuleBased
-      ? getAvailableTimeSlotsWithDuration(venueName, date, durationMinutes)
-      : getBookableTimeSlotsForVenue(info.id, date);
-
-    const [blocks, matches] = await Promise.all([
+    // Horarios + tarifas: manda el tarifario que cargó la sede en su portal; si no cargó,
+    // caen las reglas estáticas. Ya viene filtrado por el horario de apertura.
+    const [{ times, feeByTime, source }, blocks, matches] = await Promise.all([
+      resolveVenueSlots(venueName, date, durationMinutes),
       loadBlocksForCourts(courtIds, date),
       loadMatchesForCourts(courtIds, date),
     ]);
@@ -76,18 +70,12 @@ export async function GET(request: Request) {
 
     bookableTimes.sort((a, b) => a.localeCompare(b));
 
-    // Tarifa por horario desde las reglas (misma lógica que el cobro al crear partido).
-    const feeByTime: Record<string, number> = {};
-    for (const time of bookableTimes) {
-      const fee = getPlayerFeeByVenueNameWithDuration(venueName, date, time, durationMinutes);
-      if (fee != null) feeByTime[time] = fee;
-    }
-
     return NextResponse.json({
       bookableTimes,
       freeCourtsByTime,
       totalCourts: courts.length,
       feeByTime,
+      pricingSource: source,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error";

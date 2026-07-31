@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "@/config/business";
 import { bogotaDateAndTime } from "@/config/pricing";
-import { getPlayerFeeByVenueNameWithDuration } from "@/config/pricing";
+import { resolvePlayerFeeCop } from "@/services/pricing/resolver";
 import { assertVenueHasCourtForSlot } from "@/services/venue-portal/availability";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -140,10 +140,11 @@ export async function createMatch(input: CreateMatchInput): Promise<Match> {
 
   const durationMinutes = input.durationMinutes ?? 90;
   const { date, time } = bogotaDateAndTime(input.scheduledAt);
-  // Tarifa autoritativa desde el tarifario de config/venue-pricing-rules.ts.
-  // Se persiste en org_fee_cop (snapshot), así un cambio de tarifa no altera partidos ya creados.
+  // Tarifa autoritativa: el tarifario que cargó la sede en su portal, con las reglas
+  // estáticas como fallback. Se persiste en org_fee_cop (snapshot), así un cambio de
+  // tarifa posterior no altera partidos ya creados.
   const orgFeeCop =
-    getPlayerFeeByVenueNameWithDuration(input.venueName, date, time, durationMinutes) ??
+    (await resolvePlayerFeeCop(input.venueName, date, time, durationMinutes)) ??
     APP_CONFIG.defaultFeeCop;
 
   const { data, error } = await supabase

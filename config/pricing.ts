@@ -34,7 +34,7 @@ const STANDARD_SLOT_TIMES = slotGrid(6, 23);
  * de Casa Padel (06:00+) y esos horarios tempranos solo aparecian cuando el precio
  * venia EN VIVO del scraping; al eliminarlo se habrian perdido.
  */
-const RULE_SLOT_TIMES = slotGrid(5, 23);
+export const RULE_SLOT_TIMES = slotGrid(5, 23);
 
 // Sedes con tarifa: las 6 de EasyCancha (rule-based) + Casa Padel (fija).
 export const PRICED_VENUE_IDS = [...RULE_BASED_VENUE_IDS, CASA_PADEL_VENUE_ID];

@@ -92,13 +92,18 @@ export function WompiCheckout({
   const checkoutInFlightRef = useRef(false);
   const autoStartedRef = useRef(false);
 
+  // La tarifa puede llegar inválida (partido sin precio para ese horario). NO se
+  // puede hacer early return acá: dejaría hooks sin ejecutar y al volverse válida
+  // React vería más hooks que en el render anterior. Se evalúa como flag y el
+  // return vive debajo de TODOS los hooks.
+  const hasValidFee = orgFeeCop != null && orgFeeCop > 0;
+
   /** Load Wompi script manually so we can detect when it's already cached. */
   useEffect(() => {
-    // Already loaded from a previous navigation — use it immediately.
-    if (window.WidgetCheckout) {
-      setScriptReady(true);
-      return;
-    }
+    // Ya cargado en una navegación previa: no hace falta marcar scriptReady.
+    // El efecto que abre el widget consulta window.WidgetCheckout directamente,
+    // así que setearlo acá solo provocaba un render extra.
+    if (window.WidgetCheckout) return;
 
     const existing = document.querySelector(
       `script[src="${WOMPI_SCRIPT}"]`,
@@ -127,19 +132,6 @@ export function WompiCheckout({
     document.body.appendChild(script);
     // Don't remove on cleanup — it's a shared global resource.
   }, []);
-
-  if (orgFeeCop == null || orgFeeCop <= 0) {
-    return (
-      <div className="banner-danger" style={{ margin: "1rem 0" }}>
-        Este partido no tiene tarifa válida para el horario reservado. El organizador debe
-        actualizar la fecha u hora según EasyCancha.
-      </div>
-    );
-  }
-
-  const totalCop = orgFeeCop * Math.max(slotCount, 1);
-  const totalLabel = formatCop(totalCop);
-  const activeFunnelStep = funnelStep(step);
 
   /** Step 1: fetch checkout params from server. */
   const fetchCheckoutParams = useCallback(async () => {
@@ -173,7 +165,13 @@ export function WompiCheckout({
     // Accept either the state flag OR the global already being present (cache case).
     if (!scriptReady && !window.WidgetCheckout) return;
     if (!window.WidgetCheckout) {
+      // Camino de error al integrar un sistema externo (el script de Wompi cargó
+      // pero no expuso el widget). Reflejar ese fallo en el estado es justamente
+      // el escape hatch que documenta React para sincronizar con algo externo;
+      // no hay valor derivable del que sacarlo.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError("No se pudo cargar Wompi. Recarga la página e intenta de nuevo.");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStep("confirm");
       return;
     }
@@ -224,10 +222,28 @@ export function WompiCheckout({
 
   /** Auto-start if triggered from match activation redirect. */
   useEffect(() => {
-    if (!autoStart || autoStartedRef.current) return;
+    // hasValidFee es imprescindible acá: antes este efecto no llegaba a correr
+    // porque el early return lo cortaba. Sin el guard, un partido sin tarifa
+    // válida arrancaría el checkout solo.
+    if (!hasValidFee || !autoStart || autoStartedRef.current) return;
     autoStartedRef.current = true;
     void fetchCheckoutParams();
-  }, [autoStart, fetchCheckoutParams]);
+  }, [hasValidFee, autoStart, fetchCheckoutParams]);
+
+  // Todos los hooks ya se ejecutaron: acá sí es seguro cortar el render.
+  // (La comparación va explícita, no vía hasValidFee, para que TS estreche el tipo.)
+  if (orgFeeCop == null || orgFeeCop <= 0) {
+    return (
+      <div className="banner-danger" style={{ margin: "1rem 0" }}>
+        Este partido no tiene tarifa válida para el horario reservado. El organizador debe
+        actualizar la fecha u hora según EasyCancha.
+      </div>
+    );
+  }
+
+  const totalCop = orgFeeCop * Math.max(slotCount, 1);
+  const totalLabel = formatCop(totalCop);
+  const activeFunnelStep = funnelStep(step);
 
   return (
     <PaymentFunnelShell activeStep={activeFunnelStep}>

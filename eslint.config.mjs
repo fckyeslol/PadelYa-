@@ -13,6 +13,15 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Los scripts sueltos en .js son utilidades de Node en CommonJS que se corren
+  // a mano (`node scripts/x.js`), no forman parte del bundle. `require()` es la
+  // forma correcta ahí, así que la regla de TS no aplica.
+  {
+    files: ["scripts/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

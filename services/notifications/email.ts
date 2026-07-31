@@ -361,46 +361,60 @@ export async function sendNewMatchBroadcastEmail(input: NewMatchEmailInput) {
   const level = SKILL_LABELS_EMAIL[input.skillLevel] ?? input.skillLevel;
   const price = formatCop(input.feeCop);
   const matchUrl = `${resend.appUrl}/matches/${input.matchId}`;
+  const subject = `Nuevo partido disponible en ${input.venueName} · PadelYa!`;
 
-  const BATCH = 49;
+  // El cuerpo es idéntico para todos los destinatarios: se construye una vez.
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5; max-width: 480px;">
+      <h2 style="margin: 0 0 12px;">¡Hay un nuevo partido!</h2>
+      <p style="margin: 0 0 14px;">Se publicó un partido de pádel. ¿Te animas?</p>
+      <div style="margin: 14px 0; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px;">
+        <p style="margin: 0 0 6px;"><strong>Cancha:</strong> ${escapeHtml(input.venueName)}</p>
+        <p style="margin: 0 0 6px;"><strong>Fecha:</strong> ${escapeHtml(when)}</p>
+        <p style="margin: 0 0 6px;"><strong>Nivel:</strong> ${escapeHtml(level)}</p>
+        <p style="margin: 0;"><strong>Precio:</strong> ${escapeHtml(price)} / jugador</p>
+      </div>
+      <p style="margin: 16px 0 0;">
+        <a href="${matchUrl}" style="display: inline-block; background: #1e3a6e; color: #ffffff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+          Ver partido →
+        </a>
+      </p>
+      <p style="margin: 12px 0 0; color: #9ca3af; font-size: 12px;">
+        Recibes este correo porque tienes una cuenta en PadelYa.
+      </p>
+    </div>
+  `;
+
+  // El endpoint batch de Resend manda hasta 100 correos en UNA sola petición, así no
+  // chocamos con el rate limit (2 req/s) que antes hacía fallar (y tragar) la mayoría.
+  const BATCH = 100;
   for (let i = 0; i < input.to.length; i += BATCH) {
     const slice = input.to.slice(i, i + BATCH);
-    await Promise.all(
-      slice.map((email) =>
-        fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resend.apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: resend.from,
-            to: [email],
-            subject: `Nuevo partido disponible en ${input.venueName} · PadelYa!`,
-            html: `
-              <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5; max-width: 480px;">
-                <h2 style="margin: 0 0 12px;">¡Hay un nuevo partido!</h2>
-                <p style="margin: 0 0 14px;">Se publicó un partido de pádel. ¿Te animas?</p>
-                <div style="margin: 14px 0; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px;">
-                  <p style="margin: 0 0 6px;"><strong>Cancha:</strong> ${escapeHtml(input.venueName)}</p>
-                  <p style="margin: 0 0 6px;"><strong>Fecha:</strong> ${escapeHtml(when)}</p>
-                  <p style="margin: 0 0 6px;"><strong>Nivel:</strong> ${escapeHtml(level)}</p>
-                  <p style="margin: 0;"><strong>Precio:</strong> ${escapeHtml(price)} / jugador</p>
-                </div>
-                <p style="margin: 16px 0 0;">
-                  <a href="${matchUrl}" style="display: inline-block; background: #1e3a6e; color: #ffffff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                    Ver partido →
-                  </a>
-                </p>
-                <p style="margin: 12px 0 0; color: #9ca3af; font-size: 12px;">
-                  Recibes este correo porque tienes una cuenta en PadelYa.
-                </p>
-              </div>
-            `,
-          }),
-        }).catch(() => {})
-      )
-    );
+    const payload = slice.map((email) => ({
+      from: resend.from,
+      to: [email],
+      subject,
+      html,
+    }));
+
+    try {
+      const res = await fetch("https://api.resend.com/emails/batch", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resend.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        console.error(
+          `[Email] broadcast batch failed (${res.status}) for ${slice.length} recipients: ${body}`,
+        );
+      }
+    } catch (err) {
+      console.error("[Email] broadcast batch error", err);
+    }
   }
 }
 

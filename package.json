@@ -11,11 +11,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "pricing:backfill": "npx tsx scripts/backfill-org-fees.ts",
-    "matches:fix-zenter": "npx tsx scripts/fix-invalid-zenter-matches.ts",
-    "easycancha:token": "npx tsx scripts/easycancha-refresh-token.ts",
-    "easycancha:open": "npx tsx scripts/easycancha-open.ts",
-    "easycancha:watch": "npx tsx scripts/easycancha-watch.ts",
-    "easycancha:courts": "npx tsx scripts/easycancha-sync-courts.ts"
+    "matches:fix-zenter": "npx tsx scripts/fix-invalid-zenter-matches.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

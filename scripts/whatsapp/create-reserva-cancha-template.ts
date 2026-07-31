@@ -57,12 +57,11 @@ async function main() {
       {
         type: "BODY",
         text:
-          "🎾 ¡Partido lleno! Hay que reservar la cancha en {{1}} para {{2}}. " +
-          "Cupo por jugador: {{3}}. {{4}}",
+          "🎾 ¡Partido lleno! Reserva la cancha en {{1}} para el {{2}}. " +
+          "Precio: {{3}}. Canchas: {{4}}. Hazlo en EasyCancha.",
         example: {
-          body_text: [
-            ["Casa Padel", "jue 5 jun, 8:00 p.m.", "$24.000", "Reserva 1 cancha en EasyCancha"],
-          ],
+          // [venueName, whenStr, priceStr (precio cancha), courtsInfo (canchas libres)]
+          body_text: [["La Jaula", "vie 5 jun · 18:00", "$90.000", "2 libre(s)"]],
         },
       },
       {

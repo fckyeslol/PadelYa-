@@ -1,4 +1,3 @@
-import { EASYCANCHA_CLUBS } from "@/config/easycancha";
 import { BARRANQUILLA_VENUES, getVenueInfo } from "@/config/venues";
 import {
   RULE_BASED_VENUE_IDS,
@@ -8,13 +7,6 @@ import {
   COURT_MARKUP_COP,
 } from "@/config/venue-pricing-rules";
 
-/** Duración nativa (timespan) scrapeada por EasyCancha para una sede, o null. */
-function easycanchaNativeTimespan(venueId: string): 60 | 90 | 120 | null {
-  const club = EASYCANCHA_CLUBS.find((c) => c.venueId === venueId);
-  if (!club) return null;
-  return club.timespan === 60 ? 60 : club.timespan === 120 ? 120 : 90;
-}
-
 export { COURT_MARKUP_COP };
 
 // ─── Casa Padel: tarifa fija (ReservaDeportes, no EasyCancha) ────────────────
@@ -23,12 +15,26 @@ export const CASA_PADEL_VENUE_ID = "casa-padel";
 export const CASA_PADEL_COURT_COP = 92_500;
 export const CASA_PADEL_PLAYER_FEE_COP = 23_125;
 
-const STANDARD_SLOT_TIMES = Array.from({ length: 35 }, (_, i) => {
-  const totalMinutes = 6 * 60 + i * 30;
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  return `${String(h).padStart(2, "0")}:${m === 0 ? "00" : "30"}`;
-});
+function slotGrid(startHour: number, endHour: number): string[] {
+  const out: string[] = [];
+  for (let t = startHour * 60; t <= endHour * 60; t += 30) {
+    const h = Math.floor(t / 60);
+    const m = t % 60;
+    out.push(`${String(h).padStart(2, "0")}:${m === 0 ? "00" : "30"}`);
+  }
+  return out;
+}
+
+/** Horarios de Casa Padel (tarifa fija): 06:00–23:00. */
+const STANDARD_SLOT_TIMES = slotGrid(6, 23);
+
+/**
+ * Grilla para buscar contra las reglas. Arranca a las 05:00 porque varias sedes
+ * (Ace, La Jaula, Padel Park) tienen tarifa desde esa hora. Antes se usaba la grilla
+ * de Casa Padel (06:00+) y esos horarios tempranos solo aparecian cuando el precio
+ * venia EN VIVO del scraping; al eliminarlo se habrian perdido.
+ */
+const RULE_SLOT_TIMES = slotGrid(5, 23);
 
 // Sedes con tarifa: las 6 de EasyCancha (rule-based) + Casa Padel (fija).
 export const PRICED_VENUE_IDS = [...RULE_BASED_VENUE_IDS, CASA_PADEL_VENUE_ID];
@@ -156,13 +162,12 @@ export function getAvailableDurationsForVenue(venueName: string): (60 | 90 | 120
   const info = getVenueInfo(venueName);
   if (!info) return [];
   const durations = new Set<60 | 90 | 120>();
+  // Las duraciones salen de las reglas. Antes se sumaba aparte el timespan nativo de
+  // EasyCancha porque Padel Park 60 min solo tenia precio en vivo; ahora esa curva esta
+  // congelada en venue-pricing-rules.ts, asi que las reglas ya la cubren.
   if (isRuleBasedVenueId(info.id)) {
     for (const d of getAvailableDurations(info.id)) durations.add(d);
   }
-  // La duración nativa de EasyCancha siempre se ofrece: el precio sale EN VIVO de
-  // easycancha_slots aunque no haya regla para esa duración (ej. Padel Park 60 min).
-  const nativeTimespan = easycanchaNativeTimespan(info.id);
-  if (nativeTimespan) durations.add(nativeTimespan);
   if (info.id === CASA_PADEL_VENUE_ID) durations.add(90);
   if (durations.size === 0) return [];
   return [...durations].sort((a, b) => a - b);
@@ -176,7 +181,7 @@ export function getAvailableTimeSlotsWithDuration(
   const info = getVenueInfo(venueName);
   if (!info) return [];
   if (isRuleBasedVenueId(info.id)) {
-    const ruleSlots = STANDARD_SLOT_TIMES.filter(
+    const ruleSlots = RULE_SLOT_TIMES.filter(
       (time) => getPlayerFeeFromRules(info.id, date, time, durationMinutes) !== null,
     );
     if (ruleSlots.length > 0) return ruleSlots;

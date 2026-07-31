@@ -29,11 +29,11 @@ vi.mock("@/services/notifications/whatsapp", () => ({
   notifyMatchFull: vi.fn(),
   notifyGuestAdded: vi.fn(),
 }));
-vi.mock("@/services/easycancha/booking-alert", () => ({ sendCourtBookingHandoff: vi.fn() }));
+vi.mock("@/services/matches/court-booking-handoff", () => ({ sendCourtBookingHandoff: vi.fn() }));
 
 import { processWompiWebhook } from "@/services/payments/service";
 import * as whatsapp from "@/services/notifications/whatsapp";
-import { sendCourtBookingHandoff } from "@/services/easycancha/booking-alert";
+import { sendCourtBookingHandoff } from "@/services/matches/court-booking-handoff";
 
 const EVENTS_SECRET = "events_secret";
 const PAYER = "11111111-1111-1111-1111-111111111111";

@@ -8,7 +8,7 @@ import {
   notifyMatchFull,
   notifyGuestAdded,
 } from "@/services/notifications/whatsapp";
-import { sendCourtBookingHandoff } from "@/services/easycancha/booking-alert";
+import { sendCourtBookingHandoff } from "@/services/matches/court-booking-handoff";
 import {
   assertCapacity,
   assertGuestsNotRegisteredPlayers,
@@ -775,7 +775,7 @@ async function _handleApprovedIntent(intent: IntentRow, paymentMethod: string): 
     try {
       await sendCourtBookingHandoff({ matchId, venueName, scheduledAt });
     } catch (err) {
-      console.error("[easycancha] court booking handoff failed", err);
+      console.error("[court-booking] handoff failed", err);
     }
   }
 
@@ -900,7 +900,7 @@ async function _handleApprovedPayment({
     try {
       await sendCourtBookingHandoff({ matchId, venueName, scheduledAt });
     } catch (err) {
-      console.error("[easycancha] court booking handoff failed", err);
+      console.error("[court-booking] handoff failed", err);
     }
   }
 

@@ -1,4 +1,3 @@
-import { getEasycanchaClub } from "@/config/easycancha";
 import { formatCop } from "@/utils/currency";
 import { getResendEnv } from "@/utils/env";
 
@@ -189,79 +188,6 @@ export async function sendRefundProcessedEmail(input: RefundProcessedEmailInput)
   }
 }
 
-export type FreedSlot = {
-  clubId: number;
-  courtName: string;
-  date: string; // YYYY-MM-DD
-  startTime: string; // HH:MM:SS
-  priceCop: number | null;
-};
-
-/** Avisa que se liberaron turnos de EasyCancha que matchean un watch. */
-export async function sendSlotsAvailableEmail(to: string, slots: FreedSlot[]) {
-  const resend = getResendEnv();
-  if (!resend || slots.length === 0) return;
-
-  const rows = slots
-    .map((s) => {
-      const club = getEasycanchaClub(s.clubId)?.name ?? `Club ${s.clubId}`;
-      const when = new Date(`${s.date}T12:00:00Z`).toLocaleDateString("es-CO", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        timeZone: "America/Bogota",
-      });
-      const price = s.priceCop != null ? formatCop(s.priceCop) : "—";
-      return `<tr>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${escapeHtml(club)}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${escapeHtml(when)} · ${escapeHtml(s.startTime.slice(0, 5))}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${escapeHtml(s.courtName)}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">${escapeHtml(price)}</td>
-      </tr>`;
-    })
-    .join("");
-
-  const count = slots.length;
-  const subject =
-    count === 1 ? "Se liberó una cancha · PadelYa!" : `Se liberaron ${count} canchas · PadelYa!`;
-
-  try {
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resend.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: resend.from,
-        to: [to],
-        subject,
-        html: `
-          <div style="font-family: Arial, sans-serif; color:#111827; line-height:1.5; max-width:560px;">
-            <h2 style="margin:0 0 12px;">${count === 1 ? "Se liberó una cancha" : `Se liberaron ${count} canchas`}</h2>
-            <p style="margin:0 0 14px;">Estos turnos pasaron de ocupados a libres en EasyCancha:</p>
-            <table style="border-collapse:collapse;width:100%;font-size:14px;">
-              <thead>
-                <tr style="text-align:left;color:#6b7280;">
-                  <th style="padding:6px 10px;">Club</th>
-                  <th style="padding:6px 10px;">Cuándo</th>
-                  <th style="padding:6px 10px;">Cancha</th>
-                  <th style="padding:6px 10px;text-align:right;">Precio</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-            <p style="margin:16px 0 0;">
-              <a href="https://www.easycancha.com/book/search?country=CO" style="color:#1e3a6e;font-weight:600;">Reservar en EasyCancha →</a>
-            </p>
-          </div>
-        `,
-      }),
-    });
-  } catch {
-    // El email nunca debe romper el sync.
-  }
-}
 
 export type CourtBookingHandoff = {
   matchId: string;
@@ -269,7 +195,7 @@ export type CourtBookingHandoff = {
   date: string; // YYYY-MM-DD
   time: string; // HH:MM
   durationMinutes: number;
-  freeCourtNames: string[];
+  /** Precio de cancha estimado desde las reglas; null si no hay tarifa para ese horario. */
   priceCop: number | null;
   bookingUrl: string; // link a EasyCancha
 };
@@ -295,9 +221,6 @@ export async function sendCourtBookingEmail(h: CourtBookingHandoff) {
   });
   const price = h.priceCop != null ? formatCop(h.priceCop) : "—";
   const matchUrl = `${resend.appUrl}/matches/${h.matchId}`;
-  const courtsRow = h.freeCourtNames.length
-    ? `<strong style="color:#16a34a;">${h.freeCourtNames.length} libre(s)</strong>: ${escapeHtml(h.freeCourtNames.join(", "))}`
-    : `<strong style="color:#dc2626;">⚠️ 0 libres en EasyCancha ahora</strong> — reservá cuanto antes o coordiná alternativa`;
 
   try {
     await fetch("https://api.resend.com/emails", {
@@ -317,8 +240,7 @@ export async function sendCourtBookingEmail(h: CourtBookingHandoff) {
             <div style="margin:14px 0; padding:12px; border:1px solid #e5e7eb; border-radius:10px;">
               <p style="margin:0 0 6px;"><strong>Sede:</strong> ${escapeHtml(h.venueName)}</p>
               <p style="margin:0 0 6px;"><strong>Cuándo:</strong> ${escapeHtml(when)} · ${escapeHtml(h.time)} (${h.durationMinutes} min)</p>
-              <p style="margin:0 0 6px;"><strong>Precio a pagar en EasyCancha:</strong> ${escapeHtml(price)}</p>
-              <p style="margin:0;"><strong>Canchas:</strong> ${courtsRow}</p>
+              <p style="margin:0;"><strong>Precio estimado de cancha:</strong> ${escapeHtml(price)} <span style="color:#6b7280;">(según tarifario; confirmá en EasyCancha)</span></p>
             </div>
             <p style="margin:16px 0 8px;">
               <a href="${h.bookingUrl}" style="display:inline-block; background:#1e3a6e; color:#fff; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600;">Reservar en EasyCancha →</a>
@@ -418,85 +340,6 @@ export async function sendNewMatchBroadcastEmail(input: NewMatchEmailInput) {
   }
 }
 
-export type DownAccount = {
-  id: number;
-  label: string;
-  expiresAt: string | null;
-};
-
-/**
- * Avisa al equipo (OWNER_EMAIL) cuando una o más cuentas de EasyCancha quedan caídas
- * (token vencido o rechazado). Sin cuentas vigentes el scraping se queda sin datos, así
- * que esto es una alarma operativa: hay que correr el refresh de token de esas cuentas.
- */
-export async function sendEasycanchaAccountsDownEmail(accounts: DownAccount[]) {
-  const resend = getResendEnv();
-  // OWNER_EMAIL admite varias direcciones separadas por coma.
-  const recipients = (process.env.OWNER_EMAIL ?? "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean);
-  if (!resend || recipients.length === 0 || accounts.length === 0) return;
-
-  const rows = accounts
-    .map((a) => {
-      const when = a.expiresAt
-        ? new Date(a.expiresAt).toLocaleString("es-CO", {
-            dateStyle: "medium",
-            timeStyle: "short",
-            timeZone: "America/Bogota",
-          })
-        : "—";
-      return `<tr>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">#${a.id}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${escapeHtml(a.label)}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${escapeHtml(when)}</td>
-      </tr>`;
-    })
-    .join("");
-
-  const ids = accounts.map((a) => a.id).join(",");
-  const count = accounts.length;
-  const subject =
-    count === 1
-      ? "⚠️ Cuenta de EasyCancha caída — refrescar token"
-      : `⚠️ ${count} cuentas de EasyCancha caídas — refrescar token`;
-
-  try {
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resend.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: resend.from,
-        to: recipients,
-        subject,
-        html: `
-          <div style="font-family: Arial, sans-serif; color:#111827; line-height:1.5; max-width:560px;">
-            <h2 style="margin:0 0 12px;">${count === 1 ? "Una cuenta de EasyCancha quedó caída" : `${count} cuentas de EasyCancha quedaron caídas`}</h2>
-            <p style="margin:0 0 14px;">Su token está vencido o EasyCancha lo rechazó. Mientras estén caídas, el scraping pierde cobertura. Hay que refrescar el token:</p>
-            <table style="border-collapse:collapse;width:100%;font-size:14px;">
-              <thead>
-                <tr style="text-align:left;color:#6b7280;">
-                  <th style="padding:6px 10px;">Cuenta</th>
-                  <th style="padding:6px 10px;">Label</th>
-                  <th style="padding:6px 10px;">Token venció</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-            <p style="margin:16px 0 0; color:#6b7280; font-size:13px;">Para reactivarlas, corré:</p>
-            <pre style="margin:6px 0 0; padding:10px; background:#f3f4f6; border-radius:8px; font-size:13px; overflow:auto;">npx tsx scripts/easycancha-refresh-token.ts --only=${escapeHtml(ids)}</pre>
-          </div>
-        `,
-      }),
-    });
-  } catch {
-    // El aviso nunca debe romper el sync.
-  }
-}
 
 function escapeHtml(value: string) {
   return value

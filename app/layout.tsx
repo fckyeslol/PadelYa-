@@ -11,7 +11,7 @@ const barlowCondensed = Barlow_Condensed({
   subsets: ["latin"],
   weight: ["600", "700", "800", "900"],
   display: "swap",
-});
+})
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",

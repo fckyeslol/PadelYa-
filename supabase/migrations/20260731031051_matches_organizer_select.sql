@@ -1,3 +1,9 @@
+-- Renombrada de 20260629030000 el 2026-07-30: el fix estaba commiteado en main
+-- desde junio pero la migracion NUNCA se aplico en prod — las dos policies
+-- viejas seguian ahi y el bug (#18) seguia vivo en produccion. Se aplico el
+-- 2026-07-30 y quedo registrada como 20260731031051; el archivo se renombra
+-- para que repo y registro coincidan 1:1.
+--
 -- Allow organizers (admins) to read ANY match, regardless of status.
 --
 -- The organizer dashboard surfaces matches in every status — including

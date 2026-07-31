@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { UserButton } from "@/components/UserButton";
+
+/** Suscripción al scroll para useSyncExternalStore (evita setState dentro de un efecto). */
+function subscribeToScroll(onChange: () => void): () => void {
+  window.addEventListener("scroll", onChange, { passive: true });
+  return () => window.removeEventListener("scroll", onChange);
+}
+
+const HOME_SCROLL_THRESHOLD_PX = 48;
 
 type Props = {
   profile: {
@@ -16,20 +24,20 @@ type Props = {
 export function SiteHeader({ profile }: Props) {
   const pathname = usePathname();
   const isHome = pathname === "/";
-  const [homeScrolled, setHomeScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+  // El menú móvil guarda EN QUÉ ruta se abrió, y "abierto" se deriva de comparar
+  // con la ruta actual. Así se cierra solo al navegar — incluido el logo y el
+  // back/forward del browser — sin un efecto que sincronice estado con estado.
+  const [menuOpenedAt, setMenuOpenedAt] = useState<string | null>(null);
+  const mobileOpen = menuOpenedAt === pathname;
+  const setMobileOpen = (open: boolean) => setMenuOpenedAt(open ? pathname : null);
 
-  useEffect(() => {
-    if (!isHome) { setHomeScrolled(false); return; }
-    const onScroll = () => setHomeScrolled(window.scrollY > 48);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [isHome]);
+  const scrolled = useSyncExternalStore(
+    subscribeToScroll,
+    () => window.scrollY > HOME_SCROLL_THRESHOLD_PX,
+    () => false, // snapshot del servidor: nunca scrolleado
+  );
+  const homeScrolled = isHome && scrolled;
 
   const homeHeaderClass = isHome
     ? `site-header--home${homeScrolled ? " site-header--home-scrolled" : ""}`
@@ -109,7 +117,7 @@ export function SiteHeader({ profile }: Props) {
           {/* Hamburger — mobile only */}
           <button
             className="md:hidden flex items-center"
-            onClick={() => setMobileOpen((v) => !v)}
+            onClick={() => setMobileOpen(!mobileOpen)}
             aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={mobileOpen}
             style={{

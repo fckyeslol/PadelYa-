@@ -1,3 +1,10 @@
+-- Renombrada de 20260627130000 el 2026-07-30: igual que matches_organizer_select,
+-- el fix (#15) estaba commiteado pero la migracion nunca se aplico en prod. Los
+-- writes del organizador funcionaban solo porque la ruta POST usa service-role;
+-- el SELECT/historial/realtime del chat no. Se aplico el 2026-07-30 y quedo
+-- registrada como 20260731031100; el archivo se renombra para que repo y
+-- registro coincidan 1:1.
+--
 -- Allow organizers (admins) to read and post in any match chat.
 --
 -- The match detail page already shows the chat to organizers (`canChat`), but

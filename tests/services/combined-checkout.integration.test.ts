@@ -37,7 +37,7 @@ vi.mock("@/services/notifications/whatsapp", () => ({
   notifyMatchFull: vi.fn(),
   notifyGuestAdded: vi.fn(),
 }));
-vi.mock("@/services/easycancha/booking-alert", () => ({ sendCourtBookingHandoff: vi.fn() }));
+vi.mock("@/services/matches/court-booking-handoff", () => ({ sendCourtBookingHandoff: vi.fn() }));
 
 import { createCombinedCheckout } from "@/services/payments/service";
 

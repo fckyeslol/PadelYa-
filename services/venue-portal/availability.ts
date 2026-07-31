@@ -1,8 +1,5 @@
 import { bogotaDateAndTime, getAvailableTimeSlots, isRuleBasedVenueId } from "@/config/pricing";
 import { getVenueInfo } from "@/config/venues";
-import { getEasycanchaDayAvailability } from "@/services/easycancha/availability";
-import { ensureFreshAvailability } from "@/services/easycancha/on-demand";
-import { hotWindowDates } from "@/services/easycancha/sync";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const ACTIVE_MATCH_STATUSES = ["pending_court", "open", "full", "confirmed"] as const;
@@ -175,32 +172,16 @@ export async function assertVenueHasCourtForSlot(
     loadMatchesForCourts(courtIds, date),
   ]);
 
-  // Enforcement: para fechas fuera de la ventana caliente, asegurar data fresca antes
-  // de aplicar el tope (top-up con bucket + dedup; fail-open si no se puede).
-  let ecAvail = await getEasycanchaDayAvailability(venueName, date);
-  if (!ecAvail.hasData && !hotWindowDates().includes(date)) {
-    await ensureFreshAvailability(venueName, date);
-    ecAvail = await getEasycanchaDayAvailability(venueName, date);
-  }
-
   // Primera cancha PadelYa libre (no bloqueada, sin partido) en ese horario.
+  //
+  // Antes había además un tope contra la disponibilidad scrapeada de EasyCancha, para no
+  // crear más partidos que canchas físicamente libres allá. Se eliminó el 2026-07-30 con
+  // el scraping: ya era fail-open (sin datos frescos no aplicaba) y la reserva la confirma
+  // un humano igual. El control real son los bloqueos que la sede carga en su portal.
   const courtId =
     courts.find((c) => !blocks.has(`${c.id}:${time}`) && !matches.has(`${c.id}:${time}`))?.id ?? null;
   if (!courtId) {
     throw new Error("No hay cancha disponible en ese horario.");
-  }
-
-  // Tope EasyCancha: no crear más partidos que canchas físicamente libres allá.
-  // Sin datos ⇒ no aplica (fail-open). Cada partido PadelYa ya activo descuenta uno.
-  if (ecAvail.hasData) {
-    let activeMatchesAtTime = 0;
-    for (const key of matches.keys()) {
-      if (key.endsWith(`:${time}`)) activeMatchesAtTime++;
-    }
-    const cap = (ecAvail.freeByTime.get(time) ?? 0) - activeMatchesAtTime;
-    if (cap <= 0) {
-      throw new Error("Ese horario ya está reservado en EasyCancha.");
-    }
   }
 
   return courtId;

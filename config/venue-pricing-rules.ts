@@ -342,11 +342,25 @@ const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90 | 120
     },
   },
   /**
-   * Padel Park Barranquilla — precios EasyCancha (junio 2026).
-   * 60 min usa CSV. 120 min via reglas. courtCop = cancha + $22,500.
+   * Padel Park Barranquilla. courtCop = cancha + $22,500.
+   *
+   * Los 60 min se congelaron el 2026-07-30 desde la ULTIMA captura buena del scraping
+   * (easycancha_slots club 1442, fechas 10–16 jul 2026), justo antes de eliminar el
+   * sistema de scraping. Hasta entonces esta duracion NO tenia reglas y dependia del
+   * precio en vivo, asi que sin esto Padel Park se habria quedado solo con 120 min.
+   * Fuente muerta: revisar a mano cuando el club cambie tarifas.
    */
   "padel-park": {
     weekday: {
+      60: [
+        { from: "05:00", to: "15:30", courtCop: 72_500 },    // cancha $50k
+        { from: "15:30", to: "16:00", courtCop: 89_500 },    // cancha $67k
+        { from: "16:00", to: "16:30", courtCop: 106_500 },   // cancha $84k
+        { from: "16:30", to: "17:00", courtCop: 119_500 },   // cancha $97k
+        { from: "17:00", to: "21:00", courtCop: 132_500 },   // cancha $110k
+        { from: "21:00", to: "21:30", courtCop: 117_500 },   // cancha $95k
+        { from: "21:30", to: "22:30", courtCop: 102_500 },   // cancha $80k
+      ],
       120: [
         { from: "05:00", to: "14:00", courtCop: 122_500 },   // cancha $100k
         { from: "14:30", to: "15:00", courtCop: 139_500 },   // cancha $117k
@@ -360,7 +374,31 @@ const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90 | 120
         { from: "21:00", to: "22:00", courtCop: 197_500 },   // cancha $175k
       ],
     },
+    friday: {
+      60: [
+        { from: "05:00", to: "15:30", courtCop: 72_500 },    // cancha $50k
+        { from: "15:30", to: "16:00", courtCop: 96_000 },    // cancha $73.5k
+        { from: "16:00", to: "17:00", courtCop: 119_500 },   // cancha $97k
+        { from: "17:00", to: "21:00", courtCop: 132_500 },   // cancha $110k
+        { from: "21:00", to: "21:30", courtCop: 117_500 },   // cancha $95k
+        { from: "21:30", to: "22:30", courtCop: 102_500 },   // cancha $80k
+      ],
+      // 120 min los viernes cae a las reglas de weekday (ver getCourtCopFromRules).
+    },
     saturday: {
+      60: [
+        { from: "05:00", to: "05:30", courtCop: 72_500 },    // cancha $50k
+        { from: "05:30", to: "06:00", courtCop: 82_500 },    // cancha $60k
+        { from: "06:00", to: "08:30", courtCop: 92_500 },    // cancha $70k
+        { from: "08:30", to: "09:00", courtCop: 82_500 },    // cancha $60k
+        { from: "09:00", to: "14:30", courtCop: 72_500 },    // cancha $50k
+        { from: "14:30", to: "15:00", courtCop: 82_500 },    // cancha $60k
+        { from: "15:00", to: "15:30", courtCop: 92_500 },    // cancha $70k
+        { from: "15:30", to: "16:00", courtCop: 99_500 },    // cancha $77k
+        { from: "16:00", to: "16:30", courtCop: 106_500 },   // cancha $84k
+        { from: "16:30", to: "17:00", courtCop: 104_500 },   // cancha $82k
+        { from: "17:00", to: "22:30", courtCop: 102_500 },   // cancha $80k
+      ],
       120: [
         { from: "05:00", to: "05:30", courtCop: 142_500 },   // cancha $120k
         { from: "05:30", to: "06:00", courtCop: 152_500 },   // cancha $130k
@@ -378,6 +416,11 @@ const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90 | 120
       ],
     },
     sunday: {
+      60: [
+        { from: "07:00", to: "16:30", courtCop: 82_500 },    // cancha $60k
+        { from: "16:30", to: "17:00", courtCop: 92_500 },    // cancha $70k
+        { from: "17:00", to: "21:30", courtCop: 102_500 },   // cancha $80k
+      ],
       120: [
         { from: "07:00", to: "15:00", courtCop: 142_500 },   // cancha $120k
         { from: "15:30", to: "16:00", courtCop: 152_500 },   // cancha $130k

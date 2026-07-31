@@ -17,7 +17,7 @@ export const PLAYER_FEE_SURCHARGE_COP = 0;
  */
 export const COURT_MARKUP_COP = 22_500;
 
-type TimeRange = { from: string; to: string; courtCop: number };
+export type TimeRange = { from: string; to: string; courtCop: number };
 export type DayType = "weekday" | "friday" | "saturday" | "sunday";
 export const DAY_TYPES: readonly DayType[] = ["weekday", "friday", "saturday", "sunday"] as const;
 
@@ -475,6 +475,28 @@ export function getCourtCopFromRules(
     if (t >= toMinutes(r.from) && t < toMinutes(r.to)) return r.courtCop;
   }
   return null;
+}
+
+/**
+ * Franjas crudas del tarifario estático, tal como están escritas acá.
+ *
+ * Se usa para PRECARGAR el editor del portal: una sede que entra por primera vez ve
+ * nuestros números ya cargados y los corrige, en vez de partir de una grilla vacía.
+ * Eso evita el borde filoso de guardar una grilla parcial y quedarse reservable en una
+ * sola franja (la sustitución es por día+duración completa, no por franja).
+ *
+ * Ojo: `courtCop` YA incluye COURT_MARKUP_COP. Quien lo muestre como "precio de tu cancha"
+ * tiene que restarlo.
+ */
+export function getRuleBandsForDay(
+  venueId: string,
+  day: DayType,
+  durationMinutes: 60 | 90 | 120,
+): TimeRange[] {
+  const ranges =
+    RULES[venueId]?.[day]?.[durationMinutes] ??
+    (day === "friday" ? RULES[venueId]?.["weekday"]?.[durationMinutes] : undefined);
+  return ranges ? ranges.map((r) => ({ ...r })) : [];
 }
 
 export function getAvailableDurations(venueId: string): (60 | 90 | 120)[] {

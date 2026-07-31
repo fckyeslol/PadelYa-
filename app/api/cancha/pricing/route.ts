@@ -3,7 +3,11 @@ import { z } from "zod";
 import { requireVenueSession } from "@/lib/auth/venue";
 import { venueRouteError } from "@/lib/auth/venue-route";
 import { COURT_MARKUP_COP, DAY_TYPES } from "@/config/venue-pricing-rules";
-import { listVenuePriceRules, replaceVenuePriceRules } from "@/services/venue-portal/pricing";
+import {
+  buildSuggestedTarifario,
+  listVenuePriceRules,
+  replaceVenuePriceRules,
+} from "@/services/venue-portal/pricing";
 
 const HHMM = /^\d{2}:\d{2}$/;
 
@@ -21,12 +25,19 @@ const putSchema = z.object({
     .max(48, "Demasiadas franjas para un mismo día."),
 });
 
-/** Tarifario completo de la sede + la comisión, para que el portal muestre ambos números. */
+/**
+ * Tarifario de la sede + la comisión (para mostrar ambos números) + nuestro tarifario de
+ * referencia, que el portal usa para PRECARGAR las combinaciones que la sede aún no cargó.
+ */
 export async function GET() {
   try {
     const session = await requireVenueSession();
     const rules = await listVenuePriceRules(session.venueId);
-    return NextResponse.json({ rules, courtMarkupCop: COURT_MARKUP_COP });
+    return NextResponse.json({
+      rules,
+      courtMarkupCop: COURT_MARKUP_COP,
+      suggested: buildSuggestedTarifario(session.venueId),
+    });
   } catch (error) {
     return venueRouteError(error, "No se pudo cargar el tarifario.");
   }

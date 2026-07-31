@@ -3,7 +3,13 @@
  * Server-only: escribe con el admin client. La autorización (que la sede solo toque SU
  * `venue_id`) la hacen las rutas usando la sesión firmada; estas tablas son service-role.
  */
-import { DAY_TYPES, type DayType } from "@/config/venue-pricing-rules";
+import {
+  COURT_MARKUP_COP,
+  DAY_TYPES,
+  getRuleBandsForDay,
+  type DayType,
+} from "@/config/venue-pricing-rules";
+import { CASA_PADEL_COURT_COP, CASA_PADEL_VENUE_ID } from "@/config/pricing";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   findOverlaps,
@@ -99,6 +105,47 @@ export async function replaceVenuePriceRules(params: {
   }
 
   return (data as number | null) ?? 0;
+}
+
+export type SuggestedBand = { startTime: string; endTime: string; courtPriceCop: number };
+
+/**
+ * Tarifario NUESTRO de referencia, convertido a lo que el club entiende: precio de cancha
+ * crudo, sin comisión. Es solo una sugerencia para precargar el editor — no se guarda nada
+ * hasta que la sede aprieta Guardar.
+ *
+ * Clave del mapa: `${dayType}:${durationMinutes}`.
+ */
+export function buildSuggestedTarifario(venueId: string): Record<string, SuggestedBand[]> {
+  const out: Record<string, SuggestedBand[]> = {};
+
+  for (const day of DAY_TYPES) {
+    for (const duration of DURATIONS) {
+      const bands = getRuleBandsForDay(venueId, day, duration)
+        // courtCop del tarifario estático ya trae la comisión; el club carga el precio crudo.
+        .map((b) => ({
+          startTime: b.from,
+          endTime: b.to,
+          courtPriceCop: b.courtCop - COURT_MARKUP_COP,
+        }))
+        .filter((b) => b.courtPriceCop > 0);
+
+      if (bands.length > 0) out[`${day}:${duration}`] = bands;
+    }
+  }
+
+  // Casa Padel no está en las reglas (tarifa fija, no se reservaba por EasyCancha):
+  // se sugiere una sola franja cubriendo su jornada.
+  if (venueId === CASA_PADEL_VENUE_ID) {
+    const raw = CASA_PADEL_COURT_COP - COURT_MARKUP_COP;
+    if (raw > 0) {
+      for (const day of DAY_TYPES) {
+        out[`${day}:90`] = [{ startTime: "06:00", endTime: "23:30", courtPriceCop: raw }];
+      }
+    }
+  }
+
+  return out;
 }
 
 /** Horario de apertura por tipo de día. Devuelve una fila por día, aunque no esté cargada. */

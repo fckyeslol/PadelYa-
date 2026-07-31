@@ -35,8 +35,11 @@ export function VenuePricingBoard() {
   const [day, setDay] = useState<DayType>("weekday");
   const [duration, setDuration] = useState<60 | 90 | 120>(90);
   const [allRules, setAllRules] = useState<ApiRule[]>([]);
+  const [suggested, setSuggested] = useState<Record<string, Band[]>>({});
   const [markup, setMarkup] = useState(22_500);
   const [bands, setBands] = useState<Band[]>([]);
+  /** true si lo que se ve es NUESTRA sugerencia y la sede todavía no la guardó. */
+  const [isPrefilled, setIsPrefilled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +54,7 @@ export function VenuePricingBoard() {
       if (!res.ok) throw new Error(json.error ?? "No se pudo cargar el tarifario.");
       setAllRules(json.rules as ApiRule[]);
       setMarkup(json.courtMarkupCop as number);
+      setSuggested((json.suggested ?? {}) as Record<string, Band[]>);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo cargar el tarifario.");
     } finally {
@@ -62,9 +66,12 @@ export function VenuePricingBoard() {
     void load();
   }, [load]);
 
-  // Al cambiar de día o duración, se reconstruyen las franjas desde lo guardado.
+  // Al cambiar de día o duración: se muestra lo que la sede guardó. Si no guardó nada para
+  // esa combinación, se PRECARGA nuestro tarifario de referencia — así nunca arranca de una
+  // grilla vacía, que es cómo se cortaría la disponibilidad sin darse cuenta (al guardar,
+  // su grilla reemplaza la nuestra completa para ese día + duración).
   useEffect(() => {
-    const current = allRules
+    const savedBands = allRules
       .filter((r) => r.dayType === day && r.durationMinutes === duration)
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
       .map((r) => ({
@@ -72,9 +79,17 @@ export function VenuePricingBoard() {
         endTime: r.endTime,
         courtPriceCop: r.courtPriceCop,
       }));
-    setBands(current);
+
+    if (savedBands.length > 0) {
+      setBands(savedBands);
+      setIsPrefilled(false);
+    } else {
+      const hint = suggested[`${day}:${duration}`] ?? [];
+      setBands(hint.map((b) => ({ ...b })));
+      setIsPrefilled(hint.length > 0);
+    }
     setSaved(false);
-  }, [allRules, day, duration]);
+  }, [allRules, suggested, day, duration]);
 
   /** Cuántas franjas tiene cada combinación: le dice a la sede qué le falta cargar. */
   const filledCombos = useMemo(() => {
@@ -93,6 +108,13 @@ export function VenuePricingBoard() {
 
   const removeBand = (index: number) => {
     setBands((prev) => prev.filter((_, i) => i !== index));
+    setSaved(false);
+  };
+
+  const restoreSuggestion = () => {
+    const hint = suggested[`${day}:${duration}`] ?? [];
+    setBands(hint.map((b) => ({ ...b })));
+    setIsPrefilled(true);
     setSaved(false);
   };
 
@@ -148,7 +170,9 @@ export function VenuePricingBoard() {
         jugadores y les mostramos ese precio al reservar.
       </p>
 
-      {usingOurPrices && !loading && (
+      {/* Cuando la grilla viene precargada, el aviso de abajo dice lo mismo pero mejor y
+          con qué hacer: no se apilan los dos. */}
+      {usingOurPrices && !loading && !isPrefilled && (
         <div
           style={{
             ...vpCardStyle,
@@ -203,6 +227,33 @@ export function VenuePricingBoard() {
         <p style={{ color: VP.text3, fontSize: "0.9rem" }}>Cargando tu tarifario…</p>
       ) : (
         <>
+          {isPrefilled && (
+            <div
+              style={{
+                ...vpCardStyle,
+                marginBottom: "0.8rem",
+                borderColor: VP.primaryMuted,
+                background: VP.primaryMuted,
+              }}
+            >
+              <p style={{ margin: 0, fontWeight: 700, color: VP.text, fontSize: "0.93rem" }}>
+                Precargamos nuestros precios de referencia
+              </p>
+              <p
+                style={{
+                  margin: "0.35rem 0 0",
+                  color: VP.text2,
+                  fontSize: "0.87rem",
+                  lineHeight: 1.5,
+                }}
+              >
+                Revisá cada franja y corregí lo que no coincida. Al guardar, esta grilla
+                reemplaza la nuestra para {DAY_TYPE_LABEL[day].toLowerCase()} en turnos de{" "}
+                {duration} min — así que dejá cargadas todas las horas en que abrís.
+              </p>
+            </div>
+          )}
+
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
             {bands.length === 0 && (
               <div style={{ ...vpCardStyle, borderStyle: "dashed", textAlign: "center" }}>
@@ -210,7 +261,9 @@ export function VenuePricingBoard() {
                   No hay franjas para {DAY_TYPE_LABEL[day].toLowerCase()} en turnos de {duration} min.
                 </p>
                 <p style={{ margin: "0.3rem 0 0", color: VP.text3, fontSize: "0.85rem" }}>
-                  Agregá una franja para empezar.
+                  {suggested[`${day}:${duration}`]?.length
+                    ? "Podés volver a cargar nuestros precios de referencia como base."
+                    : "Agregá una franja para empezar."}
                 </p>
               </div>
             )}
@@ -230,6 +283,11 @@ export function VenuePricingBoard() {
             <button type="button" onClick={addBand} style={vpGhostButtonStyle}>
               + Agregar franja
             </button>
+            {!isPrefilled && (suggested[`${day}:${duration}`]?.length ?? 0) > 0 && (
+              <button type="button" onClick={restoreSuggestion} style={vpGhostButtonStyle}>
+                Usar nuestros precios como base
+              </button>
+            )}
             <button
               type="button"
               onClick={save}

@@ -16,9 +16,10 @@ import { createIsolatedDb } from "../helpers/pg-db";
 const url = process.env.TEST_DATABASE_URL;
 const d = url ? describe : describe.skip;
 
+// Renombrada de 20260629030000 el 2026-07-30, al aplicarla por fin en prod.
 const MIGRATION = resolve(
   __dirname,
-  "../../supabase/migrations/20260629030000_matches_organizer_select.sql",
+  "../../supabase/migrations/20260731031051_matches_organizer_select.sql",
 );
 
 const ORGANIZER = "00000000-0000-0000-0000-000000000000";

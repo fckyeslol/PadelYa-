@@ -148,22 +148,19 @@ export function MatchForm() {
     [feeByTime, venueName, matchDate, durationMinutes],
   );
 
-  useEffect(() => {
-    if (availableDurations.length === 1 && durationMinutes !== availableDurations[0]) {
-      setDurationMinutes(availableDurations[0]);
-      setMatchTime("");
-    } else if (availableDurations.length > 1 && !availableDurations.includes(durationMinutes)) {
-      setDurationMinutes(availableDurations[0]);
-      setMatchTime("");
-    }
-  }, [venueName]);
+  // Faltan inputs => "sin datos", derivado en vez de reseteado desde un efecto.
+  // Evita mostrar los horarios del club anterior mientras se elige uno nuevo.
+  const hasAvailabilityInputs = Boolean(venueName.trim() && matchDate);
+  const effectiveBookableTimes = hasAvailabilityInputs ? bookableTimes : null;
 
   useEffect(() => {
-    if (!venueName.trim() || !matchDate) {
-      setBookableTimes(null);
-      return;
-    }
+    if (!hasAvailabilityInputs) return;
     let cancelled = false;
+    // Marca "cargando" apenas cambian los inputs, no cuando arranca el fetch:
+    // si se moviera adentro del setTimeout, el usuario vería 400 ms de horarios
+    // viejos sin ninguna señal. Es estado de una operación async (sistema
+    // externo), no algo derivable de otro estado.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAvailabilityLoading(true);
     const timer = setTimeout(() => {
       fetch(
@@ -201,13 +198,12 @@ export function MatchForm() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [venueName, matchDate, durationMinutes]);
+  }, [hasAvailabilityInputs, venueName, matchDate, durationMinutes]);
 
   const hasPricedVenue = hasPricingForVenueName(venueName);
-  const availableSlots =
-    venueName.trim() && matchDate
-      ? slotsForVenueAndDate(matchDate, bookableTimes)
-      : [];
+  const availableSlots = hasAvailabilityInputs
+    ? slotsForVenueAndDate(matchDate, effectiveBookableTimes)
+    : [];
   const selectedPlayerFee =
     matchDate && matchTime && hasPricedVenue ? feeForSlot(matchTime) : null;
   const canSubmit =
@@ -256,10 +252,15 @@ export function MatchForm() {
                 key={v}
                 type="button"
                 onClick={() => {
-                  setVenueName(selected ? "" : v);
+                  const nextVenue = selected ? "" : v;
+                  // La duración se ajusta acá al club elegido. Antes la corregía
+                  // un efecto después del render, así que se alcanzaba a pintar
+                  // un valor inválido (p. ej. 90 min en un club que solo da 60).
+                  const durations = getAvailableDurationsForVenue(nextVenue);
+                  setVenueName(nextVenue);
                   setMatchDate("");
                   setMatchTime("");
-                  setDurationMinutes(90);
+                  setDurationMinutes(durations.includes(90) ? 90 : (durations[0] ?? 90));
                 }}
                 style={{
                   borderRadius: "4px",
@@ -539,7 +540,7 @@ export function MatchForm() {
             <p style={{ fontSize: "0.8rem", color: "var(--text-3)", fontFamily: "var(--font-dm-sans)" }}>
               {availabilityLoading
                 ? "Comprobando disponibilidad de canchas…"
-                : bookableTimes !== null && bookableTimes.size === 0
+                : effectiveBookableTimes !== null && effectiveBookableTimes.size === 0
                   ? "No hay cancha libre en ese día. Prueba otro horario o día."
                   : "No hay horarios disponibles para este club y día. Prueba otro día o club."}
             </p>

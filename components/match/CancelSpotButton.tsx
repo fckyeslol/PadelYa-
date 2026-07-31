@@ -3,22 +3,42 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 
-interface Props {
-  matchId: string;
-  scheduledAt?: string;
-  matchStatus?: string;
+/** Horas antes del partido a partir de las cuales cancelar cuenta como tardío. */
+export const LATE_CANCELLATION_HOURS = 3;
+
+/**
+ * Calcula si un cupo ya entró en la ventana de cancelación tardía.
+ * Va acá para que lo use quien renderiza (server component), donde el reloj es
+ * el del servidor — que es la autoridad y además el que aplica la regla en la API.
+ */
+export function isWithinLateCancellationWindow(
+  scheduledAt: string | null | undefined,
+  nowMs: number,
+): boolean {
+  if (!scheduledAt) return false;
+  const hoursLeft = (new Date(scheduledAt).getTime() - nowMs) / (1000 * 60 * 60);
+  return hoursLeft < LATE_CANCELLATION_HOURS;
 }
 
-export function CancelSpotButton({ matchId, scheduledAt, matchStatus }: Props) {
+interface Props {
+  matchId: string;
+  matchStatus?: string;
+  /**
+   * Si el cupo ya está en la ventana de cancelación tardía. Lo calcula el que
+   * renderiza (con isWithinLateCancellationWindow), NO este componente: llamar
+   * Date.now() en el cuerpo del render es impuro y da resultados que cambian
+   * solos entre renders.
+   */
+  isLateWindow?: boolean;
+}
+
+export function CancelSpotButton({ matchId, matchStatus, isLateWindow = false }: Props) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const hoursLeft = scheduledAt
-    ? (new Date(scheduledAt).getTime() - Date.now()) / (1000 * 60 * 60)
-    : Infinity;
   const isFull = matchStatus === "full";
-  const isLate = isFull || hoursLeft < 3;
+  const isLate = isFull || isLateWindow;
 
   if (isFull) {
     return (

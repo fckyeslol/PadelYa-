@@ -14,8 +14,8 @@
 import { easycanchaBookingUrl, easycanchaClubIdForVenueId } from "@/config/easycancha";
 import { bogotaDateAndTime } from "@/config/pricing";
 import { getVenueInfo } from "@/config/venues";
-import { COURT_MARKUP_COP, getCourtCopFromRules } from "@/config/venue-pricing-rules";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { resolveCourtPriceCop } from "@/services/pricing/resolver";
 import { sendCourtBookingEmail } from "@/services/notifications/email";
 import { notifyTeamCourtToBook } from "@/services/notifications/whatsapp";
 import { formatCop } from "@/utils/currency";
@@ -48,9 +48,13 @@ export async function sendCourtBookingHandoff(params: {
 
   const durationMinutes = (match?.duration_minutes as number | null | undefined) ?? 90;
 
-  // Precio de cancha a pagar en el club = courtCop de las reglas menos nuestra comisión.
-  const courtCop = getCourtCopFromRules(info.id, date, time, toRuleDuration(durationMinutes));
-  const priceCop = courtCop == null ? null : courtCop - COURT_MARKUP_COP;
+  // Precio a pagarle al club: el que cargó la sede en su portal, o el del tarifario estático.
+  const priceCop = await resolveCourtPriceCop(
+    venueName,
+    date,
+    time,
+    toRuleDuration(durationMinutes),
+  );
 
   const whenDate = new Date(`${date}T12:00:00Z`).toLocaleDateString("es-CO", {
     weekday: "short",

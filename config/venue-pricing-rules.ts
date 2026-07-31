@@ -18,7 +18,15 @@ export const PLAYER_FEE_SURCHARGE_COP = 0;
 export const COURT_MARKUP_COP = 22_500;
 
 type TimeRange = { from: string; to: string; courtCop: number };
-type DayType = "weekday" | "friday" | "saturday" | "sunday";
+export type DayType = "weekday" | "friday" | "saturday" | "sunday";
+export const DAY_TYPES: readonly DayType[] = ["weekday", "friday", "saturday", "sunday"] as const;
+
+export const DAY_TYPE_LABEL: Record<DayType, string> = {
+  weekday: "Lunes a jueves",
+  friday: "Viernes",
+  saturday: "Sábado",
+  sunday: "Domingo",
+};
 
 const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90 | 120, TimeRange[]>>>>> = {
   // courtCop = cancha + $22,500 comisión para todas las canchas.
@@ -432,17 +440,23 @@ const RULES: Record<string, Partial<Record<DayType, Partial<Record<60 | 90 | 120
   },
 };
 
-function toMinutes(t: string): number {
+export function toMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 }
 
-function dayType(dateStr: string): DayType {
+/** Tipo de día de una fecha YYYY-MM-DD. Único lugar donde se decide esto. */
+export function dayType(dateStr: string): DayType {
   const dow = new Date(`${dateStr}T12:00:00`).getDay();
   if (dow === 0) return "sunday";
   if (dow === 6) return "saturday";
   if (dow === 5) return "friday";
   return "weekday";
+}
+
+/** Tarifa por jugador a partir del precio de cancha CRUDO que cobra el club. */
+export function playerFeeFromCourtPrice(courtPriceCop: number): number {
+  return Math.round((courtPriceCop + COURT_MARKUP_COP) / 4) + PLAYER_FEE_SURCHARGE_COP;
 }
 
 export function getCourtCopFromRules(

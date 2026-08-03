@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   getCourtCopFromRules,
   getPlayerFeeFromRules,
-  PLAYER_FEE_SURCHARGE_COP,
   RULE_BASED_VENUE_IDS,
 } from "@/config/venue-pricing-rules";
 

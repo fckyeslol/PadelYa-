@@ -171,7 +171,6 @@ export function WompiCheckout({
       // no hay valor derivable del que sacarlo.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setError("No se pudo cargar Wompi. Recarga la página e intenta de nuevo.");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStep("confirm");
       return;
     }

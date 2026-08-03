@@ -23,8 +23,22 @@ type ApiRule = {
   courtPriceCop: number;
 };
 
+type PricingResponse = {
+  rules: ApiRule[];
+  courtMarkupCop: number;
+  suggested?: Record<string, Band[]>;
+};
+
 const DURATIONS: (60 | 90 | 120)[] = [60, 90, 120];
 const EMPTY_BAND: Band = { startTime: "06:00", endTime: "12:00", courtPriceCop: null };
+
+/** Sin setState adentro: la comparten el effect de montaje y el refresco post-guardado. */
+async function fetchPricing(signal?: AbortSignal): Promise<PricingResponse> {
+  const res = await fetch("/api/cancha/pricing", { signal });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "No se pudo cargar el tarifario.");
+  return json as PricingResponse;
+}
 
 function playerFee(courtPriceCop: number | null, markup: number): number | null {
   if (courtPriceCop == null || courtPriceCop <= 0) return null;
@@ -45,32 +59,65 @@ export function VenuePricingBoard() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const load = useCallback(async () => {
+  const applyPricing = useCallback((json: PricingResponse) => {
+    setAllRules(json.rules);
+    setMarkup(json.courtMarkupCop);
+    setSuggested((json.suggested ?? {}) as Record<string, Band[]>);
+  }, []);
+
+  const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/cancha/pricing");
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "No se pudo cargar el tarifario.");
-      setAllRules(json.rules as ApiRule[]);
-      setMarkup(json.courtMarkupCop as number);
-      setSuggested((json.suggested ?? {}) as Record<string, Band[]>);
+      applyPricing(await fetchPricing());
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo cargar el tarifario.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyPricing]);
 
+  // `loading` ya arranca en true, así que el montaje no necesita volver a prenderlo.
   useEffect(() => {
-    void load();
-  }, [load]);
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const json = await fetchPricing(controller.signal);
+        if (controller.signal.aborted) return;
+        applyPricing(json);
+        setError(null);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : "No se pudo cargar el tarifario.");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [applyPricing]);
 
   // Al cambiar de día o duración: se muestra lo que la sede guardó. Si no guardó nada para
   // esa combinación, se PRECARGA nuestro tarifario de referencia — así nunca arranca de una
   // grilla vacía, que es cómo se cortaría la disponibilidad sin darse cuenta (al guardar,
   // su grilla reemplaza la nuestra completa para ese día + duración).
-  useEffect(() => {
+  //
+  // Se recalcula durante el render y no en un effect: es estado derivado, y hacerlo en un
+  // effect obliga a un segundo render con la grilla vieja en pantalla.
+  // https://react.dev/learn/you-might-not-need-an-effect
+  const [gridSource, setGridSource] = useState({ allRules, suggested, day, duration });
+  if (
+    gridSource.allRules !== allRules ||
+    gridSource.suggested !== suggested ||
+    gridSource.day !== day ||
+    gridSource.duration !== duration
+  ) {
+    // Recargar del server no invalida el aviso de "guardado": `save()` refresca
+    // el tarifario justo después de persistir, y limpiarlo acá hacía que el
+    // cartel apareciera y desapareciera solo. Sólo deja de aplicar cuando la
+    // sede se mueve a otra combinación, porque el aviso es de ese día + duración.
+    const comboChanged = gridSource.day !== day || gridSource.duration !== duration;
+    setGridSource({ allRules, suggested, day, duration });
+
     const savedBands = allRules
       .filter((r) => r.dayType === day && r.durationMinutes === duration)
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -88,8 +135,8 @@ export function VenuePricingBoard() {
       setBands(hint.map((b) => ({ ...b })));
       setIsPrefilled(hint.length > 0);
     }
-    setSaved(false);
-  }, [allRules, suggested, day, duration]);
+    if (comboChanged) setSaved(false);
+  }
 
   /** Cuántas franjas tiene cada combinación: le dice a la sede qué le falta cargar. */
   const filledCombos = useMemo(() => {
@@ -143,7 +190,7 @@ export function VenuePricingBoard() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "No se pudo guardar el tarifario.");
       setSaved(true);
-      await load();
+      await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar el tarifario.");
     } finally {

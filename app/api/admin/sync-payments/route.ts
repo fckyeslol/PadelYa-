@@ -12,7 +12,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getWompiPrivateKey } from "@/utils/env";
-import { processWompiWebhook } from "@/services/payments/service";
 
 function getWompiBaseUrl(privateKey: string) {
   return privateKey.startsWith("prv_test_")

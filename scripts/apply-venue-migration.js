@@ -13,7 +13,6 @@
 const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const https = require("https");
 
 const PROJECT_REF = "ttqmrgtmwspmcyuongas";
 const SQL_FILE = path.join(__dirname, "../supabase/migrations/20260520120000_venue_portal.sql");
@@ -26,7 +25,9 @@ if (!dbPassword) {
   process.exit(1);
 }
 
-const sql = fs.readFileSync(SQL_FILE, "utf8");
+// `db push` lee las migraciones por su cuenta; esto es sólo un fail-fast para
+// cortar acá, y no contra la base, si el archivo no está donde lo esperamos.
+fs.readFileSync(SQL_FILE, "utf8");
 const dbUrl = `postgresql://postgres:${encodeURIComponent(dbPassword)}@db.${PROJECT_REF}.supabase.co:5432/postgres`;
 
 console.log("Applying venue portal migration...");
@@ -37,7 +38,7 @@ try {
     stdio: "inherit",
   });
   console.log("\n✓ Migration applied successfully!");
-} catch (e) {
+} catch {
   console.error("\nFailed. Try running the SQL manually in:");
   console.error(`  https://supabase.com/dashboard/project/${PROJECT_REF}/sql/new`);
   process.exit(1);

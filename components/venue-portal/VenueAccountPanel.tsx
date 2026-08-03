@@ -35,15 +35,15 @@ export function VenueAccountPanel() {
   const [done, setDone] = useState(false);
 
   const refresh = useCallback(async () => {
-    const next = await fetchAccount();
-    if (next) setInfo(next);
+    const account = await fetchAccount();
+    if (account) setInfo(account);
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
     void (async () => {
-      const next = await fetchAccount(controller.signal);
-      if (!controller.signal.aborted && next) setInfo(next);
+      const account = await fetchAccount(controller.signal);
+      if (!controller.signal.aborted && account) setInfo(account);
     })();
     return () => controller.abort();
   }, []);

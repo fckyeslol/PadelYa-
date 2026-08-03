@@ -35,6 +35,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Lint
+        run: npm run lint
+
       # Full Vitest suite. TEST_DATABASE_URL enables the DB-gated tests
       # (the SQL claim flow) against the Postgres service above; without it
       # those specs skip.

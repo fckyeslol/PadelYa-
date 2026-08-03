@@ -11,11 +11,6 @@ export type VenueCourtRow = {
   sort_order: number;
 };
 
-function timeToMinutes(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
-
 /** Horarios del CSV para la sede en una fecha, filtrados si es hoy (Bogotá). */
 export function getBookableTimeSlotsForVenue(venueId: string, date: string): string[] {
   const todayStr = new Date().toLocaleString("sv-SE", { timeZone: "America/Bogota" }).slice(0, 10);

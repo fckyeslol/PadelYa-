@@ -7,7 +7,7 @@
  *   Authorization: only the inviter or the match host may cancel a guest.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { createStore, createFakeSupabase, type FakeStore, type Row } from "../helpers/fake-supabase";
+import { createStore, createFakeSupabase, type FakeStore } from "../helpers/fake-supabase";
 
 const h = vi.hoisted(() => ({ client: null as ReturnType<typeof createFakeSupabase> | null }));
 

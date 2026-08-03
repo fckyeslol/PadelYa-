@@ -13,6 +13,22 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Un guion bajo adelante marca lo que se declara pero no se usa a propósito:
+  // parámetros que están sólo para respetar la firma de un callback o de una
+  // interfaz. Sin esto no hay forma de distinguirlos de un descuido real.
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
   // Los scripts sueltos en .js son utilidades de Node en CommonJS que se corren
   // a mano (`node scripts/x.js`), no forman parte del bundle. `require()` es la
   // forma correcta ahí, así que la regla de TS no aplica.

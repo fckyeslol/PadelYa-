@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { DAY_TYPE_LABEL, type DayType } from "@/config/venue-pricing-rules";
 import {
   VP,
@@ -26,24 +26,26 @@ export function VenueHoursPanel() {
   const [error, setError] = useState<string | null>(null);
   const [savedDay, setSavedDay] = useState<DayType | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/cancha/hours");
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "No se pudo cargar el horario.");
-      setHours(json.hours as Hours[]);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo cargar el horario.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // `loading` ya arranca en true, así que el montaje no necesita volver a prenderlo.
   useEffect(() => {
-    void load();
-  }, [load]);
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const res = await fetch("/api/cancha/hours", { signal: controller.signal });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "No se pudo cargar el horario.");
+        if (controller.signal.aborted) return;
+        setHours(json.hours as Hours[]);
+        setError(null);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : "No se pudo cargar el horario.");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, []);
 
   const patch = (dayType: DayType, next: Partial<Hours>) => {
     setHours((prev) => prev.map((h) => (h.dayType === dayType ? { ...h, ...next } : h)));

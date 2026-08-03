@@ -13,6 +13,14 @@ import {
 
 type Court = { id: string; name: string; sortOrder: number; isActive: boolean };
 
+/** Sin setState adentro: la comparten el effect de montaje y el refresco post-mutación. */
+async function fetchCourts(signal?: AbortSignal): Promise<Court[]> {
+  const res = await fetch("/api/cancha/courts", { signal });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "No se pudieron cargar las canchas.");
+  return json.courts as Court[];
+}
+
 export function VenueCourtsPanel() {
   const [courts, setCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,13 +30,10 @@ export function VenueCourtsPanel() {
   const [editingName, setEditingName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/cancha/courts");
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "No se pudieron cargar las canchas.");
-      setCourts(json.courts as Court[]);
+      setCourts(await fetchCourts());
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudieron cargar las canchas.");
@@ -37,9 +42,24 @@ export function VenueCourtsPanel() {
     }
   }, []);
 
+  // `loading` ya arranca en true, así que el montaje no necesita volver a prenderlo.
   useEffect(() => {
-    void load();
-  }, [load]);
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const next = await fetchCourts(controller.signal);
+        if (controller.signal.aborted) return;
+        setCourts(next);
+        setError(null);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : "No se pudieron cargar las canchas.");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, []);
 
   const call = async (init: RequestInit) => {
     setBusy(true);
@@ -51,7 +71,7 @@ export function VenueCourtsPanel() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "No se pudo guardar el cambio.");
-      await load();
+      await refresh();
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar el cambio.");

@@ -13,6 +13,18 @@ import {
 
 type AccountInfo = { username: string; venueName: string; usingSeededPassword: boolean };
 
+/** Sin setState adentro: la usan tanto el effect de montaje como el refresco post-guardado. */
+async function fetchAccount(signal?: AbortSignal): Promise<AccountInfo | null> {
+  try {
+    const res = await fetch("/api/cancha/account/password", { signal });
+    const json = await res.json();
+    return res.ok ? (json as AccountInfo) : null;
+  } catch {
+    // El panel sigue siendo usable sin este dato: solo se pierde el aviso.
+    return null;
+  }
+}
+
 export function VenueAccountPanel() {
   const [info, setInfo] = useState<AccountInfo | null>(null);
   const [current, setCurrent] = useState("");
@@ -22,19 +34,19 @@ export function VenueAccountPanel() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/cancha/account/password");
-      const json = await res.json();
-      if (res.ok) setInfo(json as AccountInfo);
-    } catch {
-      // El panel sigue siendo usable sin este dato: solo se pierde el aviso.
-    }
+  const refresh = useCallback(async () => {
+    const account = await fetchAccount();
+    if (account) setInfo(account);
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    const controller = new AbortController();
+    void (async () => {
+      const account = await fetchAccount(controller.signal);
+      if (!controller.signal.aborted && account) setInfo(account);
+    })();
+    return () => controller.abort();
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +71,7 @@ export function VenueAccountPanel() {
       setCurrent("");
       setNext("");
       setConfirm("");
-      await load();
+      await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo cambiar la contraseña.");
     } finally {

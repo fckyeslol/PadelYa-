@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { sanitizeDisplayName } from "@/utils/name";
 
@@ -36,7 +35,6 @@ export function UserButton({ fullName, avatarUrl }: UserButtonProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

@@ -25,9 +25,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node 24 y no 20: las deps ya pedían >=22 y el CI corría por debajo.
+      # `undici` (dependencia directa) declara engines >=22.19.0 y jsdom 30
+      # pide ^22.22.2 || ^24.15.0. En Node 20 no existe `markAsUncloneable` en
+      # node:worker_threads, así que undici lo deja undefined y jsdom explota al
+      # construir su CacheStorage — con TODOS los tests en verde, porque es un
+      # unhandled error de carga, no una assertion.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci

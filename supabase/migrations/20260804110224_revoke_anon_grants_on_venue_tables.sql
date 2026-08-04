@@ -9,7 +9,8 @@
 --
 -- Hoy lo único que lo frena es RLS: las seis tienen RLS habilitada y CERO
 -- policies, así que anon y authenticated quedan denegados por defecto.
--- Verificado con la anon key: las cuatro tablas probadas devuelven 0 filas.
+-- Comprobado con la anon key sobre 4 de las 6 (venue_accounts, venue_courts,
+-- venue_price_rules, venue_login_attempts): las cuatro devuelven 0 filas.
 --
 -- Eso funciona, pero deja la seguridad colgando de una sola condición. Si en el
 -- futuro alguien agrega una policy permisiva pensando en un caso puntual, o hace

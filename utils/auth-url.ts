@@ -72,12 +72,35 @@ export function isAllowedAuthOrigin(origin: string): boolean {
     if (host === "localhost" || host === "127.0.0.1") {
       return true;
     }
-    if (host.endsWith(".vercel.app")) {
-      return true;
-    }
 
     if (host === "padelya.co" || host === "www.padelya.co") {
       return true;
+    }
+
+    // Sólo el host de ESTE deploy, no todo vercel.app.
+    //
+    // Antes esto era `host.endsWith(".vercel.app")`, y ese guard es el que decide
+    // a dónde se manda el magic link: `/api/auth/magic-link` toma `redirectOrigin`
+    // del body, lo pasa por acá y arma el link con el `token_hash` a mano — sin
+    // usar el `action_link` de Supabase, así que su allowlist no interviene.
+    // Con la regla vieja, un POST con `redirectOrigin: "https://x.vercel.app"`
+    // hacía que PadelYa le mandara al usuario, desde su propio dominio, un link
+    // de acceso apuntando al sitio del atacante: toma de cuenta.
+    // Las previews siguen funcionando porque Vercel les da su propio host en
+    // VERCEL_URL, que es exactamente el que se acepta acá.
+    for (const raw of [process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]) {
+      const trimmed = raw?.trim();
+      if (!trimmed) continue;
+      try {
+        const deployHost = new URL(
+          trimmed.startsWith("http") ? trimmed : `https://${trimmed}`,
+        ).hostname;
+        if (host === deployHost) {
+          return true;
+        }
+      } catch {
+        // env mal formada: se ignora y se sigue con el resto
+      }
     }
 
     try {

@@ -137,13 +137,35 @@ describe("isAllowedAuthOrigin", () => {
     expect(isAllowedAuthOrigin(origin)).toBe(false);
   });
 
-  // Comportamiento actual, documentado a propósito: el guard acepta CUALQUIER
-  // subdominio de vercel.app, no sólo los del proyecto. Cualquiera puede
-  // desplegar en vercel.app, así que esto es más ancho de lo necesario.
-  // Ver la nota en el PR: conviene acotarlo a un prefijo del proyecto.
-  it("acepta cualquier *.vercel.app (más ancho de lo necesario)", () => {
-    expect(isAllowedAuthOrigin("https://padel-ya-git-feat.vercel.app")).toBe(true);
-    expect(isAllowedAuthOrigin("https://cualquier-cosa-ajena.vercel.app")).toBe(true);
+  // El caso de toma de cuenta: /api/auth/magic-link toma `redirectOrigin` del
+  // body y arma el link con el token_hash a mano, así que lo que pase por este
+  // guard es a dónde se le manda el acceso al usuario. Un *.vercel.app ajeno NO
+  // puede pasar.
+  it.each([
+    "https://phishing.vercel.app",
+    "https://padel-ya-falso.vercel.app",
+    "https://padel-ya.vercel.app",
+  ])("rechaza el vercel.app ajeno %s", (origin) => {
+    expect(isAllowedAuthOrigin(origin)).toBe(false);
+  });
+
+  it("acepta el host del deploy actual que da VERCEL_URL (las previews siguen andando)", () => {
+    vi.stubEnv("VERCEL_URL", "padel-ya-git-feat-x.vercel.app");
+    expect(isAllowedAuthOrigin("https://padel-ya-git-feat-x.vercel.app")).toBe(true);
+
+    // Pero sólo ese, no cualquier otro del mismo dominio.
+    expect(isAllowedAuthOrigin("https://otro-deploy.vercel.app")).toBe(false);
+  });
+
+  it("acepta el host de VERCEL_PROJECT_PRODUCTION_URL", () => {
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "padel-ya-prod.vercel.app");
+    expect(isAllowedAuthOrigin("https://padel-ya-prod.vercel.app")).toBe(true);
+  });
+
+  it("ignora una env de deploy mal formada en vez de tirar", () => {
+    vi.stubEnv("VERCEL_URL", "no es una url ::: rota");
+    expect(isAllowedAuthOrigin("https://phishing.vercel.app")).toBe(false);
+    expect(isAllowedAuthOrigin("https://www.padelya.co")).toBe(true);
   });
 
   it("acepta el host de getAppUrl aunque no esté en la lista fija", () => {
@@ -164,6 +186,20 @@ describe("resolveAuthRedirectOrigin", () => {
   it("descarta un origen no permitido y cae a getAppUrl", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://www.padelya.co");
     expect(resolveAuthRedirectOrigin("https://evil.com")).toBe("https://www.padelya.co");
+  });
+
+  // Este es el punto exacto del ataque: /api/auth/magic-link:40 le pasa a esta
+  // función el `redirectOrigin` que vino en el body, y el resultado termina
+  // siendo el host del link con el token_hash que se le manda por mail al
+  // usuario. Si acá pasara el origen del atacante, sería toma de cuenta.
+  it.each([
+    "https://phishing.vercel.app",
+    "https://padel-ya-falso.vercel.app",
+    "https://evil.com",
+    "https://padelya.co.evil.com",
+  ])("descarta %s y usa el dominio propio", (origen) => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://www.padelya.co");
+    expect(resolveAuthRedirectOrigin(origen)).toBe("https://www.padelya.co");
   });
 
   it.each([undefined, "", "   "])("cae a getAppUrl con un origen %o", (origin) => {

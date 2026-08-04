@@ -52,7 +52,13 @@ export function getAppUrl(): string {
     return PRODUCTION_APP_URL;
   }
 
-  return configured ? normalizeAppUrl(configured) : "http://localhost:3000";
+  // El chequeo de "placeholder" se repite acá a propósito: sin él, este último
+  // fallback devolvía el literal "placeholder" (es truthy), y de ahí salían URLs
+  // como `placeholder/matches/<id>` en el redirect de pago de Wompi y en los
+  // links de los mails. El resto del repo trata "placeholder" como "sin
+  // configurar" (utils/env.ts); esta rama se lo había salteado.
+  const usable = configured && configured !== "placeholder" ? configured : null;
+  return usable ? normalizeAppUrl(usable) : "http://localhost:3000";
 }
 
 export function isAllowedAuthOrigin(origin: string): boolean {

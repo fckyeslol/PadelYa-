@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
-import { getClientAuthCallbackUrl } from "@/utils/auth-url";
+import { getClientAuthCallbackUrl, sanitizeNextPath } from "@/utils/auth-url";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -98,7 +98,9 @@ export function AuthForm({
         setError(mapAuthError(authError.message));
         return;
       }
-      router.push(next ?? "/matches");
+      // `next` viene de la query (/login?next=...), así que se filtra: sin esto,
+      // una URL absoluta manda al usuario recién autenticado fuera del sitio.
+      router.push(sanitizeNextPath(next) ?? "/matches");
       router.refresh();
     });
   }

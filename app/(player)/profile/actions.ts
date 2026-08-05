@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { upsertProfile } from "@/services/profiles/service";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { sanitizeNextPath } from "@/utils/auth-url";
 
 export async function updateProfileAction(formData: FormData) {
   const supabase = await getSupabaseServerClient();
@@ -32,9 +33,12 @@ export async function updateProfileAction(formData: FormData) {
     ...(skillLevel && { skillLevel }),
   });
 
-  const next = (formData.get("next") as string | null)?.trim();
+  // El guard anterior era `startsWith("/") && !startsWith("//")`, que deja pasar
+  // "/\evil.com": el navegador normaliza el backslash y termina saliendo del
+  // dominio. sanitizeNextPath cubre ese caso.
+  const next = sanitizeNextPath(formData.get("next") as string | null);
   const setup = formData.get("setup") as string | null;
-  if (setup === "1" && next && next.startsWith("/") && !next.startsWith("//")) {
+  if (setup === "1" && next) {
     redirect(next);
   }
   redirect("/profile?saved=1");

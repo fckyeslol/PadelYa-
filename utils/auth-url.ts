@@ -130,11 +130,49 @@ export function resolveAuthRedirectOrigin(requestOrigin?: string): string {
   return getAppUrl();
 }
 
+/**
+ * Deja pasar un `next` sólo si es una ruta de ESTE sitio; devuelve null si no.
+ *
+ * `next` viaja en la query (`/login?next=...`) y termina en un `router.push` o un
+ * `redirect`, así que decide a dónde va el usuario recién autenticado. Un valor
+ * sin filtrar es un redirect abierto: la víctima se loguea de verdad en PadelYa y
+ * cae en el sitio del atacante, que ya puede pedirle "confirmá tu contraseña" con
+ * la credibilidad de venir de un login legítimo.
+ *
+ * No alcanza con `startsWith("/") && !startsWith("//")`, que era el guard que
+ * había en dos lugares: los navegadores tratan `\` como `/` al parsear URLs, así
+ * que `/\evil.com` se resuelve igual que `//evil.com` y se escapa del dominio.
+ */
+export function sanitizeNextPath(next: string | null | undefined): string | null {
+  const value = next?.trim();
+  if (!value) return null;
+
+  // Tiene que ser una ruta absoluta del sitio. Esto ya descarta los esquemas
+  // (`https:`, `javascript:`, `data:`) porque ninguno arranca con "/".
+  if (!value.startsWith("/")) return null;
+  // "//host" es protocol-relative: sale del dominio.
+  if (value.startsWith("//")) return null;
+  // Cualquier backslash: el parser lo normaliza a "/" y habilita el bypass.
+  if (value.includes("\\")) return null;
+
+  // Red de seguridad: resolverla contra una base cualquiera no puede cambiar el
+  // origen. Si cambia, algo se nos escapó arriba.
+  try {
+    const base = "https://padelya.invalid";
+    const resolved = new URL(value, base);
+    if (resolved.origin !== base) return null;
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 export function buildAuthCallbackUrl(origin: string, next?: string): string {
   const base = origin.replace(/\/$/, "");
   const path = "/auth/callback";
-  if (next && next.startsWith("/") && !next.startsWith("//")) {
-    return `${base}${path}?next=${encodeURIComponent(next)}`;
+  const safeNext = sanitizeNextPath(next);
+  if (safeNext) {
+    return `${base}${path}?next=${encodeURIComponent(safeNext)}`;
   }
   return `${base}${path}`;
 }

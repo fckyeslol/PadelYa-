@@ -17,6 +17,7 @@ import {
   isAllowedAuthOrigin,
   normalizeAppUrl,
   resolveAuthRedirectOrigin,
+  sanitizeNextPath,
 } from "@/utils/auth-url";
 
 beforeEach(() => {
@@ -204,6 +205,61 @@ describe("resolveAuthRedirectOrigin", () => {
 
   it.each([undefined, "", "   "])("cae a getAppUrl con un origen %o", (origin) => {
     expect(resolveAuthRedirectOrigin(origin)).toBe("http://localhost:3000");
+  });
+});
+
+describe("sanitizeNextPath", () => {
+  it.each([
+    ["/matches", "/matches"],
+    ["/matches/abc", "/matches/abc"],
+    ["/payments?tab=1", "/payments?tab=1"],
+    ["/profile#datos", "/profile#datos"],
+    ["  /matches  ", "/matches"],
+    ["/", "/"],
+  ])("acepta la ruta interna %o -> %o", (entrada, esperado) => {
+    expect(sanitizeNextPath(entrada)).toBe(esperado);
+  });
+
+  it.each([
+    ["absoluto https", "https://evil.com"],
+    ["absoluto http", "http://evil.com"],
+    ["protocol-relative", "//evil.com"],
+    ["backslash tras la barra", "/\\evil.com"],
+    ["backslash doble", "\\\\evil.com"],
+    ["backslash mezclado", "/\\/evil.com"],
+    ["backslash en el medio", "/matches\\..\\evil.com"],
+    ["javascript:", "javascript:alert(1)"],
+    ["data:", "data:text/html,<script>1</script>"],
+    ["sin barra inicial", "matches"],
+    ["con credenciales", "https://www.padelya.co@evil.com"],
+    ["vacío", ""],
+    ["sólo espacios", "   "],
+    ["null", null],
+    ["undefined", undefined],
+  ])("rechaza %s", (_caso, entrada) => {
+    expect(sanitizeNextPath(entrada)).toBeNull();
+  });
+
+  it("lo que devuelve, resuelto contra el sitio, nunca cambia de host", () => {
+    const payloads = [
+      "/matches",
+      "/\\evil.com",
+      "//evil.com",
+      "https://evil.com",
+      "/payments?x=//evil.com",
+      "/a/../../b",
+    ];
+
+    for (const p of payloads) {
+      const safe = sanitizeNextPath(p);
+      if (safe === null) continue;
+      expect(new URL(safe, "https://www.padelya.co").hostname).toBe("www.padelya.co");
+    }
+  });
+
+  it("normaliza el path sin dejar salir del sitio", () => {
+    // Los ../ se resuelven contra la raíz: no hay forma de subir más allá.
+    expect(sanitizeNextPath("/a/../../../etc")).toBe("/etc");
   });
 });
 

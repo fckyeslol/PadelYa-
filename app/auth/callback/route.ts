@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { getPublicSupabaseEnv } from "@/utils/env";
+import { sanitizeNextPath } from "@/utils/auth-url";
 import { upsertProfile } from "@/services/profiles/service";
 
 function createCallbackSupabase(
@@ -28,7 +29,11 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-  const next = searchParams.get("next") ?? "/matches";
+  // Acá el `${origin}${next}` de abajo ya ancla el host, así que no había fuga.
+  // Se filtra igual por dos razones: consistencia con los otros consumidores de
+  // `next`, y porque un valor que rompe `new URL` hacía que NextResponse.redirect
+  // tirara y la ruta respondiera 500.
+  const next = sanitizeNextPath(searchParams.get("next")) ?? "/matches";
 
   const authError = searchParams.get("error_description") ?? searchParams.get("error");
   if (authError) {
